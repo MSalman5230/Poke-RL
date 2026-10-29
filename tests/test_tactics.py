@@ -44,7 +44,7 @@ def test_usage_stats_and_public_memory_are_explicit():
     x=e.mon_features(g,False,{'turn':4,'weather':'','conditions':[{},{}]})
     assert x[e.mon_names.index('sleep_elapsed')]==2/3
     assert x[e.mon_names.index('rest_sleep')]==1
-    assert x[e.mon_names.index('pp_0')]<1
+    assert e.move_features(g)[0][e.move_names.index('pp_fraction')]<1
 
 
 def test_native_damage_uses_correct_offensive_stats_and_fixed_damage():

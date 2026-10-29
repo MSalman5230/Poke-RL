@@ -17,17 +17,19 @@ def encode_for_model(model, encoder, observation):
 
 
 class BattleModel(nn.Module):
-    def __init__(self, width=128, layers=2, heads=4, action_context=True, heuristic_weight=0.,history_position=True):
+    def __init__(self, width=128, layers=2, heads=4, action_context=True, heuristic_weight=0.,history_position=True,identity_dropout=.25):
         super().__init__()
         encoder = Encoder()
         self.config = {"width":width,"layers":layers,"heads":heads,"action_context":action_context,"heuristic_weight":heuristic_weight,
-                       "history_position":history_position}
+                       "history_position":history_position,"identity_dropout":identity_dropout}
+        if not 0<=identity_dropout<1:raise ValueError('Identity dropout must be in [0,1)')
         k = knowledge()
         self.species_embedding = nn.Embedding(len(k.vocab["species"])+2,32)
         self.move_embedding = nn.Embedding(len(k.vocab["moves"])+2,24)
         self.item_embedding = nn.Embedding(len(k.vocab["items"])+2,16)
         self.ability_embedding = nn.Embedding(len(k.vocab["abilities"])+2,16)
-        self.mon = nn.Linear(len(encoder.mon_names)+32+4*24+16+16,width)
+        self.move_set = nn.Sequential(nn.Linear(24+len(encoder.move_names),64),nn.GELU(),nn.Linear(64,64))
+        self.mon = nn.Linear(len(encoder.mon_names)+32+64+24+16+16,width)
         self.field = nn.Linear(len(encoder.field_names),width)
         self.history = nn.Linear(24+32+len(encoder.history_names),width)
         self.segment = nn.Embedding(4,width)
@@ -39,8 +41,9 @@ class BattleModel(nn.Module):
         # particular roster member, even if the transformer understands it.
         self.action = nn.Sequential(nn.Linear(len(encoder.action_names)+24+width*(4 if action_context else 2),width),nn.GELU(),nn.Linear(width,1))
         self.value = nn.Sequential(nn.Linear(width,width),nn.GELU(),nn.Linear(width,1))
-        from .opponent_labels import label_count
-        self.opponent_action = nn.Linear(width,label_count())
+        from .opponent_labels import switch_offset
+        self.opponent_action = nn.Linear(width,switch_offset())
+        self.opponent_switch = nn.Sequential(nn.Linear(width*2,width),nn.GELU(),nn.Linear(width,1))
         self.species_type = nn.Linear(32,len(k.type_names))
         self.move_properties = nn.Linear(24,len(k.type_names)+5)
         self.register_buffer("segments",torch.tensor([0]+[1]*6+[2]*6+[3]*12,dtype=torch.long))
@@ -59,8 +62,11 @@ class BattleModel(nn.Module):
     def context(self, obs):
         items=(self.item_embedding(obs['items_prior'])*obs['items_weights'].unsqueeze(-1)).sum(-2)
         abilities=(self.ability_embedding(obs['abilities_prior'])*obs['abilities_weights'].unsqueeze(-1)).sum(-2)
+        move_rows=self.move_set(torch.cat([self.move_embedding(obs['moves']),obs['move_features']],-1))
+        mask=obs['move_mask'].unsqueeze(-1)
+        moves=(move_rows*mask).sum(-2)/mask.sum(-2).clamp(min=1)
         mons = self.mon(torch.cat([obs["pokemon"],self.species_embedding(obs["species"]),
-            self.move_embedding(obs["moves"]).flatten(-2),items,abilities],-1))
+            moves,self.move_embedding(obs['last_moves']),items,abilities],-1))
         tokens = torch.cat([self.field(obs["field"]).unsqueeze(1),mons,
                             self.history(torch.cat([self.move_embedding(obs["history_moves"]),self.species_embedding(obs['history_species']),obs["history"]],-1))],1)
         if self.config["history_position"]:
@@ -93,7 +99,10 @@ class BattleModel(nn.Module):
         # Terminal/no-choice states are evaluated only for value bootstrapping.
         mask[~mask.any(-1),0] = True
         logits = logits.masked_fill(~mask,-1e9)
-        return logits,self.value(pooled.detach() if detach_value else pooled).squeeze(-1),self.opponent_action(pooled)
+        switches=self.opponent_switch(torch.cat([context[:,7:13],pooled.unsqueeze(1).expand(-1,6,-1)],-1)).squeeze(-1)
+        switches=switches.masked_fill(~obs['opponent_switch_mask'],-1e9)
+        enemy=torch.cat([self.opponent_action(pooled),switches],-1)
+        return logits,self.value(pooled.detach() if detach_value else pooled).squeeze(-1),enemy
 
     @torch.no_grad()
     def act(self, obs, deterministic=False):
@@ -108,7 +117,7 @@ class BattleModel(nn.Module):
         from .persistence import durable_torch_save
         from .provenance import feature_signature
         durable_torch_save({"schema":1,"feature_version":FEATURE_VERSION,"knowledge_sha256":knowledge().sha256,"config":self.config,
-                    "feature_signature":feature_signature(),"opponent_labels":"semantic_move_or_switch_v1",
+                    "feature_signature":feature_signature(),"opponent_labels":"semantic_move_destination_v2",
                     "model":self.state_dict(),"metadata":metadata},path)
 
     @classmethod
@@ -130,7 +139,7 @@ class PrivilegedCritic(BattleModel):
     """Separate training-only parameters; the deployed actor has no private path."""
     def __init__(self,width=128,layers=2,heads=4):
         super().__init__(width,layers,heads,action_context=False,history_position=True)
-        del self.action,self.opponent_action,self.species_type,self.move_properties
+        del self.action,self.opponent_action,self.opponent_switch,self.species_type,self.move_properties
 
     def forward(self,obs):
         return self.value(self.context(obs)[:,0]).squeeze(-1)

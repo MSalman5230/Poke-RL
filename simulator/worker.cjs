@@ -124,8 +124,16 @@ class PublicState {
     } else if(event==='-start'&&m){
       if(p[3]==='typechange')m.types=p[4].split('/');
       else if(p[3]==='typeadd')m.types=[...new Set([...m.types,p[4]])];
-      else m.volatiles[effect(p[3])]={turn:this.turn,move:p[4]?id(p[4]):null};
-    } else if(event==='-end'&&m){delete m.volatiles[effect(p[3])];
+      else {
+        const name=effect(p[3]);
+        // These protocol suffixes are current counters, not independent effects.
+        for(const prefix of ['stockpile','perish'])if(name.startsWith(prefix))
+          for(const key of Object.keys(m.volatiles))if(key.startsWith(prefix))delete m.volatiles[key];
+        m.volatiles[name]={turn:this.turn,move:p[4]?id(p[4]):null};
+      }
+    } else if(event==='-end'&&m){const name=effect(p[3]);delete m.volatiles[name];
+      if(name==='stockpile'||name==='perishsong')for(const key of Object.keys(m.volatiles))
+        if(key.startsWith(name==='stockpile'?'stockpile':'perish'))delete m.volatiles[key];
     } else if(event==='-singleturn'&&m){m.volatiles[effect(p[3])]={turn:this.turn,single:true};
     } else if(event==='-weather'){this.weather=p[2]==='none'?'':id(p[2]);if(!p.includes('[upkeep]'))this.weather_since=this.turn;
     } else if(event==='-fieldstart'){const e=effect(p[2]);if(e.endsWith('terrain')){this.terrain=e;this.terrain_since=this.turn;}else this.pseudo[e]={turn:this.turn};

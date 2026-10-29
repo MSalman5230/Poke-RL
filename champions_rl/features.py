@@ -10,7 +10,7 @@ CONDITIONS = ("stealthrock", "spikes", "toxicspikes", "stickyweb", "reflect", "l
 WEATHER = ("", "sunnyday", "raindance", "sandstorm", "snow", "desolateland", "primordialsea")
 TERRAIN = ("", "electricterrain", "grassyterrain", "psychicterrain", "mistyterrain")
 N_ACTIONS = 134
-FEATURE_VERSION = 6
+FEATURE_VERSION = 7
 ACTION_NAMES = ["move", "switch", "preview", "mega", "power", "accuracy", "priority", "pp",
                 "physical", "special", "status", "estimated_damage", "ko_margin", "effectiveness", "stab",
                 "actor_hp", "target_hp", "speed_ratio", "heal", "recoil", "drain", "setup", "protect",
@@ -53,14 +53,21 @@ class Encoder:
         self.mon_names = ["hp", "hp_known", "seen", "active", "fainted", "selected", "selection_known", "own", "item_known", "ability_known"]
         self.mon_names += [f"boost_{s}" for s in BOOSTS] + [f"base_{s}" for s in STATS] + [f"stat_{s}" for s in STATS]
         self.mon_names += [f"type_{t}" for t in self.k.type_names] + [f"status_{s}" for s in STATUSES]
-        self.mon_names += [f"volatile_{v}" for v in VOLATILES] + [f"pp_{i}" for i in range(4)]
+        self.mon_names += [f"volatile_{v}" for v in VOLATILES]
         self.mon_names += ['sleep_elapsed','rest_sleep','toxic_stage','freeze_elapsed','status_age','entry_age','effective_speed']
-        self.mon_names += [f'volatile_age_{v}' for v in VOLATILES]+[f'move_confirmed_{i}' for i in range(4)]+[f'move_probability_{i}' for i in range(4)]
+        self.mon_names += [f'volatile_age_{v}' for v in VOLATILES]
+        self.mon_names += ['hits_received','hits_known','stockpile_layers','perish_active','perish_remaining']
+        # All slot-dependent attributes travel with their move, never in the
+        # entity vector. A masked set encoder can then ignore arbitrary order.
+        self.move_names=['pp_fraction','pp_known','pp_used','confirmed','probability','disabled',
+                         'used_this_stint','conversion_first','power','accuracy','priority',
+                         'physical','special','status']+[f'type_{t}' for t in self.k.type_names]
         self.action_names = ACTION_NAMES + [f"type_{t}" for t in self.k.type_names]
         self.field_names = ["preview", "replacement", "turn", "our_mega", "enemy_mega", "trickroom", "gravity"]
         self.field_names += [f"weather_{w}" for w in WEATHER] + [f"terrain_{t}" for t in TERRAIN]
         self.field_names += [f"side_{s}_{c}" for s in range(2) for c in CONDITIONS]
         self.field_names += ["our_fainted", "enemy_fainted"]
+        self.field_names += ['our_total_faints','enemy_total_faints','our_fallen_boost','enemy_fallen_boost']
         self.field_names += ['weather_age','terrain_age']+[f'side_age_{s}_{c}' for s in range(2) for c in CONDITIONS]
         self.history_names=['ours','opponent','turn_age_div_20']+[f'actor_slot_{i}' for i in range(6)]+['turn_order']
 
@@ -70,10 +77,6 @@ class Encoder:
         stat_rows=[(k.mon_stats(m),w) for m,w in scenarios]
         stats={s:sum(w*row[s] for row,w in stat_rows) for s in STATS}
         base = k.species_info(mon.get("species")).get("baseStats", dict.fromkeys(STATS, 0))
-        pp = [m["pp"] / max(1, m["maxpp"]) for m in mon.get("moves", []) if isinstance(m, dict)]
-        if not ours and not mon.get('set'):
-            pp=[max(0.,1-mon.get('pp_used',{}).get(mid,0)/max(1,k.moves.get(mid,{}).get('pp',1))) for mid in move_ids(mon)]
-        pp = (pp + [0.] * 4)[:4]
         selected = mon.get("selected") if ours or mon.get('set') else True if mon.get("seen") else None
         values = [mon.get("hp", 1), ours or mon.get("seen", False), mon.get("seen", False), mon.get("active", False),
                   mon.get("fainted", False), bool(selected), selected is not None, ours,
@@ -83,7 +86,7 @@ class Encoder:
         values += [t in mon.get("types", []) for t in k.type_names]
         values += [mon.get("status", "") == s for s in STATUSES]
         volatiles = set(mon.get("volatiles", {})) | set(mon.get("volatile_ids", []))
-        values += [v in volatiles for v in VOLATILES] + pp
+        values += [v in volatiles for v in VOLATILES]
         turn=(obs or {}).get('turn',0)
         progress=mon.get('status_progress',{})
         weather=(obs or {}).get('weather','')
@@ -93,9 +96,50 @@ class Encoder:
                    progress.get('freezeElapsed',0)/10,min(20,turn-mon.get('status_since',turn))/20,
                    min(20,turn-mon.get('entry_turn',turn))/20,speed/500]
         values += [min(8,max(0,turn-mon.get('volatiles',{}).get(v,{}).get('turn',turn)))/8 for v in VOLATILES]
-        selected,probabilities=self.move_hypotheses(mon)
-        values += [m in move_ids(mon) for m in selected]+probabilities
+        stockpile=max((i for i in range(1,4) if f'stockpile{i}' in volatiles),default=0)
+        perish=[i for i in range(4) if f'perish{i}' in volatiles]
+        values += [min(6,mon.get('times_attacked',0))/6,'times_attacked' in mon,
+                   stockpile/3,bool(perish),min(perish,default=0)/3]
         return values
+
+    def move_features(self,mon):
+        selected,probabilities=self.move_hypotheses(mon)
+        known=move_ids(mon)
+        details={canonical(m['id']):m for m in mon.get('moves',[]) if isinstance(m,dict)}
+        conversion='conversion' in known and bool(mon.get('set'))
+        rows=[]
+        for mid,probability in zip(selected,probabilities):
+            if not mid:
+                rows.append([0.]*len(self.move_names));continue
+            move=self.k.moves.get(mid,{})
+            exact=details.get(mid)
+            maximum=move.get('pp',1) if move.get('noPPBoosts') else (move.get('pp',1)/5+1)*4
+            used=mon.get('pp_used',{}).get(mid,0)
+            fraction=exact['pp']/max(1,exact['maxpp']) if exact else max(0.,1-used/max(1,maximum))
+            rows.append([fraction,bool(exact),min(64,used)/64,mid in known,probability,
+                         bool(exact and exact.get('disabled')),mid in mon.get('moves_this_stint',[]),
+                         conversion and mid==known[0],move.get('basePower',0)/150,move.get('accuracy',100)/100,
+                         move.get('priority',0)/7,move.get('category')=='Physical',move.get('category')=='Special',
+                         move.get('category')=='Status',*[move.get('type')==t for t in self.k.type_names]])
+        return rows
+
+    def opponent_switch_mask(self,obs):
+        # Only remove destinations disproved by PUBLIC evidence. Unseen roster
+        # members may still be in the selected trio; a known active reviver can
+        # request a fainted teammate, so that case must remain representable.
+        active=next((m for m in obs['opponent'] if m.get('active')),None)
+        can_revive=False
+        illusion_unresolved=False
+        if active:
+            known=move_ids(active)
+            can_revive=('revivalblessing' in known or len(known)<4 and
+                        'revivalblessing' in self.k.species_info(active['species']).get('learnset',[]))
+            illusion_unresolved=active.get('ability') is None and any(
+                not m.get('fainted') and not m.get('active') and
+                'illusion' in [canonical(a) for a in self.k.species_info(m['species']).get('abilities',{}).values()]
+                for m in obs['opponent'])
+        return [(not m.get('active') or illusion_unresolved) and (not m.get('fainted') or can_revive) and
+                not (m.get('set') and m.get('selected') is False) for m in obs['opponent']]
 
     def attacks(self, mon):
         return list(self.beliefs.moves(mon))
@@ -204,6 +248,10 @@ class Encoder:
                   "items": np.array([self.k.token("items", m.get("item")) for m in mons], dtype=np.int64),
                   "abilities": np.array([self.k.token("abilities", m.get("ability")) for m in mons], dtype=np.int64),
                   "moves": np.asarray([[self.k.token('moves',x) for x in self.move_hypotheses(m)[0]] for m in mons],dtype=np.int64)}
+        result['move_features']=np.asarray([self.move_features(m) for m in mons],dtype=np.float32)
+        result['move_mask']=np.asarray([[bool(x) for x in self.move_hypotheses(m)[0]] for m in mons],dtype=bool)
+        result['last_moves']=np.asarray([self.k.token('moves',m.get('last_move')) for m in mons],dtype=np.int64)
+        result['opponent_switch_mask']=np.asarray(self.opponent_switch_mask(obs),dtype=bool)
         for kind,label in [('items','Items'),('abilities','Abilities')]:
             ids=np.zeros((12,3),dtype=np.int64)
             weights=np.zeros((12,3),dtype=np.float32)
@@ -227,6 +275,8 @@ class Encoder:
         field += [obs["weather"] == w for w in WEATHER] + [obs["terrain"] == t for t in TERRAIN]
         field += [obs["conditions"][s].get(c, {}).get("layers", 0)/3 for s in range(2) for c in CONDITIONS]
         field += [sum(m["fainted"] for m in team)/3 for team in (obs["own"], obs["opponent"])]
+        faint_counts=[len(rows) for rows in obs.get('faints',[[],[]])]
+        field += [min(100,n)/100 for n in faint_counts]+[min(5,n)/5 for n in faint_counts]
         field += [min(20,max(0,obs['turn']-obs.get(k,obs['turn'])))/20 for k in ('weather_since','terrain_since')]
         field += [min(8,max(0,obs['turn']-obs['conditions'][s].get(c,{}).get('turn',obs['turn'])))/8 for s in range(2) for c in CONDITIONS]
         result["field"] = np.array(field, dtype=np.float32)
@@ -275,7 +325,7 @@ class Encoder:
     def schema(self):
         return {"version": FEATURE_VERSION, "knowledge_sha256": self.k.sha256,
                 "pokemon": self.mon_names, "actions": self.action_names, "field": self.field_names,
-                "history": self.history_names,
+                "history": self.history_names,"move_features":self.move_names,
                 "action_ids": {"0-3": "move slots", "4-7": "Mega + move", "8-13": "switch to original roster slot",
                                "14-133": "ordered 3-of-6 team preview permutations"},
                 "unknown_id": 0, "known_none_id": 1,

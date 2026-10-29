@@ -1,0 +1,27 @@
+{
+  "checkpoint_sha256": "83bd0998f6669f185aa2601b9a9fd22cc0014392ffa4263c2452c6382b6b2a7f",
+  "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
+  "corpus_sha256": "ae47d8e6ac7ced7fb585c472f08f86e51d52f839a1e49f71068754538fe48f3a",
+  "positions": 208,
+  "by_phase": {
+    "move": {
+      "positions": 172,
+      "changed": 0,
+      "max_probability_error": 5.066394805908203e-07
+    },
+    "preview": {
+      "positions": 15,
+      "changed": 0,
+      "max_probability_error": 2.980232238769531e-07
+    },
+    "switch": {
+      "positions": 21,
+      "changed": 0,
+      "max_probability_error": 3.5762786865234375e-07
+    }
+  },
+  "switch_destination_max_logit_error": 3.725290298461914e-07,
+  "rage_fist_counter_visible": true,
+  "cumulative_faints_visible": true,
+  "interpretation": "Representation audit, not a win-rate comparison. Move tests exclude Conversion because its first slot has mechanical meaning."
+}
