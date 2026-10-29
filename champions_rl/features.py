@@ -10,14 +10,15 @@ CONDITIONS = ("stealthrock", "spikes", "toxicspikes", "stickyweb", "reflect", "l
 WEATHER = ("", "sunnyday", "raindance", "sandstorm", "snow", "desolateland", "primordialsea")
 TERRAIN = ("", "electricterrain", "grassyterrain", "psychicterrain", "mistyterrain")
 N_ACTIONS = 134
-FEATURE_VERSION = 2
+FEATURE_VERSION = 3
 ACTION_NAMES = ["move", "switch", "preview", "mega", "power", "accuracy", "priority", "pp",
                 "physical", "special", "status", "estimated_damage", "ko_margin", "effectiveness", "stab",
                 "actor_hp", "target_hp", "speed_ratio", "heal", "recoil", "drain", "setup", "protect",
                 "inflict_status", "hazard", "pivot", "force_switch", "contact", "sound", "boost_atk", "boost_spa", "boost_spe",
                 "boost_def", "boost_spd", "incoming_damage", "switch_offense", "hazard_cost",
                 "coverage_mean", "coverage_worst", "coverage_backup", "lead_matchup", "team_hp",
-                "target_item_known", "target_ability_known", "force_replacement", "revive"]
+                "target_item_known", "target_ability_known", "force_replacement", "revive",
+                "damage_min", "damage_max", "ko_probability", "survival_probability", "move_first_probability", "native_tactics"]
 
 
 def move_ids(mon):
@@ -37,8 +38,12 @@ def encode_observation(encoder, config, observation):
 
 
 class Encoder:
-    def __init__(self):
+    def __init__(self,native=True,engine=None):
         self.k = knowledge()
+        from .tactics import NativeTactics
+        self.native=NativeTactics(engine) if native else None
+        from .beliefs import SetBeliefs
+        self.beliefs=SetBeliefs()
         self.priors = {}
         from .teams import TeamPool
         for name, rows in TeamPool().by_species.items():
@@ -47,17 +52,23 @@ class Encoder:
         self.mon_names += [f"boost_{s}" for s in BOOSTS] + [f"base_{s}" for s in STATS] + [f"stat_{s}" for s in STATS]
         self.mon_names += [f"type_{t}" for t in self.k.type_names] + [f"status_{s}" for s in STATUSES]
         self.mon_names += [f"volatile_{v}" for v in VOLATILES] + [f"pp_{i}" for i in range(4)]
+        self.mon_names += ['sleep_elapsed','rest_sleep','toxic_stage','freeze_elapsed','status_age','entry_age','effective_speed']
+        self.mon_names += [f'volatile_age_{v}' for v in VOLATILES]+[f'move_confirmed_{i}' for i in range(4)]+[f'move_probability_{i}' for i in range(4)]
         self.action_names = ACTION_NAMES + [f"type_{t}" for t in self.k.type_names]
         self.field_names = ["preview", "replacement", "turn", "our_mega", "enemy_mega", "trickroom", "gravity"]
         self.field_names += [f"weather_{w}" for w in WEATHER] + [f"terrain_{t}" for t in TERRAIN]
         self.field_names += [f"side_{s}_{c}" for s in range(2) for c in CONDITIONS]
         self.field_names += ["our_fainted", "enemy_fainted"]
+        self.field_names += ['weather_age','terrain_age']+[f'side_age_{s}_{c}' for s in range(2) for c in CONDITIONS]
+        self.history_names=['ours','opponent','turn_age_div_20']+[f'actor_slot_{i}' for i in range(6)]+['turn_order']
 
-    def mon_features(self, mon, ours):
+    def mon_features(self, mon, ours, obs=None):
         k = self.k
         stats = k.mon_stats(mon)
         base = k.species_info(mon.get("species")).get("baseStats", dict.fromkeys(STATS, 0))
         pp = [m["pp"] / max(1, m["maxpp"]) for m in mon.get("moves", []) if isinstance(m, dict)]
+        if not ours:
+            pp=[max(0.,1-mon.get('pp_used',{}).get(mid,0)/max(1,k.moves.get(mid,{}).get('pp',1))) for mid in move_ids(mon)]
         pp = (pp + [0.] * 4)[:4]
         selected = mon.get("selected") if ours else True if mon.get("seen") else None
         values = [mon.get("hp", 1), ours or mon.get("seen", False), mon.get("seen", False), mon.get("active", False),
@@ -69,13 +80,33 @@ class Encoder:
         values += [mon.get("status", "") == s for s in STATUSES]
         volatiles = set(mon.get("volatiles", {})) | set(mon.get("volatile_ids", []))
         values += [v in volatiles for v in VOLATILES] + pp
+        turn=(obs or {}).get('turn',0)
+        progress=mon.get('status_progress',{})
+        weather=(obs or {}).get('weather','')
+        conditions=(obs or {}).get('conditions',[{},{}])[0 if ours else 1]
+        speed=sum(w*k.effective_speed(m,weather,conditions) for m,w in self.beliefs.scenarios(mon))
+        values += [progress.get('sleepElapsed',0)/3,progress.get('sleepSource')=='rest',progress.get('toxicStage',0)/15,
+                   progress.get('freezeElapsed',0)/10,min(20,turn-mon.get('status_since',turn))/20,
+                   min(20,turn-mon.get('entry_turn',turn))/20,speed/500]
+        values += [min(8,max(0,turn-mon.get('volatiles',{}).get(v,{}).get('turn',turn)))/8 for v in VOLATILES]
+        selected,probabilities=self.move_hypotheses(mon)
+        values += [m in move_ids(mon) for m in selected]+probabilities
         return values
 
     def attacks(self, mon):
-        return move_ids(mon) or self.priors.get(mon.get("base_species", mon.get("species")), [])
+        return list(self.beliefs.moves(mon))
+
+    def move_hypotheses(self,mon):
+        probabilities=self.beliefs.moves(mon)
+        known=move_ids(mon)
+        selected=(known+[m for m in sorted(probabilities,key=lambda m:-probabilities[m]) if m not in known])[:4]
+        selected=(selected+['']*4)[:4]
+        return selected,[probabilities.get(m,0.) for m in selected]
 
     def best_damage(self, a, b, weather=""):
-        return max((self.k.damage(a, b, m, weather) for m in self.attacks(a)), default=0.)
+        targets=self.beliefs.scenarios(b)[:4]
+        return sum(w*max((sum(v*self.k.damage(actor,target,m,weather) for target,v in targets)/max(1e-9,sum(v for _,v in targets))
+                          for m in actor['set']['moves']),default=0.) for actor,w in self.beliefs.scenarios(a))
 
     def hazard_cost(self, mon, conditions):
         types = mon.get("types", [])
@@ -97,7 +128,12 @@ class Encoder:
                       target_item_known=target.get("item") is not None,
                       target_ability_known=target.get("ability") is not None,
                       force_replacement=obs["phase"] == "switch")
-        values["speed_ratio"] = min(3., k.mon_stats(actor)["spe"] / max(1, k.mon_stats(target)["spe"])) / 3
+        our_speed=k.effective_speed(actor,obs['weather'],obs['conditions'][0])
+        targets=self.beliefs.scenarios(target)
+        enemy_speeds=[(k.effective_speed(m,obs['weather'],obs['conditions'][1]),w) for m,w in targets]
+        values["speed_ratio"] = min(3.,our_speed/max(1,sum(s*w for s,w in enemy_speeds)))/3
+        reverse='trickroom' in obs['pseudo']
+        values['move_first_probability']=sum(w*(.5 if our_speed==s else float((our_speed<s) if reverse else (our_speed>s))) for s,w in enemy_speeds)
         if kind == "move":
             move = k.moves.get(action["move"], {})
             values.update(mega=action["mega"], power=move.get("basePower", 0) / 150,
@@ -105,7 +141,11 @@ class Encoder:
                           physical=move.get("category") == "Physical", special=move.get("category") == "Special",
                           status=move.get("category") == "Status")
             values["pp"] = next((m["pp"]/max(1,m["maxpp"]) for m in actor.get("moves", []) if isinstance(m, dict) and m["id"] == action["move"]), 1.)
-            damage = k.damage(actor, target, action["move"], obs["weather"], action["mega"])
+            damages=[(k.damage(actor,m,action['move'],obs['weather'],action['mega']),w) for m,w in targets]
+            damage=sum(d*w for d,w in damages)
+            values['damage_min']=min((d*.85/.925 for d,_ in damages),default=0.)
+            values['damage_max']=max((d/ .925 for d,_ in damages),default=0.)
+            values['ko_probability']=sum(w*np.mean(np.arange(85,101)/92.5*d>=target['hp']) for d,w in damages)*move.get('accuracy',100)/100
             values.update(estimated_damage=min(2., damage), ko_margin=max(-1., min(1., damage-target["hp"])),
                           effectiveness=k.effectiveness(move.get("type"), target["types"])/4,
                           stab=move.get("type") in actor["types"])
@@ -127,6 +167,9 @@ class Encoder:
             values["incoming_damage"] = min(2., self.best_damage(target, actor, obs["weather"]))
             values["switch_offense"] = min(2., self.best_damage(actor, target, obs["weather"]))
             values["hazard_cost"] = self.hazard_cost(actor, obs["conditions"][0])
+        if kind!='preview':
+            incoming=self.best_damage(target,actor,obs['weather'])
+            values['survival_probability']=float(incoming<actor.get('hp',1))
         if kind == "preview":
             # All 120 permutations are legal. Scores depend only on visible species
             # and our known sets; an opponent's moves here are usage priors.
@@ -141,22 +184,37 @@ class Encoder:
         mons = obs["own"] + obs["opponent"]
         if len(mons) != 12:
             raise ValueError("Expected six public preview species per team")
-        result = {"pokemon": np.asarray([self.mon_features(m, i < 6) for i, m in enumerate(mons)], dtype=np.float32),
+        result = {"pokemon": np.asarray([self.mon_features(m, i < 6, obs) for i, m in enumerate(mons)], dtype=np.float32),
                   "species": np.array([self.k.token("species", m["species"]) for m in mons], dtype=np.int64),
                   "items": np.array([self.k.token("items", m.get("item")) for m in mons], dtype=np.int64),
                   "abilities": np.array([self.k.token("abilities", m.get("ability")) for m in mons], dtype=np.int64),
-                  "moves": np.asarray([(list(map(lambda x:self.k.token("moves", x), move_ids(m))) + [0]*4)[:4] for m in mons], dtype=np.int64)}
+                  "moves": np.asarray([[self.k.token('moves',x) for x in self.move_hypotheses(m)[0]] for m in mons],dtype=np.int64)}
+        for kind,label in [('items','Items'),('abilities','Abilities')]:
+            ids=np.zeros((12,3),dtype=np.int64)
+            weights=np.zeros((12,3),dtype=np.float32)
+            key='item' if kind=='items' else 'ability'
+            for i,mon in enumerate(mons):
+                choices=[(mon[key],1.)] if mon.get(key) is not None else self.k.prior(mon['species'],label,3)
+                for j,(name,weight) in enumerate(choices[:3]):
+                    ids[i,j]=self.k.token(kind,name)
+                    weights[i,j]=weight
+            result[kind+'_prior']=ids
+            result[kind+'_weights']=weights
         field = [obs["phase"] == "preview", obs["phase"] == "switch", min(obs["turn"],200)/200,
                  *obs["mega"], "trickroom" in obs["pseudo"], "gravity" in obs["pseudo"]]
         field += [obs["weather"] == w for w in WEATHER] + [obs["terrain"] == t for t in TERRAIN]
         field += [obs["conditions"][s].get(c, {}).get("layers", 0)/3 for s in range(2) for c in CONDITIONS]
         field += [sum(m["fainted"] for m in team)/3 for team in (obs["own"], obs["opponent"])]
+        field += [min(20,max(0,obs['turn']-obs.get(k,obs['turn'])))/20 for k in ('weather_since','terrain_since')]
+        field += [min(8,max(0,obs['turn']-obs['conditions'][s].get(c,{}).get('turn',obs['turn'])))/8 for s in range(2) for c in CONDITIONS]
         result["field"] = np.array(field, dtype=np.float32)
         result["history_moves"] = np.zeros(12, dtype=np.int64)
-        result["history"] = np.zeros((12, 3), dtype=np.float32)
+        result["history"] = np.zeros((12, len(self.history_names)), dtype=np.float32)
+        result['history_species']=np.zeros(12,dtype=np.int64)
         for i,e in enumerate(obs["history"][-12:]):
             result["history_moves"][i] = self.k.token("moves", e.get("move"))
-            result["history"][i] = [e["side"]==0, e["side"]==1, min(20,obs["turn"]-e["turn"])/20]
+            result['history_species'][i]=self.k.token('species',e.get('species'))
+            result["history"][i] = [e["side"]==0, e["side"]==1, min(20,obs["turn"]-e["turn"])/20]+[e.get('actor')==j for j in range(6)]+[min(4,e.get('order',0))/4]
         result["actions"] = np.zeros((N_ACTIONS,len(self.action_names)),dtype=np.float32)
         result["action_moves"] = np.zeros(N_ACTIONS,dtype=np.int64)
         result["mask"] = np.zeros(N_ACTIONS,dtype=bool)
@@ -187,13 +245,14 @@ class Encoder:
             result["action_moves"][index] = self.k.token("moves", action.get("move"))
         if not result["mask"].any() and not (obs["ended"] or obs["truncated"] or obs["phase"] == "wait"):
             raise ValueError("Nonterminal decision has no legal actions")
+        if self.native:self.native.enrich(self,obs,result)
         return result
 
     def schema(self):
         return {"version": FEATURE_VERSION, "knowledge_sha256": self.k.sha256,
                 "pokemon": self.mon_names, "actions": self.action_names, "field": self.field_names,
-                "history": ["ours", "opponent", "turn_age_div_20"],
+                "history": self.history_names,
                 "action_ids": {"0-3": "move slots", "4-7": "Mega + move", "8-13": "switch to original roster slot",
                                "14-133": "ordered 3-of-6 team preview permutations"},
                 "unknown_id": 0, "known_none_id": 1,
-                "estimates": "Damage features are approximations; unknown opponent sets use priors/base stats, never engine secrets."}
+                "estimates": "Public-evidence-conditioned complete-set hypotheses weighted by usage. Damage remains approximate unless native_tactics=1; no actual hidden sets are supplied."}

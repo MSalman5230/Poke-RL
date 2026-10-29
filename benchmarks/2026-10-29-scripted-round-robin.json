@@ -1,0 +1,452 @@
+{
+  "roster": "saved",
+  "seed": 41173,
+  "games_per_pair": 64,
+  "policies": [
+    "random",
+    "damage",
+    "balanced",
+    "setup",
+    "defensive",
+    "stochastic",
+    "reference"
+  ],
+  "source_sha256": {
+    "champions_rl/__init__.py": "9f837215aa17db0e94b79a03842aa5db2eeefa1a7925d8ac21c8c77d5128c775",
+    "champions_rl/__main__.py": "3129adff95e0f38b87ab34cddfc27082c7892bcaec267ff5d40f160fdf55b44a",
+    "champions_rl/arena.py": "33b4c69528073abb791abc07021e2e078368c748f0798ac17b9e31702ffca8c6",
+    "champions_rl/cli.py": "cb8454bd391f8a699514709ee2e632ca1284913aa6215e4d352a65d2d1fb7ad8",
+    "champions_rl/engine.py": "d67405941748d1e75772fe0e702630fe3cc1244b939ff782a90cfb9b973c7b2d",
+    "champions_rl/environment.py": "faefd3901b21823188f28eb80e9ed67382eae2a9ebb083ffd87dc9534e79c2f1",
+    "champions_rl/evaluation.py": "29a899493de41b595679467bc95013ff66c9ea8b0da8a0373a7b95cb948aa8dd",
+    "champions_rl/features.py": "f39e5bcc0c42b4d0c5e5fbc312fd46c4e082af5875fe6b1907996e77919c94fd",
+    "champions_rl/integrity.py": "6e107b086c68d8177e17d9745e31d8f1acf4885c3960a0030c5b2f2d02a04970",
+    "champions_rl/knowledge.py": "61e9bd47db3ba3e0e4c7803df9130ac673830f232933ca9eef840226ef3768b1",
+    "champions_rl/model.py": "bd6b684a16f328fe93422b0a24693d0b0c9efbfc23272696a40c55832a3a28d1",
+    "champions_rl/parallel_rollouts.py": "2cd860aa7526e0a7a524e10deeafeab745848b7e68a1a4233c6bb15ef117f01f",
+    "champions_rl/parallel_training.py": "d07cd3ac475391e7275465457bcbf08cf179adcea5d63eda0b47ef8e8a41ee01",
+    "champions_rl/persistence.py": "c4055162537e2ddfd101cf3e92a12519f0a8f80cea8c4fdefb6453b2ea520e2b",
+    "champions_rl/policies.py": "45222efaa0d96d4a9568105bfd34a89acbfeccc6967665192c2b721dffff2bb7",
+    "champions_rl/reference.py": "0d594cb2156001a13dfd885173aeba3eaca8134502d06a86b26a64f4cdd949ab",
+    "champions_rl/reference_replay.py": "59b74db9a1992d8bbedd134c521d01d0e24362dcdaecb503a567bafd05bc6fc5",
+    "champions_rl/rewards.py": "5f0620b3e2ccd4baddcc0b2098f8f7bf8e6626e2a8d741499eb8deb740a993d2",
+    "champions_rl/rollout_workers.py": "2717d8eaf248f5e32e4caab0748a9bac54c9d70eb0ff0bc42c1b6d9fade90b70",
+    "champions_rl/round_robin.py": "340935473d98d01ba163b8b9b5309ad075e131bd78769323cfe76ba91a773ea2",
+    "champions_rl/teams.py": "8f873de608af7eaefc36f88b52f55ebba4672d92e5110d0fe5e52924b668d474",
+    "champions_rl/training.py": "a710b4acfe1e3a9c7f99570eade2ab5572588bd1b75400af7957547cc37284ff",
+    "simulator/worker.cjs": "4ecde5bc3cbf54adaf8553f7ff9d78483c3ec2bab7c78de995dae980aca244ae",
+    "data/sets.json": "e9cb12a56fddf6b94b228d58aea94da35d2dce53b238a5d6375e465e2e09eb19",
+    "data/teams_validation.json": "4628aa3111d070fbc427e803fd0a9b0d039d77ce6ded44958478c36927abfc52",
+    "data/knowledge.json": "12e11f7485fb8e1d188c084fd3f9e594da08e28c2890c83c35b0118bf107a471"
+  },
+  "pair_jobs_complete": 896,
+  "pair_jobs_total": 896,
+  "seconds_this_invocation": 49.71899999999994,
+  "complete": true,
+  "results": {
+    "damage vs defensive": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "stochastic vs stochastic": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "damage vs damage": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "random vs stochastic": {
+      "games": 64,
+      "score_a": 0.109375,
+      "paired_bootstrap_95": [
+        0.015625,
+        0.21875
+      ],
+      "between_seed_pair_score_sd": 0.29933193844793776,
+      "split_pairs": 1,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "damage vs balanced": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "damage vs stochastic": {
+      "games": 64,
+      "score_a": 0.59375,
+      "paired_bootstrap_95": [
+        0.484375,
+        0.71875
+      ],
+      "between_seed_pair_score_sd": 0.34089725358236606,
+      "split_pairs": 16,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "setup vs defensive": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "defensive vs defensive": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "random vs balanced": {
+      "games": 64,
+      "score_a": 0.046875,
+      "paired_bootstrap_95": [
+        0.0,
+        0.125
+      ],
+      "between_seed_pair_score_sd": 0.19200321449132043,
+      "split_pairs": 1,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "setup vs setup": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "balanced vs defensive": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "damage vs reference": {
+      "games": 64,
+      "score_a": 0.375,
+      "paired_bootstrap_95": [
+        0.21875,
+        0.53125
+      ],
+      "between_seed_pair_score_sd": 0.4841229182759271,
+      "split_pairs": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "random vs random": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "random vs setup": {
+      "games": 64,
+      "score_a": 0.046875,
+      "paired_bootstrap_95": [
+        0.0,
+        0.125
+      ],
+      "between_seed_pair_score_sd": 0.19200321449132043,
+      "split_pairs": 1,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "setup vs reference": {
+      "games": 64,
+      "score_a": 0.375,
+      "paired_bootstrap_95": [
+        0.21875,
+        0.53125
+      ],
+      "between_seed_pair_score_sd": 0.4841229182759271,
+      "split_pairs": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "damage vs setup": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "balanced vs reference": {
+      "games": 64,
+      "score_a": 0.375,
+      "paired_bootstrap_95": [
+        0.21875,
+        0.5320312499999957
+      ],
+      "between_seed_pair_score_sd": 0.4841229182759271,
+      "split_pairs": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "random vs damage": {
+      "games": 64,
+      "score_a": 0.046875,
+      "paired_bootstrap_95": [
+        0.0,
+        0.125
+      ],
+      "between_seed_pair_score_sd": 0.19200321449132043,
+      "split_pairs": 1,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "reference vs reference": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "balanced vs balanced": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "balanced vs stochastic": {
+      "games": 64,
+      "score_a": 0.59375,
+      "paired_bootstrap_95": [
+        0.46875,
+        0.7035156249999979
+      ],
+      "between_seed_pair_score_sd": 0.34089725358236606,
+      "split_pairs": 16,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "setup vs stochastic": {
+      "games": 64,
+      "score_a": 0.59375,
+      "paired_bootstrap_95": [
+        0.46875,
+        0.7035156249999979
+      ],
+      "between_seed_pair_score_sd": 0.34089725358236606,
+      "split_pairs": 16,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "random vs reference": {
+      "games": 64,
+      "score_a": 0.03125,
+      "paired_bootstrap_95": [
+        0.0,
+        0.09375
+      ],
+      "between_seed_pair_score_sd": 0.17399263633843817,
+      "split_pairs": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "balanced vs setup": {
+      "games": 64,
+      "score_a": 0.5,
+      "paired_bootstrap_95": [
+        0.5,
+        0.5
+      ],
+      "between_seed_pair_score_sd": 0.0,
+      "split_pairs": 32,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "stochastic vs reference": {
+      "games": 64,
+      "score_a": 0.328125,
+      "paired_bootstrap_95": [
+        0.171875,
+        0.484375
+      ],
+      "between_seed_pair_score_sd": 0.46113608010542834,
+      "split_pairs": 1,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "defensive vs stochastic": {
+      "games": 64,
+      "score_a": 0.59375,
+      "paired_bootstrap_95": [
+        0.484375,
+        0.703125
+      ],
+      "between_seed_pair_score_sd": 0.34089725358236606,
+      "split_pairs": 16,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "defensive vs reference": {
+      "games": 64,
+      "score_a": 0.4375,
+      "paired_bootstrap_95": [
+        0.28125,
+        0.625
+      ],
+      "between_seed_pair_score_sd": 0.49607837082461076,
+      "split_pairs": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    },
+    "random vs defensive": {
+      "games": 64,
+      "score_a": 0.046875,
+      "paired_bootstrap_95": [
+        0.0,
+        0.125
+      ],
+      "between_seed_pair_score_sd": 0.19200321449132043,
+      "split_pairs": 1,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0
+    }
+  },
+  "ranking": [
+    {
+      "policy": "reference",
+      "score": 0.6796875,
+      "games": 384
+    },
+    {
+      "policy": "defensive",
+      "score": 0.5807291666666666,
+      "games": 384
+    },
+    {
+      "policy": "damage",
+      "score": 0.5703125,
+      "games": 384
+    },
+    {
+      "policy": "balanced",
+      "score": 0.5703125,
+      "games": 384
+    },
+    {
+      "policy": "setup",
+      "score": 0.5703125,
+      "games": 384
+    },
+    {
+      "policy": "stochastic",
+      "score": 0.4739583333333333,
+      "games": 384
+    },
+    {
+      "policy": "random",
+      "score": 0.0546875,
+      "games": 384
+    }
+  ],
+  "invalid_attempts_archive": "invalid_attempts.jsonl",
+  "interpretation": "Paired seeds, same teams, swapped policies; diagonal policies are calibration. Seed variation is not an upper bound on achievable skill. Ranking is provisional if incomplete or any games failed.",
+  "recovery_note": "843 complete pairs recovered after power loss; 53 missing pairs replayed with frozen baseline code. Three pairs with simulator-process-exited errors were then replayed on identical seeds; original failed attempts retained in runtime_data/round_robin_baseline/invalid_attempts.jsonl."
+}

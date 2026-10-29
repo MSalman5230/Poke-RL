@@ -8,6 +8,12 @@ from .engine import ROOT
 STATS = ("hp", "atk", "def", "spa", "spd", "spe")
 
 
+@lru_cache(maxsize=1)
+def usage_data():
+    path=ROOT/'opponents/autoplay_reference/data/smogon/2026-09/chaos/gen9championsbssregmc-1500.json'
+    return {canonical(name):row for name,row in json.loads(path.read_text(encoding='utf-8'))['data'].items()}
+
+
 @lru_cache(maxsize=16384)
 def canonical(value):
     return re.sub(r"[^a-z0-9]", "", str(value or "").lower().replace("é", "e"))
@@ -56,18 +62,74 @@ class Knowledge:
     def mon_stats(self, mon):
         if "max_hp" in mon and all(s in mon.get("stats",{}) for s in STATS[1:]):
             return {**mon["stats"],"hp":mon["max_hp"]}
-        base = self.stats(mon.get("species", ""), mon.get("set", {}).get("evs"), mon.get("set", {}).get("nature", "Serious"))
+        if 'set' not in mon:
+            options=self.spread_prior(mon.get('species',''))
+            base={s:sum(w*self.stats(mon.get('species',''),evs,nature)[s] for nature,evs,w in options) for s in STATS}
+        else:
+            base = self.stats(mon.get("species", ""), mon.get("set", {}).get("evs"), mon.get("set", {}).get("nature", "Serious"))
         return {**base, **mon.get("stats", {}), "hp": mon.get("max_hp", base["hp"])}
+
+    def usage(self,species):
+        return usage_data().get(canonical(species),usage_data().get(canonical(self.species_info(species).get('baseSpecies')),{}))
+
+    def prior(self,species,kind,limit=4):
+        row=self.usage(species).get(kind,{})
+        entries=sorted(((canonical(n),float(v)) for n,v in row.items() if v>0),key=lambda p:-p[1])[:limit]
+        if not entries and kind=='Abilities':
+            entries=[(canonical(a),1.) for a in self.species_info(species).get('abilities',{}).values()]
+        total=sum(v for _,v in entries)
+        return [(n,v/total) for n,v in entries] if total else []
+
+    @lru_cache(maxsize=1024)
+    def spread_prior(self,species):
+        rows=sorted(self.usage(species).get('Spreads',{}).items(),key=lambda x:-x[1])[:6]
+        result=[]
+        for spread,weight in rows:
+            nature,points=spread.split(':')
+            values=list(map(int,points.split('/')))
+            if len(values)==6 and min(values)>=0 and max(values)<=32 and sum(values)<=66 and weight>0:
+                result.append((nature,dict(zip(STATS,values)),float(weight)))
+        if not result:
+            base=self.species_info(species).get('baseStats',{})
+            stat='atk' if base.get('atk',0)>=base.get('spa',0) else 'spa'
+            result=[('Jolly' if stat=='atk' else 'Timid',{'hp':2,stat:32,'spe':32},1.)]
+        total=sum(w for _,_,w in result)
+        return [(n,e,w/total) for n,e,w in result]
+
+    def effective_speed(self,mon,weather='',conditions=None):
+        speed=self.mon_stats(mon)['spe']
+        stage=mon.get('boosts',{}).get('spe',0)
+        speed=int(speed*((2+stage)/2 if stage>=0 else 2/(2-stage)))
+        ability=mon.get('ability')
+        item=mon.get('item')
+        multiplier=1.
+        if item=='choicescarf': multiplier*=1.5
+        if item in ('ironball','machobrace'): multiplier*=.5
+        if 'tailwind' in (conditions or {}): multiplier*=2
+        if (ability=='swiftswim' and weather in ('raindance','primordialsea') or
+            ability=='chlorophyll' and weather in ('sunnyday','desolateland') or
+            ability=='sandrush' and weather=='sandstorm' or ability=='slushrush' and weather in ('snow','hail')):
+            multiplier*=2
+        if ability=='quickfeet' and mon.get('status'): multiplier*=1.5
+        if ability=='unburden' and 'unburden' in mon.get('volatiles',{}): multiplier*=2
+        speed=int(speed*multiplier)
+        if mon.get('status')=='par' and ability!='quickfeet': speed//=2
+        return max(1,min(10000,speed))
 
     def damage(self, attacker, defender, move_id, weather="", mega=False):
         """Fast approximate fraction of defender HP, not an exact engine damage call.
 
-        Unknown opponent stats use uninvested Champions stats. The policy receives
-        uncertainty flags. The reference bot uses its original exact rollouts.
+        Unknown stats use a usage spread/nature prior. Native tactical probes
+        supplement this approximation; it is not an exact damage calculator.
         """
         move = self.moves.get(canonical(move_id), {})
         if move.get("category") == "Status":
             return 0.
+        mid=canonical(move_id)
+        if mid in ('seismictoss','nightshade','dragonrage','sonicboom','superfang','naturesmadness','ruination'):
+            if not self.effectiveness(move.get('type'),defender.get('types',[])): return 0.
+            fixed=50 if mid in ('seismictoss','nightshade') else 40 if mid=='dragonrage' else 20 if mid=='sonicboom' else self.mon_stats(defender)['hp']*defender.get('hp',1)/2
+            return fixed/self.mon_stats(defender)['hp']
         power = move.get("basePower", 0)
         if not power:
             power = {"seismictoss": 70, "nightshade": 70, "lowkick": 80, "grassknot": 80,
@@ -92,7 +154,8 @@ class Knowledge:
         def stage(mon, stat):
             v = mon.get("boosts", {}).get(stat, 0)
             return (2 + v) / 2 if v >= 0 else 2 / (2 - v)
-        attack = a[atk] * stage(attacker, atk)
+        if mid=='bodypress': atk='def'
+        attack = (d['atk']*stage(defender,'atk') if mid=='foulplay' else a[atk]*stage(attacker,atk))
         guard = d[defense] * stage(defender, defense)
         if defender.get("ability") == "unaware":
             attack = a[atk]
@@ -127,7 +190,10 @@ class Knowledge:
             modifier *= 1.5 if typ == "Water" else .5 if typ == "Fire" else 1
         if defender.get("hp", 1) == 1 and other_ability in ("multiscale", "shadowshield"):
             modifier *= .5
-        return max(0., ((22 * power * attack / max(1, guard)) / 50 + 2) * stab * eff * .925 * modifier / d["hp"])
+        hits=move.get('multihit') or 1
+        if isinstance(hits,list):
+            hits=hits[-1] if ability=='skilllink' else 4.5 if attacker.get('item')=='loadeddice' else 3. if hits==[2,5] else sum(hits)/2
+        return max(0., ((22 * power * attack / max(1, guard)) / 50 + 2) * stab * eff * .925 * modifier * hits / d["hp"])
 
 
 @lru_cache(maxsize=1)

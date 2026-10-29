@@ -91,7 +91,8 @@ class PublicState {
         if(!m.moves.includes(move))m.moves.push(move);
       }
       m.last_move=move;this.lastAttacker=side;
-      this.history.push({turn:this.turn,side,move});this.history=this.history.slice(-12);
+      this.history.push({turn:this.turn,side,move,actor:this.teams[side].indexOf(m),species:m.species,
+        order:this.history.filter(e=>e.turn===this.turn).length});this.history=this.history.slice(-12);
     } else if(['-damage','-heal','-sethp'].includes(event)) {
       this.hp(m,p[3]);
       if(event==='-damage'&&m?.status==='tox'&&p.includes('[from] psn'))m.status_progress.toxicStage=Math.min(15,(m.status_progress.toxicStage||0)+1);
@@ -126,8 +127,8 @@ class PublicState {
       else m.volatiles[effect(p[3])]={turn:this.turn,move:p[4]?id(p[4]):null};
     } else if(event==='-end'&&m){delete m.volatiles[effect(p[3])];
     } else if(event==='-singleturn'&&m){m.volatiles[effect(p[3])]={turn:this.turn,single:true};
-    } else if(event==='-weather'){this.weather=p[2]==='none'?'':id(p[2]);
-    } else if(event==='-fieldstart'){const e=effect(p[2]);if(e.endsWith('terrain'))this.terrain=e;else this.pseudo[e]={turn:this.turn};
+    } else if(event==='-weather'){this.weather=p[2]==='none'?'':id(p[2]);if(!p.includes('[upkeep]'))this.weather_since=this.turn;
+    } else if(event==='-fieldstart'){const e=effect(p[2]);if(e.endsWith('terrain')){this.terrain=e;this.terrain_since=this.turn;}else this.pseudo[e]={turn:this.turn};
     } else if(event==='-fieldend'){const e=effect(p[2]);if(e.endsWith('terrain'))this.terrain='';else delete this.pseudo[e];
     } else if(event==='-sidestart'&&side>=0){const e=effect(p[3]);const old=this.conditions[side][e];this.conditions[side][e]={turn:this.turn,layers:Math.min(e==='spikes'?3:e==='toxicspikes'?2:1,(old?.layers||0)+1)};
     } else if(event==='-sideend'&&side>=0){delete this.conditions[side][effect(p[3])];
@@ -194,6 +195,7 @@ class Game {
     for(const mon of opponent)delete mon.nickname; // internal slot aliases are not model features
     return {format:FORMAT,turn:pub.turn,side:i,phase:(req?.wait||side.isChoiceDone())?'wait':req?.teamPreview?'preview':req?.forceSwitch?.[0]?'switch':'move',
       own,opponent,legal:this.legal(i),weather:pub.weather,terrain:pub.terrain,pseudo:clone(pub.pseudo),
+      weather_since:pub.weather_since??pub.turn,terrain_since:pub.terrain_since??pub.turn,
       conditions:[clone(pub.conditions[i]),clone(pub.conditions[1-i])],mega:[pub.mega[i],pub.mega[1-i]],
       history:pub.history.map(e=>({...e,side:e.side===i?0:1})),
       faints:[clone(pub.faints[i]),clone(pub.faints[1-i])],
@@ -221,6 +223,7 @@ class Game {
 const games=new Map();
 function dispatch(q){
   if(q.op==='ping')return {format:FORMAT,revision:'c0845f33d381402dfcb18ce324c20a94f18af075',node:process.version};
+  if(q.op==='calculate')return q.queries.map(require('./tactics.cjs').calculate);
   if(q.op==='validate')return q.teams?q.teams.map(t=>validator.validateTeam(clone(t))):q.sets.map(s=>validator.validateSet(clone(s)));
   if(q.op==='new'){if(games.has(q.game))games.get(q.game).battle.destroy();const g=new Game(q.teams,q.seed,q.max_turns);games.set(q.game,g);return g.result();}
   if(q.op==='step')return games.get(q.game).step(q.actions);

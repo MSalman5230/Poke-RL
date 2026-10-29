@@ -29,7 +29,7 @@ class BattleModel(nn.Module):
         self.ability_embedding = nn.Embedding(len(k.vocab["abilities"])+2,16)
         self.mon = nn.Linear(len(encoder.mon_names)+32+4*24+16+16,width)
         self.field = nn.Linear(len(encoder.field_names),width)
-        self.history = nn.Linear(27,width)
+        self.history = nn.Linear(24+32+len(encoder.history_names),width)
         self.segment = nn.Embedding(4,width)
         layer = nn.TransformerEncoderLayer(width,heads,dim_feedforward=width*3,dropout=0.,activation="gelu",batch_first=True,norm_first=True)
         self.transformer = nn.TransformerEncoder(layer,layers,enable_nested_tensor=False)
@@ -56,10 +56,12 @@ class BattleModel(nn.Module):
         nn.init.zeros_(self.action[-1].bias)
 
     def forward(self, obs):
+        items=(self.item_embedding(obs['items_prior'])*obs['items_weights'].unsqueeze(-1)).sum(-2)
+        abilities=(self.ability_embedding(obs['abilities_prior'])*obs['abilities_weights'].unsqueeze(-1)).sum(-2)
         mons = self.mon(torch.cat([obs["pokemon"],self.species_embedding(obs["species"]),
-            self.move_embedding(obs["moves"]).flatten(-2),self.item_embedding(obs["items"]),self.ability_embedding(obs["abilities"])],-1))
+            self.move_embedding(obs["moves"]).flatten(-2),items,abilities],-1))
         tokens = torch.cat([self.field(obs["field"]).unsqueeze(1),mons,
-                            self.history(torch.cat([self.move_embedding(obs["history_moves"]),obs["history"]],-1))],1)
+                            self.history(torch.cat([self.move_embedding(obs["history_moves"]),self.species_embedding(obs['history_species']),obs["history"]],-1))],1)
         if self.config["history_position"]:
             # Without order information, attention treats simultaneous move
             # histories as a bag and cannot learn observed speed order.
@@ -98,10 +100,9 @@ class BattleModel(nn.Module):
     def save(self, path, **metadata):
         path = Path(path)
         path.parent.mkdir(parents=True,exist_ok=True)
-        temp = path.with_suffix(path.suffix+".tmp")
-        torch.save({"schema":1,"feature_version":FEATURE_VERSION,"knowledge_sha256":knowledge().sha256,"config":self.config,
-                    "model":self.state_dict(),"metadata":metadata},temp)
-        temp.replace(path)
+        from .persistence import durable_torch_save
+        durable_torch_save({"schema":1,"feature_version":FEATURE_VERSION,"knowledge_sha256":knowledge().sha256,"config":self.config,
+                    "model":self.state_dict(),"metadata":metadata},path)
 
     @classmethod
     def load(cls,path,device="cpu"):

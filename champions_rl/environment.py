@@ -39,11 +39,15 @@ class ChampionsEnv(gym.Env):
             "moves": spaces.Box(0,len(k.vocab["moves"])+1,(12,4),np.int64),
             "field": spaces.Box(-np.inf,np.inf,(len(self.encoder.field_names),),np.float32),
             "history_moves": spaces.Box(0,len(k.vocab["moves"])+1,(12,),np.int64),
-            "history": spaces.Box(0,1,(12,3),np.float32),
+            "history": spaces.Box(0,1,(12,len(self.encoder.history_names)),np.float32),
+            "history_species": spaces.Box(0,len(k.vocab['species'])+1,(12,),np.int64),
             "actions": spaces.Box(-np.inf,np.inf,(N_ACTIONS,len(self.encoder.action_names)),np.float32),
             "action_moves": spaces.Box(0,len(k.vocab["moves"])+1,(N_ACTIONS,),np.int64),
             "mask": spaces.MultiBinary(N_ACTIONS),
         })
+        for kind in ('items','abilities'):
+            self.observation_space[kind+'_prior']=spaces.Box(0,len(k.vocab[kind])+1,(12,3),np.int64)
+            self.observation_space[kind+'_weights']=spaces.Box(0,1,(12,3),np.float32)
 
     def _observation(self):
         encoded = self.encoder.encode(self.state["views"][self.seat])
