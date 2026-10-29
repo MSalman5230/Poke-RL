@@ -1,5 +1,5 @@
 {
-  "updated_utc": "2026-10-29T16:23:40.614230+00:00",
+  "updated_utc": "2026-10-29T17:20:56.982826+00:00",
   "actor_parameters": 574786,
   "training_only_critic_parameters": 428841,
   "feedback_disposition": {
@@ -754,29 +754,35 @@
   },
   "training": {
     "complete": false,
-    "updates": 12,
+    "updates": 27,
     "output": "runtime_data/ppo_v6_full",
     "initial_training_code_commit": "a4bd4e9",
-    "steps": 426702,
-    "seconds": 1874.31,
-    "decisions_per_second": 227.66,
-    "private_value_mse": 0.31394432353068,
+    "steps": 954105,
+    "seconds": 1017.84,
+    "decisions_per_second": 345.29,
+    "private_value_mse": 0.2680591432377696,
     "actor_completed_epochs": 4,
     "critic_completed_epochs": 4,
-    "mean_current_batch": 24.78063725490196,
+    "mean_current_batch": 24.110648423557407,
     "win_rates": {
-      "pivot": 0.5888888888888889,
-      "setup_sweeper": 0.5352112676056338,
-      "attrition": 0.6615384615384615,
-      "snapshot_fast_00000010": 0.5797101449275363,
-      "hyperoffense": 0.5975609756097561,
-      "balanced": 0.75,
-      "random": 0.8888888888888888
+      "balanced": 0.6585365853658537,
+      "snapshot_fast_00000017": 0.5277777777777778,
+      "setup_sweeper": 0.7246376811594203,
+      "hyperoffense": 0.5,
+      "random": 1.0,
+      "attrition": 0.7241379310344828,
+      "pivot": 0.6440677966101694
     },
     "actor_coverage_min": 1.0,
     "critic_coverage_min": 1.0,
     "actor_kl_stops": 0,
-    "metrics_sha256": "f0bd77120fa17e3f7ed8c6ce7cc55ec180a412c366a8750842597b0b4be6811b",
+    "metrics_sha256": "b2a39398ce17755acdc94531f3c4d919d73241b3274314e4933f01091af5c7ad",
+    "elapsed_active_training_seconds": 3467.01,
+    "training_phases": {
+      "0": 2449.17,
+      "602655": 1017.84
+    },
+    "aggregate_decisions_per_active_second": 275.1953412306281,
     "paired_validations": {
       "step_000355544": {
         "manifest": {
@@ -862,6 +868,111 @@
             "confidence": [
               0.4778725085660988,
               0.5990974608306414
+            ]
+          }
+        },
+        "saved": {
+          "balanced": {
+            "games": 256,
+            "wins": 254,
+            "losses": 2,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.9921875,
+            "confidence": [
+              0.9719666598432031,
+              0.9978549545557232
+            ]
+          }
+        },
+        "complete": true
+      },
+      "step_000707988": {
+        "manifest": {
+          "balanced": {
+            "games": 256,
+            "wins": 127,
+            "losses": 129,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.49609375,
+            "confidence": [
+              0.4353577874327663,
+              0.5569452156275596
+            ]
+          },
+          "hyperoffense": {
+            "games": 256,
+            "wins": 126,
+            "losses": 130,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.4921875,
+            "confidence": [
+              0.4315147730833839,
+              0.5530912330372681
+            ]
+          },
+          "setup_sweeper": {
+            "games": 256,
+            "wins": 139,
+            "losses": 117,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.54296875,
+            "confidence": [
+              0.48175952116554094,
+              0.6029074451708731
+            ]
+          },
+          "attrition": {
+            "games": 256,
+            "wins": 140,
+            "losses": 116,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.546875,
+            "confidence": [
+              0.4856502298943122,
+              0.606713733381776
+            ]
+          },
+          "pivot": {
+            "games": 256,
+            "wins": 147,
+            "losses": 109,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.57421875,
+            "confidence": [
+              0.5129894223122974,
+              0.6332535195415089
+            ]
+          },
+          "frozen_initial": {
+            "games": 256,
+            "wins": 140,
+            "losses": 116,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.546875,
+            "confidence": [
+              0.4856502298943122,
+              0.606713733381776
             ]
           }
         },
@@ -1660,17 +1771,17 @@
       "search": false,
       "results": {
         "reference": {
-          "games": 3,
-          "wins": 2,
-          "losses": 1,
+          "games": 48,
+          "wins": 27,
+          "losses": 19,
           "draws": 0,
-          "errors": 0,
+          "errors": 2,
           "truncations": 0,
           "fallbacks": 0,
-          "win_rate": 0.6666666666666666,
+          "win_rate": 0.5625,
           "confidence": [
-            0.2076549551264879,
-            0.9385096847238394
+            0.4227477150100165,
+            0.6929894535958907
           ]
         }
       },
@@ -1679,20 +1790,20 @@
         "requirements": {
           "held_out_test_split": false,
           "at_least_200_reference_games": false,
-          "reference_win_rate_at_least_60_percent": true,
+          "reference_win_rate_at_least_60_percent": false,
           "reference_95_percent_lower_bound_at_least_60_percent": false,
           "at_least_four_other_styles": false,
           "at_least_200_games_per_other_style": false,
           "other_styles_at_least_55_percent": false,
           "no_reference_fallbacks": true,
-          "no_failed_games": true,
+          "no_failed_games": false,
           "truncation_rate_at_most_one_percent": true
         },
         "jaxcalibur_comparison": "Not measured: different format; no public executable/weights supplied."
       },
       "complete": false,
       "report": "runtime_data/eval_v6_ppo355_reference/report.json",
-      "report_sha256": "49b8f0a77c2ba1f7042130b78de89305f32d191428936448aa24093060527af7"
+      "report_sha256": "adb8a08f6b30a754140f9f9ffd14bed2ec2b1007ad067b8d642363ebcc1377c7"
     },
     "eval_v6_priority_cores": {
       "checkpoint_sha256": "53b62282899a5597e849faede54b92c475bf5f12ca82789cb1e4e9f565324197",
@@ -1868,17 +1979,17 @@
       "search": false,
       "results": {
         "reference": {
-          "games": 39,
-          "wins": 6,
-          "losses": 32,
+          "games": 99,
+          "wins": 17,
+          "losses": 80,
           "draws": 0,
-          "errors": 1,
+          "errors": 2,
           "truncations": 0,
           "fallbacks": 0,
-          "win_rate": 0.15384615384615385,
+          "win_rate": 0.1717171717171717,
           "confidence": [
-            0.07247373845051469,
-            0.2972976986573431
+            0.11006570016266971,
+            0.2578943471333661
           ]
         }
       },
@@ -1900,7 +2011,53 @@
       },
       "complete": false,
       "report": "runtime_data/eval_v6_priority_reference/report.json",
-      "report_sha256": "659eafa41a4e28c86cebf1409d5670d33b50113a63a5985c89a3ac384b3085cc"
+      "report_sha256": "8439398c11ad775d83d9b287225e6c95d32460a91b556b27c27f34f08679c8ed"
+    },
+    "eval_v6_priority_reference_recovered": {
+      "checkpoint_sha256": "53b62282899a5597e849faede54b92c475bf5f12ca82789cb1e4e9f565324197",
+      "implementation_sha256": "289a392545099e315ce003186b18d8fde8697fb6403ebe90cde20ab0e1b7d7a9",
+      "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+      "seed": 92341,
+      "split": "validation",
+      "roster": "manifest",
+      "reference_teams": "saved",
+      "deterministic": true,
+      "search": false,
+      "results": {
+        "reference": {
+          "games": 128,
+          "wins": 21,
+          "losses": 107,
+          "draws": 0,
+          "errors": 0,
+          "fallbacks": 0,
+          "truncations": 0,
+          "win_rate": 0.1640625,
+          "confidence": [
+            0.10988249779919597,
+            0.23781959319484536
+          ]
+        }
+      },
+      "acceptance": {
+        "passed": false,
+        "requirements": {
+          "held_out_test_split": false,
+          "at_least_200_reference_games": false,
+          "reference_win_rate_at_least_60_percent": false,
+          "reference_95_percent_lower_bound_at_least_60_percent": false,
+          "at_least_four_other_styles": false,
+          "at_least_200_games_per_other_style": false,
+          "other_styles_at_least_55_percent": false,
+          "no_reference_fallbacks": true,
+          "no_failed_games": true,
+          "truncation_rate_at_most_one_percent": true
+        },
+        "jaxcalibur_comparison": "Not measured: different format; no public executable/weights supplied."
+      },
+      "complete": true,
+      "report": "runtime_data/eval_v6_priority_reference_recovered/report.json",
+      "report_sha256": "a98408f276c9ee83f6ec2a73603e92b8a38b556529e4a896df6b8d06b60251a3"
     },
     "eval_v6_priority_saved": {
       "checkpoint_sha256": "53b62282899a5597e849faede54b92c475bf5f12ca82789cb1e4e9f565324197",

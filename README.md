@@ -127,6 +127,8 @@ The third command follows [DAgger’s dataset aggregation approach](https://proc
 
 For a specific observed failure, the collector also accepts a script name such as `--opponents balanced` and `--student-deterministic`. Aggregate separate data folders with `pretrain --data ORIGINAL_FOLDER CORRECTION_FOLDER`. Optional `--correction-mass 0.25` assigns 25% of training and validation weight to teacher labels on learner-visited states; the remaining mass is divided equally between original reference and other demonstrations. It defaults to zero, retaining the earlier teacher mixture. This is a candidate experiment: correcting one roster can reduce performance elsewhere, so evaluate both before promotion.
 
+The saved-roster balanced-only correction experiment demonstrated that risk: 25% correction mass raised wins against balanced from 29/256 to 102/256, but reduced reference wins from 63/128 to 21/128. Its paired reference difference was -32.8 points (95% interval -41.4 to -24.2). That checkpoint was rejected and never fed into the main PPO run. The interrupted reference evaluation was recovered on its original schedule, retaining invalid attempts; it is validation evidence, not a clean test certification.
+
 `play` defaults to deterministic actions; `--no-deterministic` samples the policy. Evaluation requires an explicit `--deterministic` for that mode. Compare both on identical seeds and teams, including `--split validation_competitive`.
 
 ```powershell
