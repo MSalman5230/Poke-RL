@@ -39,6 +39,26 @@ def main():
     train.add_argument("--heuristic-weight",type=float,help="Optional fixed tactical logit prior; the network learns a residual policy")
     train.add_argument("--history-position",action=argparse.BooleanOptionalAction,default=None,help="Preserve move order in attention; older checkpoints default off")
     train.add_argument("--stop-file",type=Path,default=ROOT/"runtime_data/STOP")
+    fast=sub.add_parser("train-fast",help="Parallel CPU battles, central GPU batches, dual-seat PPO, and asynchronous reference replay")
+    fast.add_argument("--initial",type=Path)
+    fast.add_argument("--resume",type=Path)
+    fast.add_argument("--output",type=Path,default=ROOT/"runtime_data/parallel_training")
+    fast.add_argument("--steps",type=int,default=200000)
+    fast.add_argument("--workers",type=int,default=4)
+    fast.add_argument("--envs",type=int,default=64)
+    fast.add_argument("--horizon",type=int,default=32)
+    fast.add_argument("--device",default="cuda")
+    fast.add_argument("--seed",type=int,default=101)
+    fast.add_argument("--selfplay-fraction",type=float,default=.3)
+    fast.add_argument("--snapshot-fraction",type=float,default=.3)
+    fast.add_argument("--reference-workers",type=int,default=1)
+    fast.add_argument("--reference-weight",type=float,default=.1)
+    fast.add_argument("--learning-rate",type=float,default=1e-4)
+    fast.add_argument("--batch-size",type=int,default=128)
+    fast.add_argument("--checkpoint-every",type=int,default=10)
+    fast.add_argument("--stop-file",type=Path,default=ROOT/"runtime_data/STOP")
+    fast.add_argument("--history-position",action=argparse.BooleanOptionalAction,default=None)
+    fast.add_argument("--heuristic-weight",type=float)
     evaluate=sub.add_parser("evaluate",help="Evaluate; report whether the 60% acceptance gate passes")
     evaluate.add_argument("--checkpoint",type=Path)
     evaluate.add_argument("--learner-style",default=None)
@@ -83,6 +103,14 @@ def main():
                   checkpoint_every=args.checkpoint_every,stop_file=args.stop_file,resume=args.resume,
                   procedural_teams=not args.fixed_teams,learning_rate=args.learning_rate,heuristic_weight=args.heuristic_weight,
                   history_position=args.history_position)
+    elif args.command=="train-fast":
+        from .parallel_training import train_parallel
+        train_parallel(args.output,initial=args.initial,resume=args.resume,steps=args.steps,workers=args.workers,
+                       envs=args.envs,horizon=args.horizon,device=args.device,seed=args.seed,
+                       selfplay_fraction=args.selfplay_fraction,snapshot_fraction=args.snapshot_fraction,
+                       reference_workers=args.reference_workers,reference_weight=args.reference_weight,
+                       learning_rate=args.learning_rate,batch_size=args.batch_size,checkpoint_every=args.checkpoint_every,
+                       stop_file=args.stop_file,history_position=args.history_position,heuristic_weight=args.heuristic_weight)
     elif args.command=="play":
         from .evaluation import evaluate
         report=evaluate(args.checkpoint,[args.opponent],1,args.output,"validation",args.seed)

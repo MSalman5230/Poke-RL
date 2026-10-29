@@ -35,3 +35,31 @@ def test_gae_separates_opposing_players_and_waiting_states():
     model=BattleModel(width=32,layers=1)
     advantage,returns=trajectory_targets(rows,model,device="cpu",lam=.95)
     assert torch.allclose(returns,torch.tensor([.95,-.95,1.,-1.]))
+
+
+def test_self_imitation_uses_only_better_than_expected_returns():
+    from champions_rl.reference_replay import self_imitation_loss
+    logits=torch.zeros(2,4,requires_grad=True)
+    values=torch.zeros(2,requires_grad=True)
+    loss=self_imitation_loss(logits,values,torch.tensor([1,2]),torch.tensor([1.,-1.]))
+    loss.backward()
+    assert logits.grad[0,1]<0
+    assert torch.equal(logits.grad[1],torch.zeros(4))
+    assert values.grad[0]<0 and values.grad[1]==0
+
+
+def test_parallel_training_checkpoint_resume(tmp_path):
+    from champions_rl.parallel_training import train_parallel
+    from champions_rl.model import BattleModel
+    initial=tmp_path/"initial.pt"
+    BattleModel(width=32,layers=1).save(initial)
+    first=tmp_path/"first"
+    train_parallel(first,initial=initial,steps=8,workers=2,envs=4,horizon=2,device="cpu",epochs=1,
+                   selfplay_fraction=1.,snapshot_fraction=0.,reference_workers=0)
+    first_state=torch.load(first/"trainer_state.pt",map_location="cpu",weights_only=True)
+    second=tmp_path/"second"
+    train_parallel(second,resume=first/"trainer_state.pt",steps=8,workers=2,envs=4,horizon=2,device="cpu",epochs=1,
+                   selfplay_fraction=1.,snapshot_fraction=0.,reference_workers=0)
+    state=torch.load(second/"trainer_state.pt",map_location="cpu",weights_only=True)
+    assert state["steps"]>=first_state["steps"]+8
+    assert len(state["worker_states"])==2 and state["league"]

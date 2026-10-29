@@ -146,7 +146,7 @@ class ParallelRollouts:
                     for (worker,index,request),a,p,v in zip(requests,action,logp,value):
                         responses[worker][index]=a
                         if request["learn"]:
-                            stash[(worker,request["id"]) ]={"obs":request["obs"],"action":a,"logp":p,"value":v,
+                            stash[worker,request["id"]]={"obs":request["obs"],"action":a,"logp":p,"value":v,
                                 "policy_active":request["active"]}
             for worker,actions in responses.items():
                 self.connections[worker].send({"kind":"actions","actions":actions})

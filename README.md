@@ -60,13 +60,19 @@ All battles and training run offline after installation. The copied reference po
    .\.venv\Scripts\python.exe -m champions_rl pretrain --data runtime_data\my_demos --output runtime_data\my_bc.pt --steps 5000
    ```
 
-4. **Improve through battles.** The transformer has policy, value, and opponent-action heads. PPO uses legal-action masking, undiscounted match rewards, GAE, and entropy regularization. The default opponent mix contains random, damage, balanced, setup, defensive, stochastic, and frozen neural opponents:
+4. **Improve through battles.** The 512,833-parameter transformer (two layers, width 128, four attention heads) has policy, value, and opponent-action heads. PPO uses legal-action masking, undiscounted match rewards, GAE, and entropy regularization. Use the parallel trainer:
 
    ```powershell
-   .\.venv\Scripts\python.exe -m champions_rl train --initial runtime_data\my_bc.pt --steps 1000000 --envs 32 --output runtime_data\my_run
+   .\.venv\Scripts\python.exe -m champions_rl train-fast --initial runtime_data\my_bc.pt --steps 1000000 --workers 4 --envs 64 --reference-workers 1 --output runtime_data\my_run
    ```
 
-   `--steps` counts learning-player decisions, not games; the final rollout can round it up. By default 80% of non-reference teams are freshly generated legal compositions and 20% come from the training manifest; exact held-out compositions are excluded. `--fixed-teams` reproduces the first experiments, which used only the fixed manifest. `--reference-fraction 0.05` adds the full original bot to the online mix, at a substantial throughput cost. The default is zero; its knowledge is initially supplied through demonstrations. Frozen opponents occupy `--snapshot-fraction 0.3` of the mix after snapshots become available.
+   Four independent CPU processes run 64 battles in total. The central learner groups requests from all workers by policy and runs batched GPU inference. It freezes the current policy for each rollout, then performs PPO updates. The default fast-game mix is 30% current-policy self-play, 30% frozen snapshots, and 40% random/damage/balanced/setup/defensive/stochastic opponents. Change this with `--selfplay-fraction` and `--snapshot-fraction`. The historical league retains up to 12 snapshots, plus any older model still finishing a battle.
+
+   Current-policy self-play learns from **both players' decisions**, with separate observations, rewards, and advantage calculations for each seat. Waiting phases contribute value targets and rewards but no policy loss. `--steps` counts actual learning-player decisions, not games or waiting phases; the final rollout can round it up. A self-play win rate is not a strength metric and is not included in opponent win-rate summaries.
+
+   A separate `--reference-workers 1` process plays the full original 32-trial bot using its saved roster. Its model is refreshed between complete games; fast workers never wait for these games. Completed games enter a bounded replay buffer and train a small additional [self-imitation learning loss (Oh et al., 2018)](https://proceedings.mlr.press/v80/oh18b.html), reinforcing actions whose observed returns exceed the current value estimate. These delayed episodes are **off-policy** and never enter the fresh PPO ratio calculation. Truncated reference games do not supply Monte Carlo targets. `--reference-weight 0.1` controls this loss; `--reference-workers 0` disables new reference games. The number of reference games depends on their throughput, rather than being a fixed fraction of fast games. Their training wins are not an independent benchmark.
+
+   In the fast pool, 15% of battles use the familiar saved roster against other styles or neural opponents. For the rest, 80% of team selections are freshly generated legal compositions and 20% come from the training manifest; exact held-out compositions are excluded. Species, moves, items, abilities, natures, and stat-point spreads vary through the legal set library described above. The earlier serial `train` command remains available to reproduce old experiments, including its `--fixed-teams` and synchronous `--reference-fraction` options.
 
    `--heuristic-weight 2` optionally adds a fixed tactical logit prior and learns a residual policy around it. Both rollout action probabilities and PPO updates include the same prior, and checkpoints record its strength. This is an experimental hybrid variant, not a proven improvement over the pure neural policy.
 
@@ -75,10 +81,10 @@ All battles and training run offline after installation. The copied reference po
    ```powershell
    New-Item -ItemType File runtime_data\STOP
    Remove-Item -LiteralPath runtime_data\STOP
-   .\.venv\Scripts\python.exe -m champions_rl train --resume runtime_data\my_run\trainer_state.pt --steps 1000000 --envs 32 --output runtime_data\my_run
+   .\.venv\Scripts\python.exe -m champions_rl train-fast --resume runtime_data\my_run\trainer_state.pt --steps 1000000 --workers 4 --envs 64 --output runtime_data\my_run
    ```
 
-   New trainer states preserve weights, optimizer, RNG streams, and the frozen opponent league, then start fresh battles. In-progress games are not restored, so this is not a bit-for-bit continuation. Early experiment checkpoints predate league/RNG persistence and restart those components from the supplied seed. `--steps` on resume means **additional** decisions. A STOP file applies to all trainers using that path; use distinct `--stop-file` paths for separate runs.
+   New trainer states preserve weights, optimizer, RNG streams, and the frozen opponent league, then start fresh battles. Keep the output directory to reload its durable reference replay shards. In-progress games are not restored, so this is not a bit-for-bit continuation. Early experiment checkpoints predate league/RNG persistence and restart those components from the supplied seed. `--steps` on resume means **additional** decisions. A STOP file applies to all trainers using that path; use distinct `--stop-file` paths for separate runs. Fresh models use positional information in public move history; old checkpoints retain their original behavior unless `--history-position` is explicitly enabled.
 
 5. **Select using validation only.** Evaluate immutable numbered checkpoints; compare stochastic and deterministic play on validation before choosing deployment settings:
 
@@ -127,7 +133,7 @@ with ChampionsEnv(opponent="balanced") as env:
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-Tests cover restricted legality and every generated set/team, hidden-information separation, legal masks, deterministic replay, trapping retries, Illusion, revival, Gym operation, reward telescoping, truncation bootstrapping, checkpoints, and the acceptance gate.
+Tests cover restricted legality and every generated set/team, hidden-information separation, legal masks, deterministic replay, trapping retries, Illusion, revival, Gym operation, reward telescoping, truncation bootstrapping, dual-seat parallel trajectories, batched inference, replay-loss gradients, checkpoint/resume, process cleanup, and the acceptance gate.
 
 ## Scope and provenance
 
