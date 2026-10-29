@@ -58,6 +58,7 @@ def load_demonstrations(folder,with_manifest=False):
                 buckets[key].append(data[key])
             buckets['expert'].append(np.full(len(data['labels']),meta['teacher']=='reference'))
             buckets['teacher'].append(np.full(len(data['labels']),meta['teacher']))
+            buckets['correction'].append(np.full(len(data['labels']),bool(meta.get('student_sha256'))))
             import hashlib
             # Hold out entire games, not correlated turns from the same game.
             heldout=int(hashlib.sha256(path.stem.encode()).hexdigest()[:8],16)%10==0
@@ -87,8 +88,21 @@ def pretrain_knowledge(model,steps=300,device="cuda"):
     emit("domain_pretraining",steps=steps,loss=float(loss.detach()))
 
 
-def imitation_validation(model,data,valid_ids,batch_size,device):
-    excluded={'labels','outcomes','expert','validation','teacher','student_actions','enemy_labels'}
+def imitation_groups(data,ids,correction_mass=0.):
+    expert=data['expert'][ids]
+    correction=data.get('correction',np.zeros(len(data['expert']),dtype=bool))[ids]
+    if correction_mass:
+        if not correction.any():raise ValueError('Correction weighting requires learner-state labels in both train and validation')
+        other={'reference':expert&~correction,'other':~expert&~correction}
+        other={name:mask for name,mask in other.items() if mask.any()}
+        if not other:raise ValueError('Retain original demonstrations alongside corrections')
+        return {'correction':(correction,correction_mass),**{name:(mask,(1-correction_mass)/len(other)) for name,mask in other.items()}}
+    groups={name:mask for name,mask in {'reference':expert,'other':~expert}.items() if mask.any()}
+    return {name:(mask,1/len(groups)) for name,mask in groups.items()}
+
+
+def imitation_validation(model,data,valid_ids,batch_size,device,correction_mass=0.):
+    excluded={'labels','outcomes','expert','validation','teacher','student_actions','enemy_labels','correction'}
     losses=[];agreements=[]
     model.eval()
     with torch.no_grad():
@@ -99,40 +113,44 @@ def imitation_validation(model,data,valid_ids,batch_size,device):
             losses.extend(nn.functional.cross_entropy(predictions,targets,reduction='none').cpu().tolist())
             agreements.extend((predictions.argmax(-1)==targets).cpu().tolist())
     losses=np.asarray(losses);agreements=np.asarray(agreements)
-    groups={'reference':data['expert'][valid_ids],'other':~data['expert'][valid_ids]}
-    balanced=float(np.mean([losses[mask].mean() for mask in groups.values() if mask.any()]))
+    groups=imitation_groups(data,valid_ids,correction_mass)
+    balanced=float(sum(mass*losses[mask].mean() for mask,mass in groups.values()))
     teachers={str(name):{'samples':int((data['teacher'][valid_ids]==name).sum()),
                         'loss':float(losses[data['teacher'][valid_ids]==name].mean()),
                         'agreement':float(agreements[data['teacher'][valid_ids]==name].mean())}
               for name in np.unique(data['teacher'][valid_ids])}
     return {'validation_loss':float(losses.mean()),'validation_accuracy':float(agreements.mean()),
-            'balanced_validation_loss':balanced,'validation_by_teacher':teachers}
+            'balanced_validation_loss':balanced,'validation_by_teacher':teachers,
+            'validation_by_source':{name:{'samples':int(mask.sum()),'mass':mass,'loss':float(losses[mask].mean()),
+                                         'agreement':float(agreements[mask].mean())} for name,(mask,mass) in groups.items()}}
 
 
-def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43,width=128,layers=2,initial=None,learning_rate=1e-4):
+def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43,width=128,layers=2,initial=None,learning_rate=1e-4,correction_mass=0.):
+    if not 0<=correction_mass<1:raise ValueError('correction_mass must be in [0,1)')
     seed_all(seed)
     model=BattleModel.load(initial,device)[0] if initial else BattleModel(width=width,layers=layers).to(device)
     if not initial:pretrain_knowledge(model,device=device)
     data,manifest=load_demonstrations(folder,with_manifest=True)
     from .persistence import atomic_json
     atomic_json(Path(output).with_suffix('.data.json'),{'shards':manifest,'feature_signature':feature_signature(),
-                'validation':'10% of whole games by SHA256 shard name','sampling':'50% reference expert / 50% other teachers when both present'})
+                'validation':'10% of whole games by SHA256 shard name','correction_mass':correction_mass,
+                'sampling':'Requested correction mass, then equal reference/other mass among original demonstrations; zero uses the original 50/50 teacher mixture'})
     n=len(data["labels"])
     rng=np.random.default_rng(seed)
     optimizer=torch.optim.AdamW(model.parameters(),lr=learning_rate,weight_decay=1e-4)
-    excluded={'labels','outcomes','expert','validation','teacher','student_actions','enemy_labels'}
+    excluded={'labels','outcomes','expert','validation','teacher','student_actions','enemy_labels','correction'}
     weights=np.zeros(n)
-    for expert in (False,True):
-        selected=(data['expert']==expert)&~data['validation']
-        if selected.any():weights[selected]=.5/selected.sum()
+    train_ids=np.flatnonzero(~data['validation'])
+    for mask,mass in imitation_groups(data,train_ids,correction_mass).values():
+        weights[train_ids[mask]]=mass/mask.sum()
     if not weights.any():raise ValueError('No training games outside validation split')
     weights/=weights.sum()
     valid_ids=np.flatnonzero(data['validation'])
     if not len(valid_ids):raise ValueError('Collect more games to form a game-disjoint validation split')
-    baseline=imitation_validation(model,data,valid_ids,batch_size,device)
+    baseline=imitation_validation(model,data,valid_ids,batch_size,device,correction_mass)
     best=baseline['balanced_validation_loss']
     model.save(output,phase='behavior_cloning_candidate',samples=n,updates=0,seed=seed,**baseline,
-               expert_samples=int(data['expert'].sum()),initial=str(initial) if initial else None,
+               expert_samples=int(data['expert'].sum()),initial=str(initial) if initial else None,correction_mass=correction_mass,
                promotion='Requires paired battle validation against the starting checkpoint')
     from .persistence import append_json
     metrics=Path(output).with_suffix('.metrics.jsonl')
@@ -158,11 +176,11 @@ def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43
         nn.utils.clip_grad_norm_(model.parameters(),1.)
         optimizer.step()
         if step%100==0 or step==steps-1:
-            validation=imitation_validation(model,data,valid_ids,batch_size,device)
+            validation=imitation_validation(model,data,valid_ids,batch_size,device,correction_mass)
             if validation['balanced_validation_loss']<best:
                 best=validation['balanced_validation_loss']
                 model.save(output,phase='behavior_cloning_candidate',samples=n,updates=step+1,seed=seed,**validation,
-                           expert_samples=int(data['expert'].sum()),initial=str(initial) if initial else None,
+                           expert_samples=int(data['expert'].sum()),initial=str(initial) if initial else None,correction_mass=correction_mass,
                            promotion='Requires paired battle validation against the starting checkpoint')
             append_json(metrics,{'step':step+1,**validation})
             emit("behavior_cloning",step=step+1,steps=steps,loss=float(loss.detach()),

@@ -125,6 +125,8 @@ The resumable collector saves each completed game independently, including compr
 
 The third command follows [DAgger’s dataset aggregation approach](https://proceedings.mlr.press/v15/ross11a.html): the expert labels the learner's current position; the learner normally acts, with a 25% expert-action mixture. Stored labels are the expert's preferred action, even when the learner chooses differently. `--opponents reference` visits positions against the full original opponent too. Metadata records disagreements and the student checkpoint hash.
 
+For a specific observed failure, the collector also accepts a script name such as `--opponents balanced` and `--student-deterministic`. Aggregate separate data folders with `pretrain --data ORIGINAL_FOLDER CORRECTION_FOLDER`. Optional `--correction-mass 0.25` assigns 25% of training and validation weight to teacher labels on learner-visited states; the remaining mass is divided equally between original reference and other demonstrations. It defaults to zero, retaining the earlier teacher mixture. This is a candidate experiment: correcting one roster can reduce performance elsewhere, so evaluate both before promotion.
+
 `play` defaults to deterministic actions; `--no-deterministic` samples the policy. Evaluation requires an explicit `--deterministic` for that mode. Compare both on identical seeds and teams, including `--split validation_competitive`.
 
 ```powershell

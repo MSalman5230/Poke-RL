@@ -17,6 +17,17 @@ def test_validation_balances_teacher_groups_despite_unequal_sample_counts():
     assert metrics['balanced_validation_loss']>metrics['validation_loss']*2
 
 
+def test_correction_mass_matches_selection_metric_without_dropping_original_teachers():
+    from champions_rl.training import imitation_groups
+    data={'expert':np.array([True]*10+[False]*90+[False]*5),
+          'correction':np.array([False]*100+[True]*5)}
+    groups=imitation_groups(data,np.arange(105),.25)
+    assert {name:mass for name,(_,mass) in groups.items()}=={'correction':.25,'reference':.375,'other':.375}
+    weights=np.zeros(105)
+    for mask,mass in groups.values():weights[mask]=mass/mask.sum()
+    assert np.isclose(weights.sum(),1) and np.isclose(weights[-5:].sum(),.25)
+
+
 def test_step_zero_is_a_checkpoint_candidate(tmp_path):
     import hashlib
     from champions_rl.engine import Engine

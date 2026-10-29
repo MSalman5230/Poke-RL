@@ -24,6 +24,7 @@ def main():
     clone.add_argument("--layers",type=int,default=2)
     clone.add_argument('--initial',type=Path,help='Fine-tune a compatible policy on the aggregated expert dataset')
     clone.add_argument('--learning-rate',type=float,default=1e-4)
+    clone.add_argument('--correction-mass',type=float,default=0.,help='Sampling and validation mass reserved for learner-state teacher corrections')
     train=sub.add_parser("train",help="Masked PPO against varied opponents and snapshots")
     train.add_argument("--initial",type=Path)
     train.add_argument("--resume",type=Path,help="Continue optimizer/weights; starts fresh seeded battles")
@@ -116,7 +117,7 @@ def main():
         collect_demonstrations(args.output,args.games,args.teacher,args.seed)
     elif args.command=="pretrain":
         from .training import behavior_clone
-        behavior_clone(args.data,args.output,args.steps,device=args.device,width=args.width,layers=args.layers,initial=args.initial,learning_rate=args.learning_rate)
+        behavior_clone(args.data,args.output,args.steps,device=args.device,width=args.width,layers=args.layers,initial=args.initial,learning_rate=args.learning_rate,correction_mass=args.correction_mass)
     elif args.command=="train":
         from .training import train_ppo
         train_ppo(args.output,args.initial,args.steps,args.envs,args.horizon,device=args.device,seed=args.seed,

@@ -1,0 +1,65 @@
+{
+  "baseline": "runtime_data\\eval_v6_bc_saved",
+  "candidate": "runtime_data\\eval_v6_priority_saved",
+  "baseline_checkpoint_sha256": "c5809348af9e86483ebfdab5127cfa0df381e620f4fdbb9a6bb5773b301b370a",
+  "candidate_checkpoint_sha256": "53b62282899a5597e849faede54b92c475bf5f12ca82789cb1e4e9f565324197",
+  "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+  "baseline_implementation_sha256": "5179b98e31638c3115f05311d146032f4b0023d15507ba5066b1bfac7e6673b8",
+  "candidate_implementation_sha256": "5f60817f8d477a29b4cbaea9caea79153d14072e4d97a2b66f5c2374e63ab6b3",
+  "changed_implementation_files": [
+    "champions_rl/cli.py",
+    "champions_rl/expert_data.py",
+    "champions_rl/training.py"
+  ],
+  "baseline_deterministic": true,
+  "candidate_deterministic": true,
+  "baseline_search": false,
+  "candidate_search": false,
+  "by_opponent": {
+    "balanced": {
+      "baseline": {
+        "games": 256,
+        "wins": 29,
+        "losses": 227,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.11328125,
+        "confidence": [
+          0.08004020882965396,
+          0.1579570941426184
+        ]
+      },
+      "candidate": {
+        "games": 256,
+        "wins": 102,
+        "losses": 154,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.3984375,
+        "confidence": [
+          0.3403919792537762,
+          0.4594861003146995
+        ]
+      },
+      "candidate_minus_baseline": 0.28515625,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        0.234375,
+        0.3359375
+      ]
+    }
+  },
+  "aggregate": {
+    "candidate_minus_baseline": 0.28515625,
+    "paired_seed_blocks": 128,
+    "bootstrap_95": [
+      0.234375,
+      0.3359375
+    ]
+  },
+  "interpretation": "Exploratory validation. Bootstrap retains both seats and all opponents within each seed block. Repeated checkpoint selection and per-opponent comparisons are not multiplicity-adjusted. Promotion still requires a separately frozen test benchmark; truncations are reported, not treated as wins."
+}
