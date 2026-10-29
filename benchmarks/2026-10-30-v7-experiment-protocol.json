@@ -1,0 +1,51 @@
+{
+  "feature_version": 7,
+  "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
+  "baseline_checkpoint": "runtime_data/candidates/v6_2m_review/policy.pt",
+  "baseline_sha256": "8593b13c5c452044fe3e242471baf0cdeb668883436d37d2371ea6a6f9e66e45",
+  "confirmed_representation_fixes": [
+    "move-set encoding with attached PP and Conversion first-slot flag",
+    "opponent destination scoring with public masks",
+    "Rage Fist hits, cumulative faints, last move, stockpile/perish state"
+  ],
+  "accepted_training_experiments": {
+    "identity_dropout": [
+      0,
+      0.25
+    ],
+    "critic_learning_rate": 0.0001,
+    "critic_epochs": 2,
+    "value_baseline": "public",
+    "critic_targets": "bootstrapped",
+    "actor_learning_rate": 6e-05,
+    "rollout_decisions": 32768,
+    "pilot_decisions": 262144,
+    "mixture_control": {
+      "scripted": 0.75,
+      "selfplay": 0.1,
+      "historical": 0.15
+    },
+    "mixture_candidate": {
+      "scripted": 0.5,
+      "selfplay": 0.25,
+      "historical": 0.25
+    }
+  },
+  "primary_validation": [
+    "validation: balanced,hyperoffense,setup_sweeper,attrition,pivot; 256 paired games each",
+    "validation_cores: balanced; 256 paired games"
+  ],
+  "retention_validation": [
+    "saved mirror balanced: 256",
+    "saved_vs_varied balanced: 256",
+    "immutable reference: at least 128"
+  ],
+  "promotion": "Do not replace v6 unless paired validation improves held-out cores and broad teams without losing established saved-roster strength. A separate frozen candidate then faces prospective test_v7. No search distillation without its own positive paired comparison.",
+  "prospective_test": {
+    "split": "test_v7",
+    "battle_seed": 290731,
+    "manifest_sha256": "8e872c2e73666c55ebd6c7355bb131555d6d361c6d6466dcfcfe2294a898c70a",
+    "evaluated": false
+  },
+  "interpretation": "The generalization gap is real but does not prove memorization is its sole cause. Fix representation defects before larger training. Pilot decisions are matched; report elapsed compute separately rather than claiming equal hardware cost. No fixed KL or 10M steps guarantees improvement."
+}
