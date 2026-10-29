@@ -1,0 +1,37 @@
+from collections import defaultdict
+import numpy as np
+import torch
+from champions_rl.model import BattleModel
+from champions_rl.parallel_rollouts import ParallelRollouts,trajectory_targets
+
+
+def test_parallel_selfplay_learns_both_seats_and_complete_rewards():
+    torch.set_num_threads(1)
+    torch.manual_seed(7)
+    model=BattleModel(width=32,layers=1).eval()
+    with ParallelRollouts(workers=2,envs=4,seed=7,selfplay_fraction=1.,snapshot_fraction=0.,max_turns=30) as actors:
+        rows,results,stats=actors.collect({"current":model},horizon=40,device="cpu")
+        assert {r["side"] for r in rows}=={0,1}
+        assert len(rows)==stats["simulation_steps"]*2
+        assert stats["policy_decisions"]>stats["simulation_steps"]
+        assert stats["mean_current_batch"]>1
+        assert results and all(r["win"] is None for r in results)
+        reward=defaultdict(float)
+        for r in rows:
+            reward[r["trajectory"]]+=r["reward"]
+            if r["terminal"]:
+                assert np.isclose(abs(reward[r["trajectory"]]),1.) or np.isclose(reward[r["trajectory"]],0.)
+        advantage,returns=trajectory_targets(rows,model,device="cpu")
+        assert torch.isfinite(advantage).all() and torch.isfinite(returns).all()
+    assert all(not p.is_alive() for p in actors.processes)
+
+
+def test_gae_separates_opposing_players_and_waiting_states():
+    rows=[]
+    for t in range(2):
+        for side in (0,1):
+            rows.append({"trajectory":(0,1,side),"terminal":t==1,"truncated":False,"value":0.,
+                         "reward":(1. if side==0 else -1.) if t==1 else 0.})
+    model=BattleModel(width=32,layers=1)
+    advantage,returns=trajectory_targets(rows,model,device="cpu",lam=.95)
+    assert torch.allclose(returns,torch.tensor([.95,-.95,1.,-1.]))

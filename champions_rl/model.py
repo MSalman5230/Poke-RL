@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.distributions import Categorical
-from .features import Encoder, N_ACTIONS, FEATURE_VERSION
+from .features import Encoder, N_ACTIONS, FEATURE_VERSION, encode_observation
 from .knowledge import knowledge
 
 
@@ -13,13 +13,7 @@ def tensor_batch(observations, device="cpu"):
 
 
 def encode_for_model(model, encoder, observation):
-    encoded=encoder.encode(observation)
-    weight=model.config.get("heuristic_weight",0.)
-    if weight:
-        from .policies import ScriptedBot
-        scores=ScriptedBot("balanced",encoder=encoder).scores(observation,encoded) if observation["legal"] else np.zeros(N_ACTIONS)
-        encoded["guide"]=np.where(encoded["mask"],np.clip(scores,-5,5)*weight,0).astype(np.float32)
-    return encoded
+    return encode_observation(encoder,model.config,observation)
 
 
 class BattleModel(nn.Module):

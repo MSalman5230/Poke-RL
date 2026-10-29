@@ -25,6 +25,17 @@ def move_ids(mon):
     return [canonical(m["id"] if isinstance(m, dict) else m) for m in values][:4]
 
 
+def encode_observation(encoder, config, observation):
+    """CPU-only encoding shared by rollout workers and local inference."""
+    encoded=encoder.encode(observation)
+    weight=config.get("heuristic_weight",0.)
+    if weight:
+        from .policies import ScriptedBot
+        scores=ScriptedBot("balanced",encoder=encoder).scores(observation,encoded) if observation["legal"] else np.zeros(N_ACTIONS)
+        encoded["guide"]=np.where(encoded["mask"],np.clip(scores,-5,5)*weight,0).astype(np.float32)
+    return encoded
+
+
 class Encoder:
     def __init__(self):
         self.k = knowledge()
