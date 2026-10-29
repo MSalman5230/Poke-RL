@@ -4,7 +4,7 @@ An offline battle bot for **Pokémon Champions, Regulation M-C, Battle Stadium S
 
 The method is **knowledge-guided reinforcement learning with imitation pretraining**. Game facts become structured inputs and pretrained embeddings; demonstrations teach an initial policy; masked PPO improves the policy through battles against a mixture of opponents and frozen versions of itself.
 
-**A working training system is not a verified strong player.** Read the actual evaluation reports under `runtime_data/`. The program only marks the requested 60% target as passed after a separate test benchmark passes the checks below. There is no measured claim of beating Jaxcalibur.
+The frozen two-million-decision policy won **255/256 independent test games against the original bot on its saved roster**. The full acceptance gate still failed: four scripted styles on varied teams remained below 55%. Generalization needs more work, and no comparison against Jaxcalibur has been measured. See the results and limits below.
 
 ## Use the installed environment
 
@@ -12,12 +12,12 @@ From this directory in PowerShell:
 
 ```powershell
 .\.venv\Scripts\python.exe -m champions_rl status
-.\.venv\Scripts\python.exe -m champions_rl play --checkpoint runtime_data\bc_v6_final.pt --opponent balanced
+.\.venv\Scripts\python.exe -m champions_rl play --checkpoint runtime_data\candidates\v6_2m_review\policy.pt --opponent balanced
 ```
 
 `play` writes a complete public Showdown protocol log and a JSON result to `runtime_data/play/`. A neural policy receives only its own player-visible state. An opponent's actual moveset, items, selected trio, and pending action are not inputs.
 
-The first installed experiments are `runtime_data/run_001/` and `runtime_data/run_002/`. `latest.pt` is an inference checkpoint; `trainer_state.pt` also includes the optimizer and PyTorch RNG state. Training logs contain **training** win rates, which are not benchmark results.
+The completed run is `runtime_data/ppo_v6_full/`. `latest.pt` is an inference checkpoint; `trainer_state.pt` also includes both optimizers, RNG streams, and the frozen opponent league. The candidate folder preserves the tested policy and its result separately. Training logs contain **training** win rates, which are not benchmark results.
 
 ## Reproduce installation
 
@@ -179,23 +179,40 @@ Tests cover restricted legality and every generated set/team, hidden-information
 
 ## Review-cycle measurements
 
-The corrected native-feature pipeline achieved 358, 410, and 441 decisions/s with 12, 16, and 24 workers respectively in short cold-cache probes using 256 battles and two PPO epochs. The fastest measured whole-process rate was about 407 decisions/s. These probes preceded the final cumulative-faint cache fix; concurrent evaluation and the four-epoch full run have different costs. The requested 1,000 decisions/s target has **not** been demonstrated. Changes to both features and worker configuration prevent attributing the improvement to caching alone.
+The run in `runtime_data/ppo_v6_full` completed **2,001,783 policy decisions in 57 PPO updates**. Every update used 100% of the actor and critic samples for four epochs. The representative KL guard remained enabled; no update triggered it. Frozen paired validation ran every ten updates, and the final checkpoint received the same suite. These are observed outcomes, not an isolated causal ablation of each fix.
 
-The rebuilt v6 demonstration set contains 13,337 decisions from 1,175 valid games, including 1,545 reference decisions. Reference own-team variation produced 55 valid games and nine strict preview failures; failed games were excluded. Re-encoding corrected 36 scripted labels. Balanced held-out imitation loss improved from 2.462 at step zero to 1.453 at step 201, which was saved rather than the later overfit checkpoint. These losses measure teacher agreement, not battle strength.
+| Validation schedule | Starting imitation policy | Final PPO policy |
+| --- | ---: | ---: |
+| Original reference, saved roster | 63/128 (49.2%) | 126/128 (98.4%) |
+| Balanced script, saved roster | 29/256 (11.3%) | 254/256 (99.2%) |
+| Five scripts, broad team mix | 646/1,280 (50.5%) | 717/1,280 (56.0%) |
+| Five scripts, competitive teams | 648/1,280 (50.6%) | 928/1,280 (72.5%) |
+| Balanced script, excluded team cores | 110/256 (43.0%) | 140/256 (54.7%) |
 
-The long run in `runtime_data/ppo_v6_full` requests two million decisions with a separate private critic and frozen paired validation every ten updates. Use its metrics and completed evaluation reports for current progress; an incomplete run is not evidence of achieving the playing-strength target. The original reference and old checkpoints remain independent yardsticks. Search is still experimental and no search labels were added in this review cycle.
+The final evaluations above had no errors, fallbacks, or truncations. Paired bootstrap differences were +49.2 points against the reference, +5.5 on broad teams, +21.9 on competitive teams, and +11.7 on excluded cores. The corresponding 95% intervals were +43.0 to +55.5, +1.6 to +9.6, +17.2 to +26.7, and +4.3 to +19.1. Blocks retain both seats and all opponents. Repeated validation selected the candidate; it is not an independent test claim. Reference performance is specifically the saved-roster mirror, and broad-team generalization remains much weaker.
 
-At the frozen 355,544-decision checkpoint, PPO won 254/256 saved-roster games against balanced, compared with 29/256 for its starting imitation policy. Across the five common scripts on varied validation teams, it improved by 3.2 percentage points (paired bootstrap interval +0.8 to +5.7 points). That varied-team score remains close to the older transferred anchor. These are exploratory validation results from repeated checkpoint selection, not a final certification. The initial v6 imitation candidate won 63/128 strict reference games with no invalid games; the older anchor won 55/128 after five CPU-starved games were retried on their original seeds, with the failed attempts preserved. The stronger reference acceptance gate has not been established by these results.
+The final actor was frozen at `runtime_data/candidates/v6_2m_review/policy.pt` before independent testing. Its selection and new-seed test plan were committed in `9c30b11` and recorded in `benchmarks/2026-10-30-v6-candidate-selection.json`. At 1.41M decisions, deterministic play beat sampled play by 4.2 points on the competitive schedule (interval +1.2 to +7.3), so deterministic play was retained.
 
-The 178,392-decision critic audit also exposed a generalization gap: private-value explained variance was +0.115 on new battles using training-manifest teams and -0.237 on validation-manifest teams. These audits contain 256 games each and use the same frozen actor/critic pair. The private critic's low optimization loss is insufficient evidence that search can rank unseen continuations reliably. Detailed results and limitations are recorded in `benchmarks/2026-10-29-v6-review.json`.
+The independent test used seed 190731, disjoint from the validation schedule, with the frozen weights and action mode:
 
-The recovered 355,544-decision reference validation completed at 82/128 wins (64.1%; Wilson interval 55.5%–71.9%), compared with the starting imitation policy's 63/128. The paired difference was +14.8 points (95% bootstrap interval +7.0 to +23.4). Missing and invalid scheduled games were rerun without replaying completed valid wins or losses; original attempts remain in the recovery report. This supports a validation improvement, but does not pass the independent test gate or establish a 60% lower confidence bound.
+| Opponent | Wins / games | Win rate |
+| --- | ---: | ---: |
+| Original reference, saved roster | 255/256 | 99.6% |
+| Balanced, varied teams | 129/256 | 50.4% |
+| Hyperoffense, varied teams | 139/256 | 54.3% |
+| Setup sweeper, varied teams | 139/256 | 54.3% |
+| Attrition, varied teams | 152/256 | 59.4% |
+| Pivot, varied teams | 133/256 | 52.0% |
 
-Value audits now record the action-selection mode. Their default remains deterministic deployment play; add `--no-deterministic` to audit the sampled policy used in PPO. At 1,058,624 decisions, private-value explained variance on held-out teams was -0.292 for deterministic play and -0.117 for sampled play. Whole-game cross-fitted shrinkage reduced overconfidence but left little predictive signal (explained variance -0.020 and +0.023 respectively). No calibration transform was deployed and search remains disabled. These diagnostics are not a ranking test for alternative continuations.
+The reference's 95% Wilson lower bound is 97.8%, passing the reference target. **The full acceptance gate failed** because four styles did not reach 55%. All 1,536 scheduled games completed with zero errors or fallbacks; one attrition game reached the turn cap and remains a draw in the denominator. All 2,484 audited reference decisions used 32 trials. The candidate remains marked `reference_target_met_generalization_gate_failed`; it was not promoted as a generally strong agent. The complete result and hashes are in `benchmarks/2026-10-30-v6-independent-test.json`. No policy changes were made after viewing this test; later model selection must use validation and reserve a fresh independent test.
 
-At 1,410,044 decisions, the five-script competitive-team suite improved from 648/1,280 wins to 909/1,280 (50.6% to 71.0%; paired difference +20.4 points, interval +16.0 to +24.9). Sampling actions scored 855/1,280, so deterministic play remained the candidate setting. On excluded team cores against balanced, wins improved from 110/256 to 141/256; this is a harder and distinct schedule. Broad legacy validation teams still scored only 55.2% across the five scripts. These results support learning beyond the saved mirror roster, while exposing remaining team-generalization limits.
+Search remains disabled. The final 256-game value audit gave public/private explained variance of +0.127/-0.274 on unseen teams. Whole-game cross-fitted shrinkage reduced the private critic's overconfidence but left explained variance at -0.021; no transform was deployed. Audits default to deterministic play; `--no-deterministic` measures the sampled policy used in training. A separate sampled audit also failed to justify search. Low training loss does not establish reliable ranking of alternative continuations, and no search-distillation labels were added.
 
-A Windows idle-sleep incident interrupted two reference decisions and inflated one rollout's wall time by about 45 minutes. Failed games and Windows event evidence are retained in `benchmarks/2026-10-30-sleep-interruption.json`; recovery retries only invalid or missing schedule entries. Temporary power requests now cover active jobs. Historical timing includes sleep and is not presented as measured awake time.
+The rebuilt v6 demonstrations contain 13,337 decisions from 1,175 valid games, including 1,545 reference decisions. Varied expert own teams supplied 55 valid games; nine strict preview failures were excluded. Re-encoding corrected 36 scripted labels. Balanced held-out imitation loss improved from 2.462 at step zero to 1.453 at the selected step 201. Teacher agreement alone was never treated as battle promotion; the failed correction-overweighting experiment is described above.
+
+The final training phase averaged 339 decisions per awake second with 16 CPU workers and four PPO epochs. Short earlier cold-cache probes measured 358/410/441 decisions/s with 12/16/24 workers and two epochs (about 407/s including full process time at the fastest setting). Those probes preceded the final faint-counter fix and ran without concurrent validation; they are not a controlled caching ablation. The **1,000 decisions/s target remains unmet**. Battle collection and feature preparation still dominate learning time.
+
+Windows idle sleep interrupted two earlier reference decisions and inflated one rollout's wall time by about 45 minutes. Original attempts and event evidence remain in `benchmarks/2026-10-30-sleep-interruption.json`. Recovery reruns only invalid or missing scheduled games, preserving valid losses. Training/evaluation now hold temporary power requests; older wall timing is not relabeled as measured awake time. Full experiment provenance and limits are in `benchmarks/2026-10-29-v6-review.json`.
 
 ## Historical feature-v2 speed measurements
 

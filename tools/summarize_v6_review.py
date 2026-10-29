@@ -71,6 +71,11 @@ def summarize():
         current_audits[path.parent.name]['by_turn']={name:{kind:{k:v[kind][k] for k in ('return_mse','explained_variance','brier')} for kind in ('public','private')}
                                                     for name,v in {'overall':result['overall'],**result['by_turn']}.items()}
     correction=runtime/'dagger_v6_saved/summary_balanced_261001.json'
+    final_test=reports.get('eval_v6_test_final')
+    test_limit=('The independent test is incomplete; no final certification is established.'
+                if not final_test or not final_test['complete'] else
+                'The frozen candidate did not pass the full independent-test acceptance gate.'
+                if not final_test['acceptance']['passed'] else None)
     report={'updated_utc':datetime.now(timezone.utc).isoformat(),'actor_parameters':574786,'training_only_critic_parameters':428841,
             'feedback_disposition':{
                 'tactical_correctness':'Implemented and versioned; actual simulator outcome tests, public counters, restoration, reliability flags, semantic fingerprint, and raw-observation re-encoding.',
@@ -89,7 +94,7 @@ def summarize():
             'throughput_probe':speed_result,'initial_value_audit':value_result,'current_value_audits':current_audits,
             'value_calibration_diagnostics':{p.name:read(p) for p in (ROOT/'benchmarks').glob('*-v6-value-calibration-*.json')},
             'learner_corrections':read(correction) if correction.exists() else None,'training':training,'evaluations':reports,
-            'limitations':['No final test-set certification or demonstrated superiority to Jaxcalibur.',
+            'limitations':([test_limit] if test_limit else [])+['No demonstrated superiority to Jaxcalibur.',
                            'The reference timeout incident is retained as invalid data, not counted as a valid benchmark.',
                            'Transferred old weights may have encountered now-excluded team cores.',
                            'No equal-wall-clock causal ablation of each fix has been completed.',

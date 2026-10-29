@@ -1,0 +1,161 @@
+{
+  "recorded_utc": "2026-10-29T22:16:57.855725+00:00",
+  "status": "reference_target_met_generalization_gate_failed",
+  "policy": "runtime_data/candidates/v6_2m_review/policy.pt",
+  "policy_sha256": "8593b13c5c452044fe3e242471baf0cdeb668883436d37d2371ea6a6f9e66e45",
+  "policy_parameters": 574786,
+  "training_only_critic_parameters": 428841,
+  "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+  "knowledge_sha256": "12e11f7485fb8e1d188c084fd3f9e594da08e28c2890c83c35b0118bf107a471",
+  "implementation_sha256": "5c4fbebad492358d499426f84e9933ec608f346bc596bef26acfdab099e8e7e3",
+  "source_report": "runtime_data/eval_v6_test_final/report.json",
+  "source_report_sha256": "328d055cbeeeec60df5a0d4b869faaa57b546e15b360cfc8591fcda745e7655e",
+  "record_sha256": {
+    "reference": "d16cba0a7fdfce297178131ef774d4b581a6a5c13337de2ed503ac4074408527",
+    "balanced": "93aec8cce018c45ff71c10a1211dacdd26bfc626b9f4dfed328ef54e2ab68bc9",
+    "hyperoffense": "4d17737b44aa25d4869c544611255e7cdbe3b24cca2b70fe15396cdd89037b67",
+    "setup_sweeper": "90805b569d2758d36997b314e429a4d4b08aa342b91376f13f56610d7ff3887b",
+    "attrition": "9fe16bc12a7188534fc3f0bb39abfeec727f5eae6ac8bae0e4ba3a6f56e19c1f",
+    "pivot": "28654f0b76b33e41879640a4135b3d00fe42c137d116b5592bb0daba91efdeaa"
+  },
+  "test_plan": {
+    "split": "test",
+    "seed": 190731,
+    "games_per_opponent": 256,
+    "opponents": [
+      "reference",
+      "balanced",
+      "hyperoffense",
+      "setup_sweeper",
+      "attrition",
+      "pivot"
+    ],
+    "deterministic": true,
+    "search": false,
+    "reference_teams": "saved",
+    "roster": "manifest"
+  },
+  "completed_games": 1536,
+  "results": {
+    "reference": {
+      "games": 256,
+      "wins": 255,
+      "losses": 1,
+      "draws": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0,
+      "win_rate": 0.99609375,
+      "confidence": [
+        0.9782084757546238,
+        0.9993101355839765
+      ]
+    },
+    "balanced": {
+      "games": 256,
+      "wins": 129,
+      "losses": 127,
+      "draws": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0,
+      "win_rate": 0.50390625,
+      "confidence": [
+        0.4430547843724404,
+        0.5646422125672337
+      ]
+    },
+    "hyperoffense": {
+      "games": 256,
+      "wins": 139,
+      "losses": 117,
+      "draws": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0,
+      "win_rate": 0.54296875,
+      "confidence": [
+        0.48175952116554094,
+        0.6029074451708731
+      ]
+    },
+    "setup_sweeper": {
+      "games": 256,
+      "wins": 139,
+      "losses": 117,
+      "draws": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0,
+      "win_rate": 0.54296875,
+      "confidence": [
+        0.48175952116554094,
+        0.6029074451708731
+      ]
+    },
+    "attrition": {
+      "games": 256,
+      "wins": 152,
+      "losses": 103,
+      "draws": 1,
+      "errors": 0,
+      "truncations": 1,
+      "fallbacks": 0,
+      "win_rate": 0.59375,
+      "confidence": [
+        0.5326305715645441,
+        0.6520973549876323
+      ]
+    },
+    "pivot": {
+      "games": 256,
+      "wins": 133,
+      "losses": 123,
+      "draws": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0,
+      "win_rate": 0.51953125,
+      "confidence": [
+        0.45849266507745623,
+        0.5799923196209139
+      ]
+    }
+  },
+  "acceptance": {
+    "passed": false,
+    "requirements": {
+      "held_out_test_split": true,
+      "at_least_200_reference_games": true,
+      "reference_win_rate_at_least_60_percent": true,
+      "reference_95_percent_lower_bound_at_least_60_percent": true,
+      "at_least_four_other_styles": true,
+      "at_least_200_games_per_other_style": true,
+      "other_styles_at_least_55_percent": false,
+      "no_reference_fallbacks": true,
+      "no_failed_games": true,
+      "truncation_rate_at_most_one_percent": true
+    },
+    "jaxcalibur_comparison": "Not measured: different format; no public executable/weights supplied."
+  },
+  "reference_audit": {
+    "decisions": 2484,
+    "trial_counts": {
+      "32": 2484
+    },
+    "failed_decisions": 0
+  },
+  "validation_competitive_win_rate": 0.725,
+  "automated_tests": {
+    "passed": 58
+  },
+  "limits": [
+    "Reference uses the original saved-roster mirror. Other opponents use held-out broad teams.",
+    "Four scripted styles fail the 55 percent requirement; this is not a fully accepted general battle agent.",
+    "One attrition game reached the turn cap and remains a draw in the denominator.",
+    "No Jaxcalibur strength comparison has been measured.",
+    "Search remains disabled; the private critic generalizes poorly.",
+    "The measured final phase reached 339 decisions per awake second; the 1000 per second target remains unmet.",
+    "Test outcomes were observed only after candidate freezing. They must not be reused as validation for selecting later checkpoints."
+  ]
+}
