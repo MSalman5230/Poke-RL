@@ -1,0 +1,65 @@
+{
+  "baseline": "runtime_data\\eval_v6_bc_saved",
+  "candidate": "runtime_data\\ppo_v6_full\\validation\\step_000355544\\saved",
+  "baseline_checkpoint_sha256": "c5809348af9e86483ebfdab5127cfa0df381e620f4fdbb9a6bb5773b301b370a",
+  "candidate_checkpoint_sha256": "260115e7f22ea857d27802f80b7d86a1ebe420436f4c4499e2860f77b20ef732",
+  "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+  "baseline_implementation_sha256": "5179b98e31638c3115f05311d146032f4b0023d15507ba5066b1bfac7e6673b8",
+  "candidate_implementation_sha256": "5f60817f8d477a29b4cbaea9caea79153d14072e4d97a2b66f5c2374e63ab6b3",
+  "changed_implementation_files": [
+    "champions_rl/cli.py",
+    "champions_rl/expert_data.py",
+    "champions_rl/training.py"
+  ],
+  "baseline_deterministic": true,
+  "candidate_deterministic": true,
+  "baseline_search": false,
+  "candidate_search": false,
+  "by_opponent": {
+    "balanced": {
+      "baseline": {
+        "games": 256,
+        "wins": 29,
+        "losses": 227,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.11328125,
+        "confidence": [
+          0.08004020882965396,
+          0.1579570941426184
+        ]
+      },
+      "candidate": {
+        "games": 256,
+        "wins": 254,
+        "losses": 2,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.9921875,
+        "confidence": [
+          0.9719666598432031,
+          0.9978549545557232
+        ]
+      },
+      "candidate_minus_baseline": 0.87890625,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        0.83984375,
+        0.9140625
+      ]
+    }
+  },
+  "aggregate": {
+    "candidate_minus_baseline": 0.87890625,
+    "paired_seed_blocks": 128,
+    "bootstrap_95": [
+      0.83984375,
+      0.9140625
+    ]
+  },
+  "interpretation": "Exploratory validation. Bootstrap retains both seats and all opponents within each seed block. Repeated checkpoint selection and per-opponent comparisons are not multiplicity-adjusted. Promotion still requires a separately frozen test benchmark; truncations are reported, not treated as wins."
+}

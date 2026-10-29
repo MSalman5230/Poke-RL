@@ -1,0 +1,217 @@
+{
+  "baseline": "runtime_data\\eval_v6_bc_manifest",
+  "candidate": "runtime_data\\ppo_v6_full\\validation\\step_000355544\\manifest",
+  "baseline_checkpoint_sha256": "c5809348af9e86483ebfdab5127cfa0df381e620f4fdbb9a6bb5773b301b370a",
+  "candidate_checkpoint_sha256": "260115e7f22ea857d27802f80b7d86a1ebe420436f4c4499e2860f77b20ef732",
+  "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+  "baseline_implementation_sha256": "5179b98e31638c3115f05311d146032f4b0023d15507ba5066b1bfac7e6673b8",
+  "candidate_implementation_sha256": "5f60817f8d477a29b4cbaea9caea79153d14072e4d97a2b66f5c2374e63ab6b3",
+  "code_snapshots_compared": true,
+  "changed_implementation_files": [
+    "champions_rl/cli.py",
+    "champions_rl/expert_data.py",
+    "champions_rl/training.py"
+  ],
+  "selected_opponents": [
+    "attrition",
+    "balanced",
+    "hyperoffense",
+    "pivot",
+    "setup_sweeper"
+  ],
+  "baseline_deterministic": true,
+  "candidate_deterministic": true,
+  "baseline_search": false,
+  "candidate_search": false,
+  "by_opponent": {
+    "attrition": {
+      "baseline": {
+        "games": 256,
+        "wins": 129,
+        "losses": 127,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.50390625,
+        "confidence": [
+          0.4430547843724404,
+          0.5646422125672337
+        ]
+      },
+      "candidate": {
+        "games": 256,
+        "wins": 146,
+        "losses": 110,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.5703125,
+        "confidence": [
+          0.5090725840232575,
+          0.6294733608908749
+        ]
+      },
+      "candidate_minus_baseline": 0.06640625,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        0.015625,
+        0.1171875
+      ]
+    },
+    "balanced": {
+      "baseline": {
+        "games": 256,
+        "wins": 125,
+        "losses": 131,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.48828125,
+        "confidence": [
+          0.427675415913936,
+          0.549233593267042
+        ]
+      },
+      "candidate": {
+        "games": 256,
+        "wins": 131,
+        "losses": 125,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.51171875,
+        "confidence": [
+          0.450766406732958,
+          0.572324584086064
+        ]
+      },
+      "candidate_minus_baseline": 0.0234375,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        -0.01953125,
+        0.06640625
+      ]
+    },
+    "hyperoffense": {
+      "baseline": {
+        "games": 256,
+        "wins": 121,
+        "losses": 135,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.47265625,
+        "confidence": [
+          0.4123546019926828,
+          0.5337664194295991
+        ]
+      },
+      "candidate": {
+        "games": 256,
+        "wins": 128,
+        "losses": 128,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.5,
+        "confidence": [
+          0.43920445797238533,
+          0.5607955420276147
+        ]
+      },
+      "candidate_minus_baseline": 0.02734375,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        -0.01171875,
+        0.06640625
+      ]
+    },
+    "pivot": {
+      "baseline": {
+        "games": 256,
+        "wins": 134,
+        "losses": 122,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.5234375,
+        "confidence": [
+          0.4623612889416475,
+          0.5838206926963967
+        ]
+      },
+      "candidate": {
+        "games": 256,
+        "wins": 146,
+        "losses": 110,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.5703125,
+        "confidence": [
+          0.5090725840232575,
+          0.6294733608908749
+        ]
+      },
+      "candidate_minus_baseline": 0.046875,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        -0.00390625,
+        0.09765625
+      ]
+    },
+    "setup_sweeper": {
+      "baseline": {
+        "games": 256,
+        "wins": 137,
+        "losses": 119,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.53515625,
+        "confidence": [
+          0.4739891850542932,
+          0.595283787402773
+        ]
+      },
+      "candidate": {
+        "games": 256,
+        "wins": 136,
+        "losses": 120,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.53125,
+        "confidence": [
+          0.47010954427831475,
+          0.5914664312390774
+        ]
+      },
+      "candidate_minus_baseline": -0.00390625,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        -0.04296875,
+        0.03515625
+      ]
+    }
+  },
+  "aggregate": {
+    "candidate_minus_baseline": 0.032031250000000004,
+    "paired_seed_blocks": 128,
+    "bootstrap_95": [
+      0.007812499999999999,
+      0.057031250000000006
+    ]
+  },
+  "interpretation": "Exploratory validation. Bootstrap retains both seats and all opponents within each seed block. Repeated checkpoint selection and per-opponent comparisons are not multiplicity-adjusted. Promotion still requires a separately frozen test benchmark; truncations are reported, not treated as wins."
+}

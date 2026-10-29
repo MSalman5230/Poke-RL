@@ -1,0 +1,61 @@
+{
+  "baseline": "runtime_data\\eval_v6_anchor_reference_recovered",
+  "candidate": "runtime_data\\eval_v6_bc_reference",
+  "baseline_checkpoint_sha256": "f78496eeef57afb65d95541b538722d3e8e1841e4a5ad2633cf5c54bfc0e8a9a",
+  "candidate_checkpoint_sha256": "c5809348af9e86483ebfdab5127cfa0df381e620f4fdbb9a6bb5773b301b370a",
+  "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+  "baseline_implementation_sha256": "bf6a7d37043dfe0a12d59501e3f559420392188750a63dd3b59243e6abb87ae0",
+  "candidate_implementation_sha256": "65255926c6f1da00ef24768e5f7414b014eabfb9eff8563572e9ba5a4effa49c",
+  "changed_implementation_files": [],
+  "baseline_deterministic": true,
+  "candidate_deterministic": true,
+  "baseline_search": false,
+  "candidate_search": false,
+  "by_opponent": {
+    "reference": {
+      "baseline": {
+        "games": 128,
+        "wins": 55,
+        "losses": 73,
+        "draws": 0,
+        "errors": 0,
+        "fallbacks": 0,
+        "truncations": 0,
+        "win_rate": 0.4296875,
+        "confidence": [
+          0.34721027760971723,
+          0.5162622530634542
+        ]
+      },
+      "candidate": {
+        "games": 128,
+        "wins": 63,
+        "losses": 65,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.4921875,
+        "confidence": [
+          0.4070759798715471,
+          0.5777543013143609
+        ]
+      },
+      "candidate_minus_baseline": 0.0625,
+      "paired_seed_blocks": 64,
+      "bootstrap_95": [
+        -0.046875,
+        0.171875
+      ]
+    }
+  },
+  "aggregate": {
+    "candidate_minus_baseline": 0.0625,
+    "paired_seed_blocks": 64,
+    "bootstrap_95": [
+      -0.046875,
+      0.171875
+    ]
+  },
+  "interpretation": "Exploratory validation. Bootstrap retains both seats and all opponents within each seed block. Repeated checkpoint selection and per-opponent comparisons are not multiplicity-adjusted. Promotion still requires a separately frozen test benchmark; truncations are reported, not treated as wins."
+}
