@@ -27,7 +27,9 @@ def summarize():
     metrics=runtime/'ppo_v6_full/metrics.jsonl'
     updates=[json.loads(line) for line in metrics.read_text().splitlines()] if metrics.exists() else []
     run=runtime/'ppo_v6_full'
-    training={'complete':(run/'summary.json').exists(),'updates':len(updates),'output':run.relative_to(ROOT).as_posix(),
+    final=read(run/'summary.json') if (run/'summary.json').exists() else None
+    training={'complete':bool(final and not final['stopped'] and final['steps']>=2000000),
+              'target_decisions':2000000,'updates':len(updates),'output':run.relative_to(ROOT).as_posix(),
               'initial_training_code_commit':'a4bd4e9'}
     if updates:
         last=updates[-1]
@@ -79,6 +81,7 @@ def summarize():
                               'varied_reference_errors_excluded':9,'reencoded_script_labels_changed':36},
             'imitation':{'step_zero':imitation[0],'selected':best,'promotion':'Not established by teacher agreement; use paired battle reports.'},
             'throughput_probe':speed_result,'initial_value_audit':value_result,'current_value_audits':current_audits,
+            'value_calibration_diagnostics':{p.name:read(p) for p in (ROOT/'benchmarks').glob('*-v6-value-calibration-*.json')},
             'learner_corrections':read(correction) if correction.exists() else None,'training':training,'evaluations':reports,
             'limitations':['No final test-set certification or demonstrated superiority to Jaxcalibur.',
                            'The reference timeout incident is retained as invalid data, not counted as a valid benchmark.',

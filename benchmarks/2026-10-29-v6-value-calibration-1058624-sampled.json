@@ -1,0 +1,65 @@
+{
+  "source": "runtime_data\\value_audit_v6_1058624_sampled",
+  "positions_sha256": "36d7287ec47890858bae1d857d07bbe45f2b5535d640e676c60cd0b719dabf0e",
+  "checkpoint_sha256": "250d4c4e8d5fa936cc30a7edd4d3b2b86ec4f47c1352514c93050de15c133402",
+  "critic_sha256": "fbcfcdb7d9e6b6782ec126f4f4d556b336a82bc1ca638e9bd6c9dddf678e4ce1",
+  "positions": 2816,
+  "games": 256,
+  "public": {
+    "raw": {
+      "return_mse": 0.8784289003376325,
+      "explained_variance": 0.09696615773680994,
+      "correlation": 0.32020173866538487
+    },
+    "out_of_fold_shrinkage": {
+      "return_mse": 0.903958473185054,
+      "explained_variance": 0.06840888539530598,
+      "correlation": 0.267567611534831
+    },
+    "fits": [
+      {
+        "heldout_fold": 0,
+        "slope": 1.0,
+        "intercept": -0.009600921955562607,
+        "training_games": 128,
+        "heldout_games": 128
+      },
+      {
+        "heldout_fold": 1,
+        "slope": 0.5440714729726345,
+        "intercept": -0.0936681619861496,
+        "training_games": 128,
+        "heldout_games": 128
+      }
+    ]
+  },
+  "private": {
+    "raw": {
+      "return_mse": 1.085001953822132,
+      "explained_variance": -0.11667269126434143,
+      "correlation": 0.24840390275920682
+    },
+    "out_of_fold_shrinkage": {
+      "return_mse": 0.9479793331933357,
+      "explained_variance": 0.022987241331109964,
+      "correlation": 0.18061011723587966
+    },
+    "fits": [
+      {
+        "heldout_fold": 0,
+        "slope": 0.23311505782850495,
+        "intercept": 0.031873087817803514,
+        "training_games": 128,
+        "heldout_games": 128
+      },
+      {
+        "heldout_fold": 1,
+        "slope": 0.5167704563312845,
+        "intercept": -0.0929755576873575,
+        "training_games": 128,
+        "heldout_games": 128
+      }
+    ]
+  },
+  "limits": "Two folds keep both seats and all positions of a seed block together. Diagnostic only: no model weights or deployment scores changed. Better calibration across observed games does not establish correct ranking of alternative actions or justify search promotion."
+}

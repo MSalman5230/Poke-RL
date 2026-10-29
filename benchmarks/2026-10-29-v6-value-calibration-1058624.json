@@ -1,0 +1,65 @@
+{
+  "source": "runtime_data\\value_audit_v6_1058624",
+  "positions_sha256": "2344ba266f9303484e3d063fbddc8aa3baf4b3a57ced71da0128c085b7e90ed7",
+  "checkpoint_sha256": "250d4c4e8d5fa936cc30a7edd4d3b2b86ec4f47c1352514c93050de15c133402",
+  "critic_sha256": "fbcfcdb7d9e6b6782ec126f4f4d556b336a82bc1ca638e9bd6c9dddf678e4ce1",
+  "positions": 2871,
+  "games": 256,
+  "public": {
+    "raw": {
+      "return_mse": 0.9455739521623141,
+      "explained_variance": 0.02739247437170589,
+      "correlation": 0.22764631845825106
+    },
+    "out_of_fold_shrinkage": {
+      "return_mse": 0.9618523538388213,
+      "explained_variance": 0.010671028193217413,
+      "correlation": 0.1448736745290359
+    },
+    "fits": [
+      {
+        "heldout_fold": 0,
+        "slope": 0.7656205929565503,
+        "intercept": 0.08869846558979086,
+        "training_games": 128,
+        "heldout_games": 128
+      },
+      {
+        "heldout_fold": 1,
+        "slope": 0.3922797565945905,
+        "intercept": -0.08458183508707487,
+        "training_games": 128,
+        "heldout_games": 128
+      }
+    ]
+  },
+  "private": {
+    "raw": {
+      "return_mse": 1.2570495555974344,
+      "explained_variance": -0.2915799247396742,
+      "correlation": 0.11803104313090439
+    },
+    "out_of_fold_shrinkage": {
+      "return_mse": 0.9915877283934907,
+      "explained_variance": -0.019903809839866282,
+      "correlation": 0.0076916412167082
+    },
+    "fits": [
+      {
+        "heldout_fold": 0,
+        "slope": 0.11289374911691648,
+        "intercept": 0.1245639893699857,
+        "training_games": 128,
+        "heldout_games": 128
+      },
+      {
+        "heldout_fold": 1,
+        "slope": 0.2192615187118066,
+        "intercept": -0.07085278938670408,
+        "training_games": 128,
+        "heldout_games": 128
+      }
+    ]
+  },
+  "limits": "Two folds keep both seats and all positions of a seed block together. Diagnostic only: no model weights or deployment scores changed. Better calibration across observed games does not establish correct ranking of alternative actions or justify search promotion."
+}

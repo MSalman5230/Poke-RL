@@ -185,6 +185,10 @@ At the frozen 355,544-decision checkpoint, PPO won 254/256 saved-roster games ag
 
 The 178,392-decision critic audit also exposed a generalization gap: private-value explained variance was +0.115 on new battles using training-manifest teams and -0.237 on validation-manifest teams. These audits contain 256 games each and use the same frozen actor/critic pair. The private critic's low optimization loss is insufficient evidence that search can rank unseen continuations reliably. Detailed results and limitations are recorded in `benchmarks/2026-10-29-v6-review.json`.
 
+The recovered 355,544-decision reference validation completed at 82/128 wins (64.1%; Wilson interval 55.5%–71.9%), compared with the starting imitation policy's 63/128. The paired difference was +14.8 points (95% bootstrap interval +7.0 to +23.4). Missing and invalid scheduled games were rerun without replaying completed valid wins or losses; original attempts remain in the recovery report. This supports a validation improvement, but does not pass the independent test gate or establish a 60% lower confidence bound.
+
+Value audits now record the action-selection mode. Their default remains deterministic deployment play; add `--no-deterministic` to audit the sampled policy used in PPO. At 1,058,624 decisions, private-value explained variance on held-out teams was -0.292 for deterministic play and -0.117 for sampled play. Whole-game cross-fitted shrinkage reduced overconfidence but left little predictive signal (explained variance -0.020 and +0.023 respectively). No calibration transform was deployed and search remains disabled. These diagnostics are not a ranking test for alternative continuations.
+
 ## Historical feature-v2 speed measurements
 
 These archived results predate native tactical features and the private critic; they are not current throughput claims. Measured on 2026-10-29 with an i9-13900K and RTX 4070, using the same 512,833-parameter starting checkpoint. Each entry is the median of two sequential runs with different seeds; each run requests 20,000 decisions for 64 battles or 40,000 for 128 battles (rounded up to a complete rollout):

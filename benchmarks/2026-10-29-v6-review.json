@@ -1,5 +1,5 @@
 {
-  "updated_utc": "2026-10-29T17:20:56.982826+00:00",
+  "updated_utc": "2026-10-29T17:40:30.609499+00:00",
   "actor_parameters": 574786,
   "training_only_critic_parameters": 428841,
   "feedback_disposition": {
@@ -534,6 +534,201 @@
     "limits": "Early v4 probe, not the final v6 model. Weak initial prediction justified deferring search promotion. Correlated position diagnostics do not prove correct ranking of alternative actions."
   },
   "current_value_audits": {
+    "value_audit_v6_1058624": {
+      "settings": {
+        "checkpoint": "runtime_data\\ppo_v6_full\\step_001058624.pt",
+        "critic_state": "runtime_data\\ppo_v6_full\\critic_001058624.pt",
+        "games": 256,
+        "workers": 2,
+        "split": "validation",
+        "roster": "manifest",
+        "seed": 823104,
+        "opponents": [
+          "balanced",
+          "hyperoffense",
+          "setup_sweeper",
+          "attrition",
+          "pivot"
+        ]
+      },
+      "checkpoint_sha256": "250d4c4e8d5fa936cc30a7edd4d3b2b86ec4f47c1352514c93050de15c133402",
+      "critic_sha256": "fbcfcdb7d9e6b6782ec126f4f4d556b336a82bc1ca638e9bd6c9dddf678e4ce1",
+      "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+      "truncated_games": 0,
+      "limits": "New on-policy held-out team/seed trajectories; correlated positions are descriptive. This does not validate ranking counterfactual search leaves.",
+      "by_turn": {
+        "overall": {
+          "public": {
+            "return_mse": 0.9455739521623141,
+            "explained_variance": 0.02739247437170589,
+            "brier": 0.23615531811967314
+          },
+          "private": {
+            "return_mse": 1.2570495555974344,
+            "explained_variance": -0.2915799247396742,
+            "brier": 0.31043380575819507
+          }
+        },
+        "preview": {
+          "public": {
+            "return_mse": 1.0538836658276698,
+            "explained_variance": -0.05732608511306592,
+            "brier": 0.26347091645691745
+          },
+          "private": {
+            "return_mse": 1.3805557744862038,
+            "explained_variance": -0.38464983418694043,
+            "brier": 0.33931613432400426
+          }
+        },
+        "1-5": {
+          "public": {
+            "return_mse": 0.9874594237882715,
+            "explained_variance": -0.012543348540059895,
+            "brier": 0.24648436814716232
+          },
+          "private": {
+            "return_mse": 1.2562067342028491,
+            "explained_variance": -0.28771547765301375,
+            "brier": 0.3098945009944197
+          }
+        },
+        "6-10": {
+          "public": {
+            "return_mse": 0.9177533993431628,
+            "explained_variance": 0.049629921441842084,
+            "brier": 0.2293090835712982
+          },
+          "private": {
+            "return_mse": 1.2529987675522698,
+            "explained_variance": -0.30014139446183363,
+            "brier": 0.3115039467034603
+          }
+        },
+        "11-20": {
+          "public": {
+            "return_mse": 0.8113483488445618,
+            "explained_variance": 0.1731910314921068,
+            "brier": 0.20283626254110468
+          },
+          "private": {
+            "return_mse": 1.2138317462057533,
+            "explained_variance": -0.18636249986572073,
+            "brier": 0.29676574636872244
+          }
+        },
+        "21+": {
+          "public": {
+            "return_mse": 0.37636061711894186,
+            "explained_variance": 0.5960333273266454,
+            "brier": 0.09408971873336584
+          },
+          "private": {
+            "return_mse": 1.0071916983838138,
+            "explained_variance": -0.07188793795373316,
+            "brier": 0.2506499896660007
+          }
+        }
+      }
+    },
+    "value_audit_v6_1058624_sampled": {
+      "settings": {
+        "checkpoint": "runtime_data\\ppo_v6_full\\step_001058624.pt",
+        "critic_state": "runtime_data\\ppo_v6_full\\critic_001058624.pt",
+        "games": 256,
+        "workers": 4,
+        "split": "validation",
+        "roster": "manifest",
+        "seed": 823104,
+        "opponents": [
+          "balanced",
+          "hyperoffense",
+          "setup_sweeper",
+          "attrition",
+          "pivot"
+        ],
+        "deterministic": false
+      },
+      "checkpoint_sha256": "250d4c4e8d5fa936cc30a7edd4d3b2b86ec4f47c1352514c93050de15c133402",
+      "critic_sha256": "fbcfcdb7d9e6b6782ec126f4f4d556b336a82bc1ca638e9bd6c9dddf678e4ce1",
+      "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+      "truncated_games": 0,
+      "limits": "Held-out team/seed trajectories in the recorded action-selection mode. The critic is trained on sampled actions; deterministic play changes that policy. Correlated positions are descriptive. This does not validate ranking counterfactual search leaves.",
+      "by_turn": {
+        "overall": {
+          "public": {
+            "return_mse": 0.8784289003376325,
+            "explained_variance": 0.09696615773680994,
+            "brier": 0.2192909412247439
+          },
+          "private": {
+            "return_mse": 1.085001953822132,
+            "explained_variance": -0.11667269126434143,
+            "brier": 0.26686526531916926
+          }
+        },
+        "preview": {
+          "public": {
+            "return_mse": 1.0223979590270749,
+            "explained_variance": -0.020325383501659022,
+            "brier": 0.2555994897567687
+          },
+          "private": {
+            "return_mse": 1.2086643295414272,
+            "explained_variance": -0.21048211414590767,
+            "brier": 0.29613883101887567
+          }
+        },
+        "1-5": {
+          "public": {
+            "return_mse": 0.9154390013157154,
+            "explained_variance": 0.06358925662933868,
+            "brier": 0.22859121849086464
+          },
+          "private": {
+            "return_mse": 1.102126512411302,
+            "explained_variance": -0.12848503367641118,
+            "brier": 0.2717017280123802
+          }
+        },
+        "6-10": {
+          "public": {
+            "return_mse": 0.8229325051570384,
+            "explained_variance": 0.144280287756264,
+            "brier": 0.20512520828860192
+          },
+          "private": {
+            "return_mse": 1.1171919648704467,
+            "explained_variance": -0.16245867485124732,
+            "brier": 0.2732111635065112
+          }
+        },
+        "11-20": {
+          "public": {
+            "return_mse": 0.7454410366200124,
+            "explained_variance": 0.1494745382527196,
+            "brier": 0.1863588957362767
+          },
+          "private": {
+            "return_mse": 0.7966854151143055,
+            "explained_variance": 0.12943052224389706,
+            "brier": 0.19852033106556838
+          }
+        },
+        "21+": {
+          "public": {
+            "return_mse": 0.27224711465233914,
+            "explained_variance": -0.23762678668412862,
+            "brier": 0.06806177866308478
+          },
+          "private": {
+            "return_mse": 0.4014287008761985,
+            "explained_variance": 0.479426487730394,
+            "brier": 0.10035717521904965
+          }
+        }
+      }
+    },
     "value_audit_v6_178392": {
       "settings": {
         "checkpoint": "runtime_data\\ppo_v6_full\\step_000178392.pt",
@@ -729,6 +924,138 @@
       }
     }
   },
+  "value_calibration_diagnostics": {
+    "2026-10-29-v6-value-calibration-1058624-sampled.json": {
+      "source": "runtime_data\\value_audit_v6_1058624_sampled",
+      "positions_sha256": "36d7287ec47890858bae1d857d07bbe45f2b5535d640e676c60cd0b719dabf0e",
+      "checkpoint_sha256": "250d4c4e8d5fa936cc30a7edd4d3b2b86ec4f47c1352514c93050de15c133402",
+      "critic_sha256": "fbcfcdb7d9e6b6782ec126f4f4d556b336a82bc1ca638e9bd6c9dddf678e4ce1",
+      "positions": 2816,
+      "games": 256,
+      "public": {
+        "raw": {
+          "return_mse": 0.8784289003376325,
+          "explained_variance": 0.09696615773680994,
+          "correlation": 0.32020173866538487
+        },
+        "out_of_fold_shrinkage": {
+          "return_mse": 0.903958473185054,
+          "explained_variance": 0.06840888539530598,
+          "correlation": 0.267567611534831
+        },
+        "fits": [
+          {
+            "heldout_fold": 0,
+            "slope": 1.0,
+            "intercept": -0.009600921955562607,
+            "training_games": 128,
+            "heldout_games": 128
+          },
+          {
+            "heldout_fold": 1,
+            "slope": 0.5440714729726345,
+            "intercept": -0.0936681619861496,
+            "training_games": 128,
+            "heldout_games": 128
+          }
+        ]
+      },
+      "private": {
+        "raw": {
+          "return_mse": 1.085001953822132,
+          "explained_variance": -0.11667269126434143,
+          "correlation": 0.24840390275920682
+        },
+        "out_of_fold_shrinkage": {
+          "return_mse": 0.9479793331933357,
+          "explained_variance": 0.022987241331109964,
+          "correlation": 0.18061011723587966
+        },
+        "fits": [
+          {
+            "heldout_fold": 0,
+            "slope": 0.23311505782850495,
+            "intercept": 0.031873087817803514,
+            "training_games": 128,
+            "heldout_games": 128
+          },
+          {
+            "heldout_fold": 1,
+            "slope": 0.5167704563312845,
+            "intercept": -0.0929755576873575,
+            "training_games": 128,
+            "heldout_games": 128
+          }
+        ]
+      },
+      "limits": "Two folds keep both seats and all positions of a seed block together. Diagnostic only: no model weights or deployment scores changed. Better calibration across observed games does not establish correct ranking of alternative actions or justify search promotion."
+    },
+    "2026-10-29-v6-value-calibration-1058624.json": {
+      "source": "runtime_data\\value_audit_v6_1058624",
+      "positions_sha256": "2344ba266f9303484e3d063fbddc8aa3baf4b3a57ced71da0128c085b7e90ed7",
+      "checkpoint_sha256": "250d4c4e8d5fa936cc30a7edd4d3b2b86ec4f47c1352514c93050de15c133402",
+      "critic_sha256": "fbcfcdb7d9e6b6782ec126f4f4d556b336a82bc1ca638e9bd6c9dddf678e4ce1",
+      "positions": 2871,
+      "games": 256,
+      "public": {
+        "raw": {
+          "return_mse": 0.9455739521623141,
+          "explained_variance": 0.02739247437170589,
+          "correlation": 0.22764631845825106
+        },
+        "out_of_fold_shrinkage": {
+          "return_mse": 0.9618523538388213,
+          "explained_variance": 0.010671028193217413,
+          "correlation": 0.1448736745290359
+        },
+        "fits": [
+          {
+            "heldout_fold": 0,
+            "slope": 0.7656205929565503,
+            "intercept": 0.08869846558979086,
+            "training_games": 128,
+            "heldout_games": 128
+          },
+          {
+            "heldout_fold": 1,
+            "slope": 0.3922797565945905,
+            "intercept": -0.08458183508707487,
+            "training_games": 128,
+            "heldout_games": 128
+          }
+        ]
+      },
+      "private": {
+        "raw": {
+          "return_mse": 1.2570495555974344,
+          "explained_variance": -0.2915799247396742,
+          "correlation": 0.11803104313090439
+        },
+        "out_of_fold_shrinkage": {
+          "return_mse": 0.9915877283934907,
+          "explained_variance": -0.019903809839866282,
+          "correlation": 0.0076916412167082
+        },
+        "fits": [
+          {
+            "heldout_fold": 0,
+            "slope": 0.11289374911691648,
+            "intercept": 0.1245639893699857,
+            "training_games": 128,
+            "heldout_games": 128
+          },
+          {
+            "heldout_fold": 1,
+            "slope": 0.2192615187118066,
+            "intercept": -0.07085278938670408,
+            "training_games": 128,
+            "heldout_games": 128
+          }
+        ]
+      },
+      "limits": "Two folds keep both seats and all positions of a seed block together. Diagnostic only: no model weights or deployment scores changed. Better calibration across observed games does not establish correct ranking of alternative actions or justify search promotion."
+    }
+  },
   "learner_corrections": {
     "games": 128,
     "valid_games": 128,
@@ -754,35 +1081,36 @@
   },
   "training": {
     "complete": false,
-    "updates": 27,
+    "target_decisions": 2000000,
+    "updates": 39,
     "output": "runtime_data/ppo_v6_full",
     "initial_training_code_commit": "a4bd4e9",
-    "steps": 954105,
-    "seconds": 1017.84,
-    "decisions_per_second": 345.29,
-    "private_value_mse": 0.2680591432377696,
+    "steps": 1374966,
+    "seconds": 2198.81,
+    "decisions_per_second": 351.24,
+    "private_value_mse": 0.22939069880337654,
     "actor_completed_epochs": 4,
     "critic_completed_epochs": 4,
-    "mean_current_batch": 24.110648423557407,
+    "mean_current_batch": 23.817806603773583,
     "win_rates": {
-      "balanced": 0.6585365853658537,
-      "snapshot_fast_00000017": 0.5277777777777778,
-      "setup_sweeper": 0.7246376811594203,
-      "hyperoffense": 0.5,
-      "random": 1.0,
-      "attrition": 0.7241379310344828,
-      "pivot": 0.6440677966101694
+      "balanced": 0.5641025641025641,
+      "pivot": 0.75,
+      "random": 0.9333333333333333,
+      "setup_sweeper": 0.6764705882352942,
+      "attrition": 0.7019230769230769,
+      "seeded_00_anchor_v6_final": 0.5932203389830508,
+      "hyperoffense": 0.7297297297297297
     },
     "actor_coverage_min": 1.0,
     "critic_coverage_min": 1.0,
     "actor_kl_stops": 0,
-    "metrics_sha256": "b2a39398ce17755acdc94531f3c4d919d73241b3274314e4933f01091af5c7ad",
-    "elapsed_active_training_seconds": 3467.01,
+    "metrics_sha256": "fc4f343970c17990ef03f3162e077321fc3e28e4458191f37e0e25f63d387257",
+    "elapsed_active_training_seconds": 4647.98,
     "training_phases": {
       "0": 2449.17,
-      "602655": 1017.84
+      "602655": 2198.81
     },
-    "aggregate_decisions_per_active_second": 275.1953412306281,
+    "aggregate_decisions_per_active_second": 295.82011970791615,
     "paired_validations": {
       "step_000355544": {
         "manifest": {
@@ -973,6 +1301,111 @@
             "confidence": [
               0.4856502298943122,
               0.606713733381776
+            ]
+          }
+        },
+        "saved": {
+          "balanced": {
+            "games": 256,
+            "wins": 254,
+            "losses": 2,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.9921875,
+            "confidence": [
+              0.9719666598432031,
+              0.9978549545557232
+            ]
+          }
+        },
+        "complete": true
+      },
+      "step_001058624": {
+        "manifest": {
+          "balanced": {
+            "games": 256,
+            "wins": 130,
+            "losses": 126,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.5078125,
+            "confidence": [
+              0.4469087669627319,
+              0.5684852269166163
+            ]
+          },
+          "hyperoffense": {
+            "games": 256,
+            "wins": 124,
+            "losses": 132,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.484375,
+            "confidence": [
+              0.4238397175749127,
+              0.5453722946663914
+            ]
+          },
+          "setup_sweeper": {
+            "games": 256,
+            "wins": 136,
+            "losses": 120,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.53125,
+            "confidence": [
+              0.47010954427831475,
+              0.5914664312390774
+            ]
+          },
+          "attrition": {
+            "games": 256,
+            "wins": 147,
+            "losses": 109,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.57421875,
+            "confidence": [
+              0.5129894223122974,
+              0.6332535195415089
+            ]
+          },
+          "pivot": {
+            "games": 256,
+            "wins": 146,
+            "losses": 110,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.5703125,
+            "confidence": [
+              0.5090725840232575,
+              0.6294733608908749
+            ]
+          },
+          "frozen_initial": {
+            "games": 256,
+            "wins": 135,
+            "losses": 121,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.52734375,
+            "confidence": [
+              0.4662335805704009,
+              0.5876453980073172
             ]
           }
         },
@@ -1804,6 +2237,52 @@
       "complete": false,
       "report": "runtime_data/eval_v6_ppo355_reference/report.json",
       "report_sha256": "adb8a08f6b30a754140f9f9ffd14bed2ec2b1007ad067b8d642363ebcc1377c7"
+    },
+    "eval_v6_ppo355_reference_recovered": {
+      "checkpoint_sha256": "260115e7f22ea857d27802f80b7d86a1ebe420436f4c4499e2860f77b20ef732",
+      "implementation_sha256": "289a392545099e315ce003186b18d8fde8697fb6403ebe90cde20ab0e1b7d7a9",
+      "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+      "seed": 92341,
+      "split": "validation",
+      "roster": "manifest",
+      "reference_teams": "saved",
+      "deterministic": true,
+      "search": false,
+      "results": {
+        "reference": {
+          "games": 128,
+          "wins": 82,
+          "losses": 46,
+          "draws": 0,
+          "errors": 0,
+          "fallbacks": 0,
+          "truncations": 0,
+          "win_rate": 0.640625,
+          "confidence": [
+            0.5545209239708031,
+            0.718534014682854
+          ]
+        }
+      },
+      "acceptance": {
+        "passed": false,
+        "requirements": {
+          "held_out_test_split": false,
+          "at_least_200_reference_games": false,
+          "reference_win_rate_at_least_60_percent": true,
+          "reference_95_percent_lower_bound_at_least_60_percent": false,
+          "at_least_four_other_styles": false,
+          "at_least_200_games_per_other_style": false,
+          "other_styles_at_least_55_percent": false,
+          "no_reference_fallbacks": true,
+          "no_failed_games": true,
+          "truncation_rate_at_most_one_percent": true
+        },
+        "jaxcalibur_comparison": "Not measured: different format; no public executable/weights supplied."
+      },
+      "complete": true,
+      "report": "runtime_data/eval_v6_ppo355_reference_recovered/report.json",
+      "report_sha256": "a7d27e239076b23594af34532278c3d8de46b442d7920de24ab2e2ad6102792e"
     },
     "eval_v6_priority_cores": {
       "checkpoint_sha256": "53b62282899a5597e849faede54b92c475bf5f12ca82789cb1e4e9f565324197",
