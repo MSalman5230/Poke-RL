@@ -51,12 +51,15 @@ def acceptance(rows, split):
 
 def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"),games=100,
              output=None, split="validation",seed=92341,device="cpu",learner_style=None,reference_teams="saved",deterministic=False,
-             shard_index=0,shard_count=1,search=False):
+             shard_index=0,shard_count=1,search=False,roster='manifest',critic_state=None,frozen_opponents=None):
     if games<1 or not 0<=shard_index<shard_count:
         raise ValueError("Invalid game count or shard range")
     if len(set(opponents))!=len(opponents):
         raise ValueError("Opponent styles must be distinct")
     if search and (not checkpoint or not deterministic):raise ValueError('Search requires a checkpoint and deterministic evaluation')
+    if search and not critic_state:raise ValueError('Experimental search requires --critic-state; public-value search is disabled')
+    if roster not in ('manifest','saved'):raise ValueError('Unknown roster schedule')
+    frozen_opponents=frozen_opponents or {}
     seed_all(seed)
     import torch
     torch.set_num_threads(1)  # inference uses single positions; reserve CPU for simulators
@@ -67,7 +70,8 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
         learner=NeuralBot(model,encoder,deterministic=deterministic)
         if search:
             from .search import SearchBot
-            learner=SearchBot(model,encoder,seed=seed)
+            from .model import PrivilegedCritic
+            learner=SearchBot(model,encoder,seed=seed,critic=PrivilegedCritic.load_training_state(critic_state,device))
     else:
         learner=ScriptedBot(learner_style or "balanced",seed,encoder)
         metadata={}
@@ -95,12 +99,15 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
             "team_manifest_sha256":hashlib.sha256((ROOT/f"data/teams_{split}.json").read_bytes()).hexdigest(),
             "reference_manifest_sha256":hashlib.sha256((ROOT/"opponents/autoplay_reference/SOURCE_MANIFEST.json").read_bytes()).hexdigest(),
             "split":split,"seed":seed,"reference_teams":reference_teams,"deterministic":deterministic,
+            'roster':roster,'critic_sha256':hashlib.sha256(Path(critic_state).read_bytes()).hexdigest() if critic_state else None,
+            'frozen_opponents':{name:hashlib.sha256(Path(path).read_bytes()).hexdigest() for name,path in frozen_opponents.items()},
             'search':search,
             "shard_index":shard_index,"shard_count":shard_count,"requested_games_per_opponent":games,
             "reference_policy":"Frozen 32-trial original scoring/prediction; public-state adapter",
             "results":{}}
     with Engine() as engine:
         for style in opponents:
+            frozen_model=BattleModel.load(frozen_opponents[style],device)[0] if style in frozen_opponents else None
             rng=random.Random(seed)  # identical composition pairs across styles
             counts=Counter()
             records=[]
@@ -108,7 +115,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
             for game in range(games):
                 if game%2==0:
                     pair=[rng.choice(teams),rng.choice(teams)]
-                    if style=="reference" and reference_teams=="saved":
+                    if roster=='saved' or style=="reference" and reference_teams=="saved":
                         # Identical original six on both sides isolates policy strength
                         # from team-building/counter-team advantages.
                         pair=[reference_team,reference_team]
@@ -123,7 +130,8 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                 # Reversing teams here as well would keep the learner on the
                 # same roster twice and fail to cancel team-strength advantage.
                 party=pair
-                opponent=ReferenceBot(seed+game,strict=True) if style=="reference" else ScriptedBot(style,seed+game,encoder)
+                opponent=(NeuralBot(frozen_model,encoder,deterministic=True,name=style) if frozen_model is not None else
+                          ReferenceBot(seed+game,strict=True) if style=="reference" else ScriptedBot(style,seed+game,encoder))
                 bots=[opponent,opponent]
                 bots[seat]=learner
                 t0=time.monotonic()
@@ -174,7 +182,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
 
 def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced","setup","defensive","stochastic"),
                       games=200, output=None,split="validation",seed=92341,device="cpu",learner_style=None,
-                      reference_teams="saved",deterministic=False,workers=4,search=False):
+                      reference_teams="saved",deterministic=False,workers=4,search=False,roster='manifest',critic_state=None,frozen_opponents=None):
     """Separate processes preserve reference-policy isolation and exact trials.
 
     Each worker takes a disjoint subset of the same paired schedule. Reports
@@ -191,6 +199,13 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
     if checkpoint:
         frozen=output/"evaluated_model.pt"
         frozen.write_bytes(Path(checkpoint).read_bytes())
+    frozen_paths={}
+    for name,path in (frozen_opponents or {}).items():
+        import re
+        if not re.fullmatch(r'frozen_[a-zA-Z0-9_-]+',name):raise ValueError('Frozen opponent names must start frozen_ and contain letters/numbers/underscores')
+        destination=output/(name+'.pt');destination.write_bytes(Path(path).read_bytes());frozen_paths[name]=destination
+    if critic_state:
+        source=Path(critic_state);critic_state=output/'evaluated_critic.pt';critic_state.write_bytes(source.read_bytes())
     jobs=[]
     try:
         for index in range(workers):
@@ -198,6 +213,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
             command=[sys.executable,"-u","-m","champions_rl","evaluate","--games",str(games),
                      "--output",str(folder),"--split",split,"--seed",str(seed),"--device",device,
                      "--opponents",",".join(opponents),"--reference-teams",reference_teams,
+                     '--roster',roster,
                      "--shard-index",str(index),"--shard-count",str(workers)]
             if frozen:
                 command.extend(["--checkpoint",str(frozen)])
@@ -206,6 +222,8 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
             if deterministic:
                 command.append("--deterministic")
             if search:command.append('--search')
+            if critic_state:command.extend(['--critic-state',str(critic_state)])
+            for name,path in frozen_paths.items():command.extend(['--frozen-opponent',name+'='+str(path)])
             log=(output/f"worker_{index}.log").open("w",encoding="utf-8")
             process=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,
                                      creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
@@ -224,8 +242,8 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                     raise RuntimeError(f"Evaluation worker failed; see {folder.parent/(folder.name+'.log')}")
             if reports:
                 merged=dict(reports[0])
-                for key in ("checkpoint_sha256","implementation_sha256","knowledge_sha256","feature_signature","team_manifest_sha256","reference_manifest_sha256"):
-                    if len({r.get(key) for r in reports})!=1:
+                for key in ("checkpoint_sha256","implementation_sha256","knowledge_sha256","feature_signature","team_manifest_sha256","reference_manifest_sha256","roster","critic_sha256","frozen_opponents"):
+                    if len({json.dumps(r.get(key),sort_keys=True) for r in reports})!=1:
                         raise ValueError(f"Incompatible evaluation shards: {key}")
                 merged.update(checkpoint=str(checkpoint) if checkpoint else None,workers=workers,
                               shard_index=None,shard_count=workers,complete=False)

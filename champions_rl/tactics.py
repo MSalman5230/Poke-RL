@@ -35,7 +35,7 @@ class NativeTactics:
             s['moves']=['tackle']
             s['item']=canonical(m.get('item') if m.get('item') is not None else s.get('item'))
             s['ability']=canonical(m.get('ability') if m.get('ability') is not None else s.get('ability'))
-            if not q.get('mega' if key=='actor' else 'target_mega'):
+            if not q.get('mega' if key=='actor' else 'target_mega') and s['ability'] not in self.dependencies['set_dependent_abilities']:
                 # Damage depends on the resulting stats, not the many spreads
                 # and natures which can produce those same stats.
                 stats=k.mon_stats(m)
@@ -61,7 +61,9 @@ class NativeTactics:
         maximum=row['maxhp']
         hp=max(1,math.floor(query['target'].get('hp',1.)*maximum+.5))
         survive=row['survive_full'] and hp==maximum
-        rolls=[(min(d,hp-1) if survive else d,w) for d,w in row['rows']]
+        chance=row.get('survive_chance',0)
+        rolls=[(min(d,hp-1) if survive else d,w*(1-chance)) for d,w in row['rows']]
+        if chance:rolls.extend((min(d,hp-1),w*chance) for d,w in row['rows'])
         return {'min':min(d for d,_ in rolls)/maximum,'max':max(d for d,_ in rolls)/maximum,
                 'mean':sum(d*w for d,w in rolls)/maximum,
                 'ko':row['accuracy']*sum(w for d,w in rolls if d>=hp),
@@ -71,8 +73,8 @@ class NativeTactics:
         if self.engine is None:self.engine=Engine()
         if self.dependencies is None:
             meta=self.engine.request('tactics_metadata')
-            if meta['version']!=4:raise ValueError('Native tactics metadata version mismatch')
-            self.dependencies={k:set(meta[k]) for k in ('moves','abilities','items')}
+            if meta['version']!=5:raise ValueError('Native tactics metadata version mismatch')
+            self.dependencies={k:set(meta[k]) for k in ('moves','abilities','items','set_dependent_abilities')}
         normalized=[self.cache_query(q) for q in queries]
         keys=[json.dumps(q,sort_keys=True,separators=(',',':')) for q in normalized]
         missing={k:q for k,q in zip(keys,normalized) if k not in self.cache}

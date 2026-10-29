@@ -12,9 +12,10 @@ function metadata(){
   // Conservative HP dependencies from the pinned simulator's actual callbacks.
   const hooks=/^on(?:Source|Any|Ally|Foe)?(?:BasePower|Modify(?:Atk|Def|SpA|SpD|Spe|Move|Priority|Damage|Accuracy|STAB)|Accuracy|TryHit|Effectiveness|CriticalHit|Damage)$/;
   const sensitive=(e,all=false)=>Object.entries(e).some(([k,v])=>(all||hooks.test(k))&&typeof v==='function'&&/\.(?:hp|maxhp|baseMaxhp)\b|getUndynamaxedHP\(/.test(v.toString()));
-  return {version:4,moves:dex.moves.all().filter(m=>sensitive(m,true)).map(m=>m.id),
+  return {version:5,moves:dex.moves.all().filter(m=>sensitive(m,true)).map(m=>m.id),
     abilities:dex.abilities.all().filter(a=>a.id!=='sturdy'&&sensitive(a)).map(a=>a.id),
-    items:dex.items.all().filter(a=>a.id!=='focussash'&&sensitive(a)).map(a=>a.id)};
+    items:dex.items.all().filter(a=>a.id!=='focussash'&&sensitive(a)).map(a=>a.id),
+    set_dependent_abilities:dex.abilities.all().filter(a=>Object.values(a).some(v=>typeof v==='function'&&/formeChange|formChange|transformInto/.test(v.toString()))).map(a=>a.id)};
 }
 function build(q){
   const b=new Battle({formatid:'gen9championsbssregmc',seed:[11,22,33,44],send:()=>{}});
@@ -87,13 +88,16 @@ function calculate(q,prepared){
     const priority=b.runEvent('ModifyPriority',a,d,move,move.priority);
     const unsupported=[];
     if(move.ohko||conditionalMoves.has(move.id))unsupported.push('conditional_move_execution_or_missing_party_history');
+    if(move.onPrepareHit||move.onTryMove||move.onTry)unsupported.push('move_preparation_not_simulated');
+    if(a.getAbility().onPrepareHit||a.getAbility().onBeforeMove)unsupported.push('attacker_preparation_ability_not_simulated');
+    if(d.hasAbility('rivalry')||a.hasAbility('rivalry'))unsupported.push('unobserved_gender');
     for(const m of [q.actor,q.target])for(const effect of Object.keys(m.volatiles||{})){
       if(!restoredVolatiles.has(effect)&&!irrelevantVolatiles.has(effect)&&!effect.startsWith('fallen'))unsupported.push('unrestored_volatile:'+effect);
     }
     if(move.multihit)unsupported.push('correlated_multihit_rolls_and_between_hit_effects');
     if(q.target.volatiles?.substitute?.hp===undefined&&q.target.volatiles?.substitute&&move.multihit)unsupported.push('unknown_substitute_hp');
-    const result={rows:[[0,1]],maxhp:d.maxhp,accuracy:1,speed,priority,survive_full:false,
-      reliable:unsupported.length===0,unsupported,method:'native-conditional-damage-v4'};
+    const result={rows:[[0,1]],maxhp:d.maxhp,accuracy:1,speed,priority,survive_full:false,survive_chance:0,
+      reliable:unsupported.length===0,unsupported,method:'native-conditional-damage-v5'};
     if(move.category==='Status'||move.id==='recharge'||!move.exists)return result;
     b.singleEvent('ModifyMove',move,null,a,d,move,move);
     move=b.runEvent('ModifyMove',a,d,move,move)||move;
@@ -114,9 +118,20 @@ function calculate(q,prepared){
       a.hasItem('loadeddice')?[[4,.5],[5,.5]]:[[2,.35],[3,.35],[4,.15],[5,.15]];
     const defenderAbility=name=>d.hasAbility(name)&&!(b.suppressingAbility(d)&&d.getAbility().flags.breakable);
     result.survive_full=!move.multihit&&(d.hasItem('focussash')||defenderAbility('sturdy'));
+    result.survive_chance=!move.multihit&&d.hasItem('focusband') ? 0.1 : 0;
+    // The common single-hit calculation only reads the combatants. Expensive
+    // restore/cloning is necessary for consuming berries and supported form or
+    // substitute changes. Multi-hit estimates always take the conservative path.
+    const mutable=move.multihit||d.volatiles.substitute||defenderAbility('disguise')||defenderAbility('iceface')||
+      a.getItem().isBerry||d.getItem().isBerry;
+    // Preserve preparation such as Aegislash's Stance Change for every roll.
+    // Restoring the pre-ModifyMove state would silently return to Shield form.
+    const restorePreparedA=mutable?snapshot(a):null,restorePreparedD=mutable?snapshot(d):null;
+    const actorHP=a.hp;
     const initial=d.hp,rows=[];
     for(const [hits,weight] of hitCounts)for(let roll=85;roll<=100;roll++){
-      restore();b.setActiveMove(move,a,d);let damage=0;
+      if(mutable){restorePreparedA();restorePreparedD();b.log.length=logLength;}else {a.hp=actorHP;d.hp=initial;}
+      b.setActiveMove(move,a,d);let damage=0;
       // Standard single-hit rolls are enumerated. Multi-hit damage uses a
       // common roll per hit: its extrema are useful, probability is approximate.
       b.randomizer=value=>Math.floor(value*roll/100);

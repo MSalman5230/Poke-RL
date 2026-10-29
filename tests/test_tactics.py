@@ -93,6 +93,7 @@ def test_damage_distributions_match_resolved_moves_and_restore_state():
         q(known('Garchomp'),known('Dragonite',ability='Multiscale'),'dragonclaw'),
         q(known('Garchomp'),known('Dragonite',ability='Multiscale',hp=.8),'dragonclaw'),
         q(known('Primarina'),known('Garchomp',hp=.4),'brine'),
+        q(known('Aegislash',ability='Stance Change'),known('Tyrantrum'),'shadowsneak'),
     ]
     queries[0]['target']['set']['evs']={'hp':2}
     actual=json.loads(subprocess.run(['node',str(ROOT/'tests/native_outcomes.cjs')],input=json.dumps(queries),
@@ -135,6 +136,8 @@ def test_hp_free_cache_reuses_only_safe_distributions():
         assert not row['reliable'] and 'unknown_substitute_hp' in row['unsupported']
         q.update(move='earthquake',target=known('Garchomp',volatiles={'unknownmechanic':{}}))
         assert not native.calculate([q])[0]['reliable']
+        q={'actor':known('Archaludon',boosts={'spa':6}),'target':known('Garchomp',item='Focus Band',hp=.5),'move':'dragonpulse'}
+        assert np.isclose(native.calculate([q])[0]['ko'],.9)
 
 
 def test_cache_normalization_matches_uncached_varied_native_queries():

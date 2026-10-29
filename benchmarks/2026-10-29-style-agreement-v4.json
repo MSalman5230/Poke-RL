@@ -1,0 +1,95 @@
+{
+  "positions": 576,
+  "non_preview_positions": 528,
+  "agreement": {
+    "damage": {
+      "damage": 1.0,
+      "balanced": 0.9340277777777778,
+      "setup": 0.9253472222222222,
+      "defensive": 0.8871527777777778,
+      "hyperoffense": 0.9861111111111112,
+      "setup_sweeper": 0.8784722222222222,
+      "attrition": 0.5451388888888888,
+      "pivot": 0.7447916666666666
+    },
+    "balanced": {
+      "damage": 0.9340277777777778,
+      "balanced": 1.0,
+      "setup": 0.9895833333333334,
+      "defensive": 0.9513888888888888,
+      "hyperoffense": 0.9201388888888888,
+      "setup_sweeper": 0.9079861111111112,
+      "attrition": 0.5920138888888888,
+      "pivot": 0.796875
+    },
+    "setup": {
+      "damage": 0.9253472222222222,
+      "balanced": 0.9895833333333334,
+      "setup": 1.0,
+      "defensive": 0.9427083333333334,
+      "hyperoffense": 0.9114583333333334,
+      "setup_sweeper": 0.9149305555555556,
+      "attrition": 0.5885416666666666,
+      "pivot": 0.7899305555555556
+    },
+    "defensive": {
+      "damage": 0.8871527777777778,
+      "balanced": 0.9513888888888888,
+      "setup": 0.9427083333333334,
+      "defensive": 1.0,
+      "hyperoffense": 0.8732638888888888,
+      "setup_sweeper": 0.8645833333333334,
+      "attrition": 0.6232638888888888,
+      "pivot": 0.8020833333333334
+    },
+    "hyperoffense": {
+      "damage": 0.9861111111111112,
+      "balanced": 0.9201388888888888,
+      "setup": 0.9114583333333334,
+      "defensive": 0.8732638888888888,
+      "hyperoffense": 1.0,
+      "setup_sweeper": 0.8663194444444444,
+      "attrition": 0.5347222222222222,
+      "pivot": 0.7326388888888888
+    },
+    "setup_sweeper": {
+      "damage": 0.8784722222222222,
+      "balanced": 0.9079861111111112,
+      "setup": 0.9149305555555556,
+      "defensive": 0.8645833333333334,
+      "hyperoffense": 0.8663194444444444,
+      "setup_sweeper": 1.0,
+      "attrition": 0.5347222222222222,
+      "pivot": 0.7274305555555556
+    },
+    "attrition": {
+      "damage": 0.5451388888888888,
+      "balanced": 0.5920138888888888,
+      "setup": 0.5885416666666666,
+      "defensive": 0.6232638888888888,
+      "hyperoffense": 0.5347222222222222,
+      "setup_sweeper": 0.5347222222222222,
+      "attrition": 1.0,
+      "pivot": 0.6388888888888888
+    },
+    "pivot": {
+      "damage": 0.7447916666666666,
+      "balanced": 0.796875,
+      "setup": 0.7899305555555556,
+      "defensive": 0.8020833333333334,
+      "hyperoffense": 0.7326388888888888,
+      "setup_sweeper": 0.7274305555555556,
+      "attrition": 0.6388888888888888,
+      "pivot": 1.0
+    }
+  },
+  "training_styles": [
+    "random",
+    "balanced",
+    "hyperoffense",
+    "setup_sweeper",
+    "attrition",
+    "pivot"
+  ],
+  "notes": "One fixed 24-game public-position corpus; measures choice overlap, not playing strength. Legacy styles remain available only for historical comparisons."
+}

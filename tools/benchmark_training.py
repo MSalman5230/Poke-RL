@@ -31,7 +31,9 @@ def main():
     parser.add_argument("--workers", default="1,2,4,8")
     parser.add_argument("--envs", type=int, default=64)
     parser.add_argument("--horizon", type=int, default=32)
-    parser.add_argument("--batch-size", type=int, default=128)
+    parser.add_argument("--batch-size", type=int, default=512)
+    parser.add_argument('--learning-rate',type=float,default=3e-5)
+    parser.add_argument('--epochs',type=int,default=2)
     parser.add_argument("--reference-workers", type=int, default=0)
     parser.add_argument("--repeats", type=int, default=2)
     parser.add_argument("--device", default="cuda")
@@ -45,7 +47,7 @@ def main():
     args.initial = args.initial.resolve(strict=True)
     args.output = args.output.resolve()
     args.output.mkdir(parents=True, exist_ok=False)
-    sources = [*sorted((ROOT / "champions_rl").glob("*.py")), ROOT / "simulator/worker.cjs"]
+    sources = [*sorted((ROOT / "champions_rl").glob("*.py")), *sorted((ROOT/'simulator').glob('*.cjs'))]
     report = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "python": sys.version,
@@ -63,7 +65,8 @@ def main():
             "Serial steps record one learner trajectory; parallel self-play records both current-policy seats.",
             "Parallel and serial opponent mixtures differ; compare systems, not identical trajectories.",
             "Whole-process time includes imports, startup, checkpoints, and shutdown.",
-            "Fast PPO uses default 30% current self-play, 30% snapshots, 40% scripts; reference replay is separate.",
+            "Parallel opponent fractions are recorded in each run's settings; reference replay is separate.",
+            "Each process starts with a cold native-damage cache; collection and optimization times are reported separately.",
             "The serial baseline uses no reference games and 30% snapshots.",
             "Throughput alone does not demonstrate better playing strength.",
         ],
@@ -92,11 +95,11 @@ def main():
                        "train-fast" if mode == "parallel" else "train",
                        "--initial", str(args.initial), "--output", str(output),
                        "--steps", str(args.steps), "--envs", str(args.envs), "--horizon", str(args.horizon),
-                       "--device", args.device, "--seed", str(1701 + repeat), "--learning-rate", "0.0001",
+                       "--device", args.device, "--seed", str(1701 + repeat), "--learning-rate", str(args.learning_rate),
                        "--stop-file", str(args.output / "STOP")]
             if mode == "parallel":
                 command += ["--workers", str(workers), "--reference-workers", str(args.reference_workers),
-                            "--batch-size", str(args.batch_size)]
+                            "--batch-size", str(args.batch_size),'--epochs',str(args.epochs),'--validation-every','0']
             print(json.dumps({"event": "benchmark_started", "run": name}), flush=True)
             started = time.monotonic()
             with (args.output / f"{name}.log").open("w", encoding="utf-8") as log:

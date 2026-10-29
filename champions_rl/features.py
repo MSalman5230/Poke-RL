@@ -10,7 +10,7 @@ CONDITIONS = ("stealthrock", "spikes", "toxicspikes", "stickyweb", "reflect", "l
 WEATHER = ("", "sunnyday", "raindance", "sandstorm", "snow", "desolateland", "primordialsea")
 TERRAIN = ("", "electricterrain", "grassyterrain", "psychicterrain", "mistyterrain")
 N_ACTIONS = 134
-FEATURE_VERSION = 4
+FEATURE_VERSION = 5
 ACTION_NAMES = ["move", "switch", "preview", "mega", "power", "accuracy", "priority", "pp",
                 "physical", "special", "status", "estimated_damage", "ko_margin", "effectiveness", "stab",
                 "actor_hp", "target_hp", "speed_ratio", "heal", "recoil", "drain", "setup", "protect",

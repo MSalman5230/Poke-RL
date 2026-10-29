@@ -48,6 +48,15 @@ def test_self_imitation_uses_only_better_than_expected_returns():
     assert values.grad[0]<0 and values.grad[1]==0
 
 
+def test_private_value_targets_use_finished_matches_and_preserve_truncation_bootstrap():
+    from champions_rl.parallel_rollouts import terminal_critic_targets
+    rows=[{'trajectory':0,'reward':.1,'terminal':False,'truncated':False},
+          {'trajectory':1,'reward':.2,'terminal':False,'truncated':True},
+          {'trajectory':0,'reward':.9,'terminal':True,'truncated':False}]
+    targets,n=terminal_critic_targets(rows,torch.tensor([.3,.6,.9]))
+    assert torch.allclose(targets,torch.tensor([1.,.6,.9])) and n==2
+
+
 def test_parallel_training_checkpoint_resume(tmp_path):
     from champions_rl.parallel_training import train_parallel
     from champions_rl.model import BattleModel

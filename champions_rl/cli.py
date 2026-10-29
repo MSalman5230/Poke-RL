@@ -23,6 +23,7 @@ def main():
     clone.add_argument("--width",type=int,default=128)
     clone.add_argument("--layers",type=int,default=2)
     clone.add_argument('--initial',type=Path,help='Fine-tune a compatible policy on the aggregated expert dataset')
+    clone.add_argument('--learning-rate',type=float,default=1e-4)
     train=sub.add_parser("train",help="Masked PPO against varied opponents and snapshots")
     train.add_argument("--initial",type=Path)
     train.add_argument("--resume",type=Path,help="Continue optimizer/weights; starts fresh seeded battles")
@@ -54,8 +55,14 @@ def main():
     fast.add_argument("--snapshot-fraction",type=float,default=.1)
     fast.add_argument("--reference-workers",type=int,default=0)
     fast.add_argument("--reference-weight",type=float,default=0.)
-    fast.add_argument("--learning-rate",type=float,default=1e-4)
-    fast.add_argument("--batch-size",type=int,default=128)
+    fast.add_argument("--learning-rate",type=float,default=3e-5)
+    fast.add_argument('--critic-learning-rate',type=float,default=3e-4)
+    fast.add_argument("--batch-size",type=int,default=512)
+    fast.add_argument('--epochs',type=int,default=4)
+    fast.add_argument('--league-checkpoint',type=Path,action='append',default=[])
+    fast.add_argument('--validation-every',type=int,default=10,help='Updates between frozen paired evaluations; 0 disables')
+    fast.add_argument('--validation-workers',type=int,default=4)
+    fast.add_argument('--validation-games',type=int,default=256)
     fast.add_argument("--checkpoint-every",type=int,default=1)
     fast.add_argument('--rollout-decisions',type=int,default=32768)
     fast.add_argument('--privileged-critic',action=argparse.BooleanOptionalAction,default=True)
@@ -67,12 +74,15 @@ def main():
     evaluate.add_argument("--learner-style",default=None)
     evaluate.add_argument("--opponents",default="reference,damage,balanced,setup,defensive,stochastic")
     evaluate.add_argument("--games",type=int,default=200)
-    evaluate.add_argument("--split",choices=["validation","validation_competitive","test"],default="validation")
+    evaluate.add_argument("--split",choices=["validation","validation_competitive","validation_cores","test"],default="validation")
     evaluate.add_argument("--output",type=Path)
     evaluate.add_argument("--seed",type=int,default=92341)
     evaluate.add_argument("--device",default="cpu")
     evaluate.add_argument("--deterministic",action="store_true",help="Use the highest-probability legal action")
     evaluate.add_argument('--search',action='store_true',help='Prototype one-turn search; requires --deterministic')
+    evaluate.add_argument('--critic-state',type=Path)
+    evaluate.add_argument('--roster',choices=['manifest','saved'],default='manifest')
+    evaluate.add_argument('--frozen-opponent',action='append',default=[],metavar='frozen_NAME=PATH')
     evaluate.add_argument("--reference-teams",choices=["saved","varied"],default="saved")
     evaluate.add_argument("--workers",type=int,default=1,help="Independent local evaluation processes (up to 8)")
     evaluate.add_argument("--shard-index",type=int,default=0,help=argparse.SUPPRESS)
@@ -84,6 +94,7 @@ def main():
     play.add_argument("--seed",type=int,default=101)
     play.add_argument('--deterministic',action=argparse.BooleanOptionalAction,default=True)
     play.add_argument('--search',action='store_true')
+    play.add_argument('--critic-state',type=Path)
     play.add_argument("--output",type=Path,default=ROOT/"runtime_data/play")
     args=parser.parse_args()
     if args.command=="prepare":
@@ -105,7 +116,7 @@ def main():
         collect_demonstrations(args.output,args.games,args.teacher,args.seed)
     elif args.command=="pretrain":
         from .training import behavior_clone
-        behavior_clone(args.data,args.output,args.steps,device=args.device,width=args.width,layers=args.layers,initial=args.initial)
+        behavior_clone(args.data,args.output,args.steps,device=args.device,width=args.width,layers=args.layers,initial=args.initial,learning_rate=args.learning_rate)
     elif args.command=="train":
         from .training import train_ppo
         train_ppo(args.output,args.initial,args.steps,args.envs,args.horizon,device=args.device,seed=args.seed,
@@ -121,17 +132,20 @@ def main():
                        reference_workers=args.reference_workers,reference_weight=args.reference_weight,
                        learning_rate=args.learning_rate,batch_size=args.batch_size,checkpoint_every=args.checkpoint_every,
                        stop_file=args.stop_file,history_position=args.history_position,heuristic_weight=args.heuristic_weight,
-                       rollout_decisions=args.rollout_decisions,privileged=args.privileged_critic)
+                       rollout_decisions=args.rollout_decisions,privileged=args.privileged_critic,
+                       epochs=args.epochs,critic_learning_rate=args.critic_learning_rate,league_checkpoints=args.league_checkpoint,
+                       validation_every=args.validation_every,validation_workers=args.validation_workers,validation_games=args.validation_games)
     elif args.command=="play":
         from .evaluation import evaluate
-        report=evaluate(args.checkpoint,[args.opponent],1,args.output,"validation",args.seed,deterministic=args.deterministic,search=args.search)
+        report=evaluate(args.checkpoint,[args.opponent],1,args.output,"validation",args.seed,deterministic=args.deterministic,search=args.search,critic_state=args.critic_state)
         print(json.dumps(report["results"],indent=2))
     elif args.command=="evaluate":
         from .evaluation import evaluate,evaluate_parallel
         options={"workers":args.workers} if args.workers>1 else {"shard_index":args.shard_index,"shard_count":args.shard_count}
         runner=evaluate_parallel if args.workers>1 else evaluate
         report=runner(args.checkpoint,args.opponents.split(","),args.games,args.output,args.split,args.seed,
-                      args.device,args.learner_style,args.reference_teams,args.deterministic,search=args.search,**options)
+                      args.device,args.learner_style,args.reference_teams,args.deterministic,search=args.search,
+                      roster=args.roster,critic_state=args.critic_state,frozen_opponents=dict(x.split('=',1) for x in args.frozen_opponent),**options)
         print(json.dumps(report,indent=2))
     elif args.command=="status":
         import torch

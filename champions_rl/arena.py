@@ -110,11 +110,12 @@ class VectorArena:
         self.games += 1
 
     def sample_team(self):
+        from .holdouts import held_out_core
         if not self.procedural_teams or self.rng.random()<.2:
-            return self.rng.choice(self.teams)
+            return self.rng.choice([t for t in self.teams if not held_out_core(t)])
         while True:
             team=self.team_pool.sample(self.rng)
-            if fingerprint(team) not in self.held_out:
+            if fingerprint(team) not in self.held_out and not held_out_core(team):
                 return team
 
     def observations(self):

@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import gzip
 import multiprocessing as mp
 from multiprocessing.util import Finalize
 from pathlib import Path
@@ -19,6 +20,7 @@ from .policies import ScriptedBot
 from .provenance import feature_signature
 from .rewards import potential
 from .teams import TeamPool,fingerprint
+from .holdouts import held_out_core
 
 
 def initialize(settings):
@@ -26,7 +28,7 @@ def initialize(settings):
     _settings=settings
     _engine=Engine()
     _encoder=Encoder(engine=_engine)
-    _teams=load_teams('train')
+    _teams=[t for t in load_teams('train') if not held_out_core(t)]
     _saved=TeamPool().data['reference_team']
     _student=None
     if settings.get('student'):
@@ -56,8 +58,10 @@ def game(index):
     try:
         if teacher=='search':
             from .search import SearchBot
+            from .model import PrivilegedCritic
             if _student is None:raise ValueError('Search distillation requires --student')
-            expert=SearchBot(_student.model,_encoder,seed=seed,confidence=1.)
+            expert=SearchBot(_student.model,_encoder,seed=seed,confidence=1.,
+                             critic=PrivilegedCritic.load_training_state(settings['critic_state']))
         elif teacher=='reference':
             from .reference import ReferenceBot
             expert=ReferenceBot(seed,strict=True)
@@ -72,7 +76,7 @@ def game(index):
         if settings['teams']=='saved':teams=[_saved,_saved]
         if settings['teams']=='cross':teams[seat]=_saved
         state=_engine.request('new',game='demonstration',teams=teams,seed=[rng.randrange(65536) for _ in range(4)])
-        samples=[]
+        samples=[];raw=[]
         count=0
         while not (state['ended'] or state['truncated']):
             own=state['views'][seat];other=state['views'][1-seat]
@@ -86,6 +90,7 @@ def game(index):
                 if label is not None and (teacher!='search' or expert.last_search.get('used')):
                     samples.append({'obs':_encoder.encode(own),'labels':label,'student_actions':-100 if student_action is None else student_action,
                                     'enemy_labels':action_label(other,enemy),'potential':potential(own)})
+                    raw.append({'observation':own,'expert_action':label,'student_action':student_action})
             else:action=None
             actions=[None,None];actions[seat]=action;actions[1-seat]=enemy
             state=_engine.request('step',game='demonstration',actions=actions)
@@ -102,6 +107,10 @@ def game(index):
         audits=getattr(expert,'audit',[])
         if getattr(expert,'fallbacks',0):raise RuntimeError('Degraded expert game')
         durable_npz(stem.with_suffix('.npz'),**payload)
+        # Keep public observations so future feature revisions can be rebuilt
+        # without pretending an old encoded tensor has the new semantics.
+        with gzip.open(stem.with_suffix('.observations.json.gz'),'wt',encoding='utf-8') as stream:
+            json.dump({'rows':raw,'outcome':outcome,'feature_signature':feature_signature()},stream)
         metadata={**common,'samples':len(samples),'outcome':outcome,'opponent':opponent_name,'reference_fallbacks':0,
                   'reference_trials':sorted({a['trials'] for a in audits}),'turns':state['views'][0]['turn'],
                   'expert_disagreements':sum(r['student_actions']>=0 and r['student_actions']!=r['labels'] for r in samples),
@@ -117,17 +126,26 @@ def game(index):
         _engine.request('close',game='demonstration')
 
 
-def collect(output,games=128,teacher='reference',workers=4,seed=51001,teams='saved',student=None,beta=.25,query_probability=1.,opponents='mixture'):
+def collect(output,games=128,teacher='reference',workers=4,seed=51001,teams='saved',student=None,beta=.25,query_probability=1.,opponents='mixture',search_certificate=None,critic_state=None):
     if games<1 or workers<1 or not 0<=beta<=1 or not 0<query_probability<=1:raise ValueError('Invalid collection settings')
+    if teacher=='search':
+        # A high imitation agreement or a search-score margin is insufficient.
+        # Require independent paired battle evidence for these exact weights.
+        if search_certificate is None:raise ValueError('Search distillation is disabled until paired battle validation demonstrates an improvement')
+        certificate=json.loads(Path(search_certificate).read_text(encoding='utf-8'))
+        if not student or not critic_state or certificate.get('critic_sha256')!=hashlib.sha256(Path(critic_state).read_bytes()).hexdigest() or certificate.get('checkpoint_sha256')!=hashlib.sha256(Path(student).read_bytes()).hexdigest() or certificate.get('feature_signature')!=feature_signature() or certificate.get('games',0)<256 or certificate.get('paired_improvement_ci',[0])[0]<=0 or certificate.get('errors',1):
+            raise ValueError('Search validation certificate does not establish an improvement for this checkpoint')
     output=Path(output);output.mkdir(parents=True,exist_ok=True)
     settings={'output':str(output.resolve()),'games':games,'teacher':teacher,'seed':seed,'teams':teams,'beta':beta,
               'query_probability':query_probability,'student':str(Path(student).resolve()) if student else None,
               'opponents':opponents,
+              'search_certificate':str(search_certificate) if search_certificate else None,
+              'critic_state':str(critic_state) if critic_state else None,
               'student_sha256':hashlib.sha256(Path(student).read_bytes()).hexdigest() if student else None,
               'feature_signature':feature_signature()}
     manifest=output/f'collection_{teacher}_{seed}.json'
     if manifest.exists():
-        previous=json.loads(manifest.read_text());previous.setdefault('opponents','mixture')
+        previous=json.loads(manifest.read_text());previous.setdefault('opponents','mixture');previous.setdefault('search_certificate',None);previous.setdefault('critic_state',None)
         if previous!=settings:raise ValueError('Collection settings changed; use a new seed or directory')
     atomic_json(manifest,settings)
     rows=[];jobs=[]
@@ -163,4 +181,6 @@ if __name__=='__main__':
     parser.add_argument('--opponents',choices=['mixture','reference'],default='mixture')
     parser.add_argument('--beta',type=float,default=.25)
     parser.add_argument('--query-probability',type=float,default=1.)
+    parser.add_argument('--search-certificate',type=Path)
+    parser.add_argument('--critic-state',type=Path)
     print(json.dumps(collect(**vars(parser.parse_args()))),flush=True)

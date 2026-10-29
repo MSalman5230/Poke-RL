@@ -209,3 +209,19 @@ def trajectory_targets(records,model,device="cuda",lam=.95,critic=None):
             returns[i]=carry+row["value"]
             following=i
     return torch.as_tensor(adv,device=device),torch.as_tensor(returns,device=device)
+
+
+def terminal_critic_targets(records,bootstrap_returns):
+    """Observed match returns where available; bootstrap only unfinished games."""
+    trajectories=defaultdict(list)
+    for i,row in enumerate(records):trajectories[row['trajectory']].append(i)
+    targets=bootstrap_returns.detach().clone();observed=0
+    for indices in trajectories.values():
+        complete=False;total=0.
+        for i in reversed(indices):
+            row=records[i]
+            if row['truncated']:complete=False
+            if row['terminal']:complete=True;total=0.
+            if complete:
+                total+=row['reward'];targets[i]=total;observed+=1
+    return targets,observed

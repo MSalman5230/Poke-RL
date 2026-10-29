@@ -6,7 +6,7 @@ const copy=x=>JSON.parse(JSON.stringify(x));
 
 function wrap(b,obs,teams,Game,PublicState){
   const g=Object.create(Game.prototype);
-  g.teams=copy(teams);g.maxTurns=200;g.truncated=false;g.training=false;
+  g.teams=copy(teams);g.maxTurns=200;g.truncated=false;g.training=true;
   g.battle=b;g.trace=[];g.logPos=b.log.length;
   g.public=[0,1].map(viewer=>{
     const pub=new PublicState(viewer);
@@ -68,6 +68,7 @@ function lookahead(q,Game,PublicState){
             state=g.step(choices);
           }
           rows.push({action:action.id,world:worldIndex,reply:replyIndex,observation:state.views[0],
+            critic_observation:state.training.critic_views[0],
             ended:state.ended,winner:state.winner,continuations,assumptions:prepared.assumptions});
         }finally{b.destroy();}
       }

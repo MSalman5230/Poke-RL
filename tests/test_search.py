@@ -5,7 +5,7 @@ import pytest
 import torch
 from champions_rl.engine import Engine
 from champions_rl.features import Encoder
-from champions_rl.model import BattleModel
+from champions_rl.model import BattleModel,PrivilegedCritic
 from champions_rl.search import SearchBot,hypothetical_world
 from champions_rl.teams import TeamPool
 
@@ -20,7 +20,8 @@ def test_lookahead_uses_only_public_worlds_and_does_not_mutate_live_game():
         trace=engine.request('trace',game='live')
         encoder=Encoder(engine=engine)
         model=BattleModel(width=32,layers=1).eval()
-        bot=SearchBot(model,encoder,worlds=2,replies=2,candidates=4,seed=2,confidence=1.)
+        critic=PrivilegedCritic(width=32,layers=1).eval()
+        bot=SearchBot(model,encoder,worlds=2,replies=2,candidates=3,seed=2,confidence=1.,critic=critic)
         action=bot.choose(observation)
         assert action in [a['id'] for a in observation['legal']]
         assert bot.last_search['used'],bot.last_search
@@ -53,3 +54,19 @@ def test_hypotheses_preserve_revealed_moves_and_pp_and_search_resolves_turn():
         for row in result['rows']:
             assert row['ended'] or row['observation']['turn']>obs['turn']
             assert all('set' not in m and 'stats' not in m for m in row['observation']['opponent'])
+            assert all('set' in m and 'stats' in m for m in row['critic_observation']['opponent'] if m.get('selected'))
+
+
+def test_search_margin_requires_enough_worlds_and_paired_evidence():
+    from champions_rl.search import paired_search_margin
+    rng=np.random.default_rng(7)
+    assert paired_search_margin({0:np.zeros(8),1:np.ones(8)},0,rng)[0]==0
+    assert paired_search_margin({0:np.zeros(16),1:np.full(16,.01)},0,rng)[0]==0
+    assert paired_search_margin({0:np.zeros(16),1:np.full(16,.2)},0,rng)[0]==1
+    assert paired_search_margin({0:np.zeros(16),1:np.array([-1,1]*8)},0,rng)[0]==0
+
+
+def test_search_demonstrations_require_battle_evidence(tmp_path):
+    from champions_rl.expert_data import collect
+    with pytest.raises(ValueError,match='paired battle validation'):
+        collect(tmp_path,teacher='search',games=1)

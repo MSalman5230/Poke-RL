@@ -8,10 +8,11 @@ import random
 import traceback
 from .engine import Engine
 from .features import Encoder,encode_observation
-from .policies import ScriptedBot
+from .policies import ScriptedBot,TRAINING_STYLES
 from .rewards import battle_reward
 from .teams import TeamPool,fingerprint
 from .opponent_labels import action_label
+from .holdouts import held_out_core
 
 
 class FastGames:
@@ -30,9 +31,9 @@ class FastGames:
         self.saved_roster_fraction=saved_roster_fraction
         self.max_turns=max_turns
         self.privileged=privileged
-        self.style_weights=[.025,.2,.25,.15,.275,.1]
+        self.style_weights={n:(.025 if n=='random' else 1.) for n in TRAINING_STYLES}
         self.pool=TeamPool()
-        self.fixed=load_teams("train")
+        self.fixed=[t for t in load_teams('train') if not held_out_core(t)]
         self.held_out={fingerprint(t) for split in ("validation","test","validation_competitive") for t in load_teams(split)}
         self.engine=Engine()
         self.encoder=Encoder(engine=self.engine)
@@ -43,7 +44,7 @@ class FastGames:
             return self.rng.choice(self.fixed)
         while True:
             team=self.pool.sample(self.rng)
-            if fingerprint(team) not in self.held_out:
+            if fingerprint(team) not in self.held_out and not held_out_core(team):
                 return team
 
     def reset(self,slot,models,snapshot_ids):
@@ -54,8 +55,7 @@ class FastGames:
         elif value<self.selfplay_fraction+self.snapshot_fraction and snapshot_ids:
             opponent=self.rng.choice(snapshot_ids)
         else:
-            opponent=self.rng.choices(["random","damage","balanced","setup","defensive","stochastic"],
-                                     self.style_weights)[0]
+            opponent=self.rng.choices(list(self.style_weights),list(self.style_weights.values()))[0]
         parties=[self.sample_team(),self.sample_team()]
         # Familiar rosters also face unrelated styles, so this roster does not
         # uniquely identify the reference policy to the learner.
@@ -155,7 +155,10 @@ def fast_worker(connection,settings):
                 break
             if message["kind"]!="collect":
                 raise RuntimeError("Unknown worker command")
-            if message.get('style_weights') is not None:actor.style_weights=message['style_weights']
+            if message.get('style_weights') is not None:
+                if not isinstance(message['style_weights'],dict) or set(message['style_weights'])!=set(TRAINING_STYLES):
+                    raise ValueError('Training styles changed; start a fresh curriculum instead of reinterpreting old positional weights')
+                actor.style_weights=message['style_weights']
             if not actor.collect(connection,message["horizon"],message["models"],message["snapshot_ids"]):
                 break
     except (EOFError,BrokenPipeError):

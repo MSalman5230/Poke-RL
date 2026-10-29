@@ -135,6 +135,16 @@ class PrivilegedCritic(BattleModel):
     def forward(self,obs):
         return self.value(self.context(obs)[:,0]).squeeze(-1)
 
+    @classmethod
+    def load_training_state(cls,path,device='cpu'):
+        from .provenance import feature_signature
+        data=torch.load(path,map_location=device,weights_only=True)
+        if data.get('feature_signature')!=feature_signature() or data.get('feature_version')!=FEATURE_VERSION or not data.get('critic'):
+            raise ValueError('A compatible private critic training checkpoint is required')
+        config=data['config'];critic=cls(config['width'],config['layers'],config['heads']).to(device)
+        critic.load_state_dict(data['critic']);critic.eval()
+        return critic
+
 
 class NeuralBot:
     def __init__(self, model, encoder=None, deterministic=False, name="neural"):

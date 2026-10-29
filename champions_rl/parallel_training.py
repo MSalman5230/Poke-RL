@@ -13,7 +13,7 @@ from .engine import ROOT
 from .features import FEATURE_VERSION
 from .knowledge import knowledge
 from .model import BattleModel,PrivilegedCritic,tensor_batch
-from .parallel_rollouts import ParallelRollouts,trajectory_targets
+from .parallel_rollouts import ParallelRollouts,trajectory_targets,terminal_critic_targets
 from .reference_replay import ReferencePool,ReferenceReplay,self_imitation_loss
 from .training import emit,seed_all
 from .provenance import feature_signature
@@ -25,7 +25,8 @@ def cpu_weights(model):
     return {k:v.detach().cpu().clone() for k,v in model.state_dict().items()}
 
 
-def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=128,epochs=4,critic=None):
+def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=512,epochs=4,critic=None,
+               critic_optimizer=None,target_kl=.02,kl_sample_size=4096):
     data=tensor_batch([r["obs"] for r in records],device)
     private=tensor_batch([r['critic_obs'] for r in records],device) if critic is not None else None
     active=torch.tensor([r["policy_active"] for r in records],device=device,dtype=torch.bool)
@@ -39,10 +40,25 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=128,e
     model.train()
     if critic is not None:critic.train()
     losses,entropies,kls,private_errors=[],[],[],[]
-    optimized_samples=0
-    early=False
-    for _ in range(epochs):
-        for index in torch.randperm(len(records),device=device).split(batch_size):
+    actor_ids=active.nonzero().squeeze(-1)
+    probe=actor_ids[torch.randperm(len(actor_ids),device=device)[:kl_sample_size]]
+    actor_seen=torch.zeros(len(records),dtype=torch.bool,device=device)
+    critic_seen=torch.zeros_like(actor_seen)
+    optimized_samples=critic_samples=actor_epochs=critic_epochs=0
+    early=False;trigger_kl=None;updates=0
+
+    @torch.no_grad()
+    def representative_kl():
+        total=0.
+        for index in probe.split(batch_size):
+            logits=model({k:v[index] for k,v in data.items()},detach_value=critic is not None)[0]
+            difference=Categorical(logits=logits).log_prob(actions[index])-old_logp[index]
+            total+=float(((difference.exp()-1)-difference).sum())
+        return total/len(probe)
+
+    for epoch in range(epochs):
+        batches=list(actor_ids[torch.randperm(len(actor_ids),device=device)].split(batch_size))
+        for batch_index,index in enumerate(batches):
             obs={k:v[index] for k,v in data.items()}
             logits,value,enemy=model(obs,detach_value=critic is not None)
             distribution=Categorical(logits=logits)
@@ -62,34 +78,55 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=128,e
             # must not push the policy encoder through a second critic loss.
             value_weight=.1 if critic is not None else .5
             loss=policy+value_weight*nn.functional.mse_loss(value,returns[index])-.01*entropy+.001*uniform+.03*auxiliary
-            if critic is not None:
-                private_error=nn.functional.mse_loss(critic({k:v[index] for k,v in private.items()}),returns[index])
-                private_errors.append(float(private_error.detach()))
-                loss+=.5*private_error
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(),.5)
-            if critic is not None:nn.utils.clip_grad_norm_(critic.parameters(),.5)
             optimizer.step()
+            actor_seen[index]=True
             optimized_samples+=len(index)
+            updates+=1
             kl=((ratio-1)-logratio)[learn].mean().detach() if learn.any() else torch.tensor(0.)
             losses.append(float(loss.detach()))
             entropies.append(float(entropy.detach()))
-            kls.append(float(kl))
-            if float(kl)>.04:
-                early=True
-                break
+            # A noisy 128-position minibatch used to stop both networks. Audit
+            # a fixed representative sample after small groups of actor steps.
+            if updates%8==0 or batch_index==len(batches)-1 or float(kl)>target_kl*2:
+                measured=representative_kl();kls.append(measured)
+                if measured>target_kl:
+                    early=True;trigger_kl=measured
+                    break
+        if batch_index==len(batches)-1:actor_epochs+=1
         if early:
             break
+    # The independent critic sees every rollout record, including wait states,
+    # for every requested epoch even when the actor hits its trust-region cap.
+    if critic is not None:
+        if critic_optimizer is None:raise ValueError('A separate critic optimizer is required')
+        for epoch in range(epochs):
+            for index in torch.randperm(len(records),device=device).split(batch_size):
+                private_error=nn.functional.mse_loss(critic({k:v[index] for k,v in private.items()}),returns[index])
+                critic_optimizer.zero_grad(set_to_none=True)
+                private_error.backward()
+                nn.utils.clip_grad_norm_(critic.parameters(),.5)
+                critic_optimizer.step()
+                critic_seen[index]=True;critic_samples+=len(index)
+                private_errors.append(float(private_error.detach()))
+            critic_epochs+=1
     return {"loss":float(np.mean(losses)),"entropy":float(np.mean(entropies)),"approx_kl":float(np.mean(kls)),
             'private_value_mse':float(np.mean(private_errors)) if private_errors else None,
-            'optimized_samples':optimized_samples,'kl_early_stop':early}
+            'optimized_samples':optimized_samples,'kl_early_stop':early,'kl_trigger':trigger_kl,
+            'kl_probe_samples':len(probe),'actor_unique_samples':int(actor_seen.sum()),
+            'actor_sample_coverage':float(actor_seen.sum())/len(actor_ids),'actor_completed_epochs':actor_epochs,
+            'critic_optimized_samples':critic_samples,'critic_unique_samples':int(critic_seen.sum()),
+            'critic_sample_coverage':float(critic_seen.sum())/len(records) if critic is not None else None,
+            'critic_completed_epochs':critic_epochs}
 
 
 def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=64,horizon=32,
                    device="cuda",seed=101,selfplay_fraction=.1,snapshot_fraction=.1,reference_workers=0,
-                   reference_weight=0.,learning_rate=1e-4,batch_size=128,epochs=4,checkpoint_every=1,
-                   stop_file=None,history_position=None,heuristic_weight=None,rollout_decisions=32768,privileged=True):
+                   reference_weight=0.,learning_rate=3e-5,batch_size=512,epochs=4,checkpoint_every=1,
+                   stop_file=None,history_position=None,heuristic_weight=None,rollout_decisions=32768,privileged=True,
+                   critic_learning_rate=3e-4,league_checkpoints=(),validation_every=10,validation_workers=4,validation_games=256):
     if min(steps,workers,envs,horizon,batch_size,epochs,checkpoint_every,rollout_decisions)<1:
         raise ValueError("Training sizes and intervals must be positive")
     if reference_workers<0 or reference_weight<0:
@@ -98,6 +135,7 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
     torch.set_num_threads(2)
     output=Path(output)
     output.mkdir(parents=True,exist_ok=True)
+    if (output/'metrics.jsonl').exists() and not resume:raise ValueError('Existing training run: use --resume or a new output folder')
     restored=torch.load(resume,map_location="cpu",weights_only=True) if resume else None
     if restored and (restored["knowledge_sha256"]!=knowledge().sha256 or restored.get("feature_version")!=FEATURE_VERSION or restored.get('feature_signature')!=feature_signature()):
         raise ValueError("Incompatible trainer state")
@@ -123,12 +161,15 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
     if restored:
         if bool(restored.get('critic'))!=privileged:raise ValueError('Resume must keep the critic configuration')
         if critic is not None:critic.load_state_dict(restored['critic'])
-    parameters=list(model.parameters())+(list(critic.parameters()) if critic is not None else [])
-    optimizer=torch.optim.AdamW(parameters,lr=learning_rate,eps=1e-5,weight_decay=1e-4)
+    optimizer=torch.optim.AdamW(model.parameters(),lr=learning_rate,eps=1e-5,weight_decay=1e-4)
+    critic_optimizer=torch.optim.AdamW(critic.parameters(),lr=critic_learning_rate,eps=1e-5,weight_decay=1e-4) if critic is not None else None
     if restored:
         optimizer.load_state_dict(restored["optimizer"])
+        if critic is not None:critic_optimizer.load_state_dict(restored['critic_optimizer'])
         for group in optimizer.param_groups:
             group["lr"]=learning_rate
+        if critic is not None:
+            for group in critic_optimizer.param_groups:group['lr']=critic_learning_rate
         torch.set_rng_state(restored["torch_rng"].cpu())
         if str(device).startswith("cuda") and restored.get("cuda_rng") is not None:
             torch.cuda.set_rng_state(restored["cuda_rng"].cpu())
@@ -148,6 +189,11 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
     snapshot_counter=restored.get("snapshot_counter",0) if restored else 0
     league_ratings=restored.get('league_ratings',{}) if restored else {}
     script_weights=restored.get('style_weights') if restored else None
+    for index,path in enumerate(league_checkpoints):
+        name=f'seeded_{index:02d}_{Path(path).stem}'
+        if name not in models:
+            frozen,_=BattleModel.load(path,device);models[name]=frozen
+            eligible.append(name);league_ratings[name]=.5
 
     def snapshot():
         nonlocal snapshot_counter,eligible
@@ -177,10 +223,21 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
               "selfplay_fraction":selfplay_fraction,"snapshot_fraction":snapshot_fraction,
               "reference_workers":reference_workers,"reference_weight":reference_weight,
               "rollout_decisions":rollout_decisions,"privileged_critic":privileged,
-              "learning_rate":learning_rate,"device":device,"seed":seed,"model_config":model.config}
+              "learning_rate":learning_rate,'critic_learning_rate':critic_learning_rate,'batch_size':batch_size,'epochs':epochs,
+              'league_checkpoints':list(map(str,league_checkpoints)),
+              'validation_every':validation_every,'validation_workers':validation_workers,'validation_games':validation_games,
+              "device":device,"seed":seed,"model_config":model.config}
     atomic_json(output/f"settings_{starting_steps:09d}.json",settings)
     emit("parallel_training_started",**settings)
-    model.save(output/"initial.pt",phase="parallel_ppo_initial",seed=seed)
+    initial_checkpoint=output/'initial.pt'
+    if not initial_checkpoint.exists():
+        if restored:
+            import shutil
+            origin=Path(restored.get('initial_checkpoint',Path(resume).parent/'initial.pt'))
+            shutil.copyfile(origin,initial_checkpoint)
+        else:model.save(initial_checkpoint,phase='parallel_ppo_initial',seed=seed)
+    from .validation_queue import ValidationQueue
+    validation=ValidationQueue(output/'validation',output/'initial.pt',validation_workers,validation_games) if validation_every else None
     startup=time.monotonic()
     actors=None
     references=None
@@ -192,6 +249,8 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
     def checkpoint():
         model.save(output/"latest.pt",phase="parallel_ppo_sil",steps=total,updates=update,seed=seed)
         state={"trainer":"parallel_ppo_sil","model":cpu_weights(model),"optimizer":optimizer.state_dict(),
+               'initial_checkpoint':str(initial_checkpoint.resolve()),
+               'critic_optimizer':critic_optimizer.state_dict() if critic_optimizer is not None else None,
                "config":model.config,"steps":total,"updates":update,
                "knowledge_sha256":knowledge().sha256,"feature_version":FEATURE_VERSION,
                "feature_signature":feature_signature(),'critic':cpu_weights(critic) if critic is not None else None,
@@ -228,8 +287,11 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
             timing['mean_inference_batch']=timing['neural_positions']/max(1,timing['neural_batches'])
             timing['mean_current_batch']=timing['current_positions']/max(1,timing['current_batches'])
             advantage,returns=trajectory_targets(records,model,device,critic=critic)
+            # GAE remains the policy estimator. Completed matches supply actual
+            # terminal-result supervision to the independent value heads.
+            returns,terminal_samples=terminal_critic_targets(records,returns)
             optimize_started=time.monotonic()
-            losses=ppo_update(model,optimizer,records,advantage,returns,device,batch_size,epochs,critic)
+            losses=ppo_update(model,optimizer,records,advantage,returns,device,batch_size,epochs,critic,critic_optimizer)
             for message in references.poll():
                 reference_counts[message["kind"]]+=1
                 if message["kind"]=="game":
@@ -264,21 +326,28 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
                  "reference_training_win_rate":reference_counts["wins"]/max(1,reference_counts["game"]),
                  "replay_samples":len(replay.rows),"self_imitation_loss":sil_loss,
                  "optimization_seconds":round(time.monotonic()-optimize_started,3),
+                 'critic_terminal_samples':terminal_samples,'critic_terminal_fraction':terminal_samples/len(records),
                  "seconds":round(time.monotonic()-started,2),
                  "decisions_per_second":round((total-starting_steps)/(time.monotonic()-started),2),**losses,**timing}
             append_json(output/'metrics.jsonl',row)
             emit("parallel_ppo_update",**row)
-            if update%checkpoint_every==0 or total-starting_steps>=steps:
+            if validation:validation.poll()
+            if update%checkpoint_every==0 or total-starting_steps>=steps or validation and update%validation_every==0:
                 snapshot()
                 model.save(output/f"step_{total:09d}.pt",phase="parallel_ppo_sil",**row,seed=seed)
                 checkpoint()
+                if validation and update%validation_every==0:validation.schedule(output/f'step_{total:09d}.pt',total)
                 retained={"current",*eligible,*set().union(*actors.active_models)}
                 for name in list(models):
                     if name not in retained:
                         del models[name]
         checkpoint()
+        training_seconds=time.monotonic()-started
+        if validation:
+            validation.close()
         summary={"stopped":stopped,"steps":total,"additional_policy_decisions":total-starting_steps,
-                 "startup_seconds":started-startup,"elapsed_training_seconds":time.monotonic()-started,
+                 "startup_seconds":started-startup,"elapsed_training_seconds":training_seconds,
+                 'validation_results':validation.finished if validation else [],
                  "last_update":row,"settings":settings}
         atomic_json(output/'summary.json',summary)
         return output/"latest.pt"

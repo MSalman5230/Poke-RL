@@ -78,11 +78,26 @@ def hypothetical_world(obs,beliefs,rng,replies):
             'rollout_seeds':[[rng.randrange(65536) for _ in range(4)] for _ in range(replies)]}
 
 
+def paired_search_margin(scores,policy,rng,min_worlds=16,margin=.02):
+    """World-block bootstrap; paired score confidence is not battle validation."""
+    if len(next(iter(scores.values())))<min_worlds:return policy,{}
+    n=len(scores[policy]);sample=rng.integers(0,n,size=(4096,n))
+    alpha=.05/max(1,len(scores)-1)
+    intervals={};eligible=[]
+    for action,values in scores.items():
+        if action==policy:continue
+        delta=np.asarray(values)-scores[policy]
+        low,high=np.quantile(delta[sample].mean(1),[alpha/2,1-alpha/2])
+        intervals[action]=[float(low),float(high)]
+        if low>margin:eligible.append(action)
+    return max(eligible,key=lambda a:np.mean(scores[a])) if eligible else policy,intervals
+
+
 class SearchBot(NeuralBot):
-    def __init__(self,model,encoder=None,worlds=4,replies=2,candidates=5,seed=101,confidence=.95,prior_weight=.03):
+    def __init__(self,model,encoder=None,worlds=16,replies=2,candidates=3,seed=101,confidence=.95,critic=None,min_worlds=16):
         super().__init__(model,encoder,deterministic=True,name='one_ply_search')
         self.worlds=worlds;self.replies=replies;self.candidates=candidates
-        self.rng=random.Random(seed);self.confidence=confidence;self.prior_weight=prior_weight
+        self.rng=random.Random(seed);self.confidence=confidence;self.critic=critic;self.min_worlds=min_worlds
         self.statistics=Counter();self.last_search={}
 
     def choose(self,obs):
@@ -93,9 +108,9 @@ class SearchBot(NeuralBot):
             enemy=enemy[0].softmax(-1).cpu().numpy()
         policy=int(probabilities.argmax())
         self.statistics['decisions']+=1
-        if obs['phase']!='move' or len(obs['legal'])<2 or probabilities[policy]>=self.confidence:
+        if self.critic is None or obs['phase']!='move' or len(obs['legal'])<2 or probabilities[policy]>=self.confidence:
             self.statistics['policy_only']+=1
-            self.last_search={'used':False,'reason':'phase, forced action, or high policy confidence'}
+            self.last_search={'used':False,'reason':'private critic unavailable, phase, forced action, or high policy confidence'}
             return policy
         try:
             worlds=[hypothetical_world(obs,self.encoder.beliefs,self.rng,self.replies) for _ in range(self.worlds)]
@@ -113,23 +128,30 @@ class SearchBot(NeuralBot):
             # let a failed rollout disappear only from a candidate's denominator.
             groups={}
             for row in result['rows']:groups.setdefault((row['world'],row['reply']),{})[row['action']]=row
-            complete=[g for g in groups.values() if set(g)==set(options)]
+            # A world is retained only if every reply/candidate completed. This
+            # prevents selective failures from favoring one candidate.
+            complete=[g for (world,reply),g in groups.items() if
+                      all(set(groups.get((world,r),{}))==set(options) for r in range(self.replies))]
             if not complete:raise ValueError(str(result['errors'] or 'No complete candidate group'))
             rows=[g[a] for g in complete for a in options]
             with torch.no_grad():
-                batch=tensor_batch([self.encoder.encode(r['observation'],entities_only=True) for r in rows],self.device)
-                values=self.model.value(self.model.context(batch)[:,0]).squeeze(-1).cpu().numpy()
-            scores={a:[] for a in options}
+                values=[]
+                for start in range(0,len(rows),128):
+                    batch=tensor_batch([self.encoder.encode(r['critic_observation'],entities_only=True) for r in rows[start:start+128]],self.device)
+                    values.extend(self.critic(batch).cpu().tolist())
+            by_world={}
             for row,value in zip(rows,values):
                 outcome=0 if row['winner'] is None else 1 if row['winner']==0 else -1
                 after=0 if row['ended'] else potential(row['observation'])
                 score=(outcome if row['ended'] else float(value))+.15*(after-potential(obs))
-                scores[row['action']].append(score)
-            means={a:float(np.mean(v)+self.prior_weight*np.log(max(1e-9,probabilities[a]))) for a,v in scores.items()}
-            action=max(means,key=means.get)
+                by_world.setdefault(row['world'],{}).setdefault(row['action'],[]).append(score)
+            scores={a:np.asarray([np.mean(world[a]) for world in by_world.values()]) for a in options}
+            means={a:float(np.mean(v)) for a,v in scores.items()}
+            action,intervals=paired_search_margin(scores,policy,np.random.default_rng(self.rng.randrange(2**31)),self.min_worlds)
             self.statistics['searched']+=1;self.statistics['changed']+=action!=policy
             self.statistics['world_errors']+=len(result['errors'])
-            self.last_search={'used':True,'policy':policy,'action':action,'scores':means,'groups':len(complete),'errors':result['errors']}
+            self.last_search={'used':True,'policy':policy,'action':action,'scores':means,'groups':len(complete),
+                              'worlds':len(by_world),'paired_score_intervals':intervals,'private_critic':True,'errors':result['errors']}
             return action
         except (ValueError,RuntimeError) as error:
             self.statistics['fallbacks']+=1
