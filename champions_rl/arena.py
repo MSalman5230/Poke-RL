@@ -57,7 +57,7 @@ class VectorArena:
         self.team_pool = TeamPool()
         self.reference_team = self.team_pool.data["reference_team"]
         self.procedural_teams = procedural_teams and split=="train"
-        self.held_out = {fingerprint(t) for s in ("validation","test") for t in load_teams(s)} if self.procedural_teams else set()
+        self.held_out = {fingerprint(t) for s in ("validation","test","validation_competitive") for t in load_teams(s)} if self.procedural_teams else set()
         self.encoder = Encoder()
         self.snapshots = []
         self.opponents = [None]*n

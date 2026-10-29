@@ -71,7 +71,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
     output.mkdir(parents=True,exist_ok=True)
     if checkpoint_bytes:
         (output/"evaluated_model.pt").write_bytes(checkpoint_bytes)
-    code_paths=sorted((ROOT/"champions_rl").glob("*.py"))+[ROOT/"simulator/worker.cjs"]
+    code_paths=sorted((ROOT/"champions_rl").glob("*.py"))+sorted((ROOT/"simulator").glob("*.cjs"))
     code_digest=hashlib.sha256()
     for path in code_paths:
         code_digest.update(path.relative_to(ROOT).as_posix().encode())

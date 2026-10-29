@@ -8,10 +8,19 @@ from .knowledge import knowledge, canonical, STATS
 
 
 def fingerprint(team):
-    return hashlib.sha256(json.dumps(team, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    if isinstance(team,dict):
+        team=[team]
+    normalized=[]
+    for mon in team:
+        row={k:v for k,v in mon.items() if k!='name'}
+        row['moves']=sorted(row['moves'],key=canonical)
+        normalized.append(row)
+    normalized.sort(key=lambda s:canonical(s['species']))
+    return hashlib.sha256(json.dumps(normalized, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def build_sets():
+    from .curated import complete_sets,repair_synthetic
     k = knowledge()
     source = ROOT / "opponents/autoplay_reference/data"
     usage = json.loads((source / "smogon/2026-09/chaos/gen9championsbssregmc-1500.json").read_text(encoding="utf-8"))["data"]
@@ -58,9 +67,13 @@ def build_sets():
                     "ability": k.abilities.get(ability_ids[variant % len(ability_ids)], {}).get("name", mon["abilities"]["0"]),
                     "item": k.items.get(item, {}).get("name", ""), "nature": nature,
                     "evs": evs, "moves": [k.moves[m]["name"] for m in picked]}
-            candidates.append({"set": set_, "usage": row.get("usage", 0), "variant": variant,
+            candidates.append({"set": repair_synthetic(set_), "usage": row.get("usage", 0), "variant": variant,
                                "source": "2026-09 usage marginals + legal fallbacks; synthetic, not human joint sets"})
+    curated=complete_sets()
     with Engine() as engine:
+        for row,errors in zip(curated,engine.request('validate',sets=[r['set'] for r in curated])):
+            if errors:raise ValueError(f"Curated {row['set']['species']}: {errors}")
+        candidates=curated+candidates
         checked = engine.request("validate", sets=[c["set"] for c in candidates])
         valid, rejected = [], []
         seen = set()
@@ -93,14 +106,22 @@ class TeamPool:
         self.data = json.loads((ROOT / "data/sets.json").read_text(encoding="utf-8"))
         self.rows = self.data["sets"]
         self.by_species = {}
+        self.curated={}
         for row in self.rows:
             self.by_species.setdefault(row["set"]["species"], []).append(row)
+            if row.get('curated'):self.curated.setdefault(row['set']['species'],[]).append(row)
 
     def sample(self, rng, mode="mixed"):
         k = knowledge()
+        from .curated import ARCHETYPES
+        if self.curated and (mode in ARCHETYPES or mode=='weather' or mode=='mixed' and rng.random()<.65):
+            archetype=mode if mode in ARCHETYPES else rng.choice(list(ARCHETYPES)[:4] if mode=='weather' else list(ARCHETYPES))
+            team=[copy.deepcopy(rng.choice(self.curated[name])['set']) for name in ARCHETYPES[archetype]]
+            rng.shuffle(team)
+            return team
         # Mix competitive usage with uniform roster coverage and team archetypes.
         if mode == "mixed":
-            mode = rng.choice(["meta", "meta", "coverage", "offense", "bulky", "weather"])
+            mode = rng.choice(["meta", "meta", "coverage", "bulky"])
         names = list(self.by_species)
         weights = []
         for n in names:

@@ -89,7 +89,7 @@ def round_robin(output,games=64,workers=8,seed=41173,styles=STYLES,roster='saved
         raise ValueError('Strict reference baseline currently requires its supported saved roster')
     output=Path(output)
     output.mkdir(parents=True,exist_ok=resume)
-    paths=[*sorted((ROOT/'champions_rl').glob('*.py')),ROOT/'simulator/worker.cjs',
+    paths=[*sorted((ROOT/'champions_rl').glob('*.py')),*sorted((ROOT/'simulator').glob('*.cjs')),
            ROOT/'data/sets.json',ROOT/'data/teams_validation.json',ROOT/'data/knowledge.json']
     hashes={}
     for path in paths:
@@ -131,6 +131,8 @@ def round_robin(output,games=64,workers=8,seed=41173,styles=STYLES,roster='saved
             for row in pairs:handle.write(json.dumps(row)+'\n')
         jobs=[j for j in jobs if (j[0],j[1],j[2]) not in seen]
     total_jobs=len(pairs)+len(jobs)
+    if not jobs:
+        return json.loads((output/'report.json').read_text())
     atomic_json(output/'run.json',{'games':games,'workers':workers,'seed':seed,'styles':list(styles),'roster':roster,'source_sha256':hashes})
     started=time.monotonic()
     with context.Pool(workers,initializer=_initialize,initargs=(ready,teams)) as pool:

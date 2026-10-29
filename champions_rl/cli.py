@@ -64,7 +64,7 @@ def main():
     evaluate.add_argument("--learner-style",default=None)
     evaluate.add_argument("--opponents",default="reference,damage,balanced,setup,defensive,stochastic")
     evaluate.add_argument("--games",type=int,default=200)
-    evaluate.add_argument("--split",choices=["validation","test"],default="validation")
+    evaluate.add_argument("--split",choices=["validation","validation_competitive","test"],default="validation")
     evaluate.add_argument("--output",type=Path)
     evaluate.add_argument("--seed",type=int,default=92341)
     evaluate.add_argument("--device",default="cpu")
@@ -78,17 +78,22 @@ def main():
     play.add_argument("--checkpoint",type=Path,required=True)
     play.add_argument("--opponent",choices=["reference","random","damage","balanced","setup","defensive"],default="balanced")
     play.add_argument("--seed",type=int,default=101)
+    play.add_argument('--deterministic',action=argparse.BooleanOptionalAction,default=True)
     play.add_argument("--output",type=Path,default=ROOT/"runtime_data/play")
     args=parser.parse_args()
     if args.command=="prepare":
         subprocess.run(["node",str(ROOT/"simulator/export_knowledge.cjs")],check=True)
-        from .teams import build_sets,TeamPool
+        from .teams import build_sets,TeamPool,fingerprint
         from .features import Encoder
         print(json.dumps(build_sets()),flush=True)
         pool=TeamPool()
-        train=pool.manifest(128)
-        validation=pool.manifest(64,91731,"validation",[t["id"] for t in train["teams"]])
-        pool.manifest(128,191731,"test",[t["id"] for t in train["teams"]+validation["teams"]])
+        # Preserve existing fixed benchmarks when refreshing training sets.
+        forbidden=set()
+        for split,count,seed in [('validation',64,91731),('test',128,191731),('validation_competitive',64,31731)]:
+            path=ROOT/f'data/teams_{split}.json'
+            manifest=json.loads(path.read_text()) if path.exists() else pool.manifest(count,seed,split,forbidden)
+            forbidden.update(fingerprint(t['team']) for t in manifest['teams'])
+        pool.manifest(128,1731,'train',forbidden)
         (ROOT/"data/feature_schema.json").write_text(json.dumps(Encoder().schema(),indent=2)+"\n",encoding="utf-8")
     elif args.command=="collect":
         from .training import collect_demonstrations
@@ -113,7 +118,7 @@ def main():
                        stop_file=args.stop_file,history_position=args.history_position,heuristic_weight=args.heuristic_weight)
     elif args.command=="play":
         from .evaluation import evaluate
-        report=evaluate(args.checkpoint,[args.opponent],1,args.output,"validation",args.seed)
+        report=evaluate(args.checkpoint,[args.opponent],1,args.output,"validation",args.seed,deterministic=args.deterministic)
         print(json.dumps(report["results"],indent=2))
     elif args.command=="evaluate":
         from .evaluation import evaluate,evaluate_parallel

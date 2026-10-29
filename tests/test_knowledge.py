@@ -37,3 +37,22 @@ def test_reference_is_namespaced_and_has_no_device_modules():
     assert not (folder/"runtime/loop.py").exists()
     from opponents.autoplay_reference.bot.decision.evaluation import TRIALS
     assert TRIALS==32
+
+
+def test_curated_weather_teams_and_complete_sets_are_coherent():
+    import random
+    from champions_rl.curated import repair_synthetic
+    from champions_rl.teams import fingerprint
+    pool=TeamPool()
+    assert sum(bool(r.get('curated')) for r in pool.rows)==50
+    for mode,ability in [('rain','Swift Swim'),('sun','Chlorophyll'),('sand','Sand Rush')]:
+        team=pool.sample(random.Random(1),mode)
+        assert any(m['ability']==ability for m in team)
+        assert len({m['item'] for m in team})==6
+        assert fingerprint(team)==fingerprint(list(reversed(team)))
+    bad={'species':'Blaziken','item':'Choice Scarf','ability':'Speed Boost','nature':'Modest',
+         'evs':{'hp':2,'atk':0,'def':0,'spa':32,'spd':0,'spe':32},
+         'moves':['Close Combat','Protect','Swords Dance','Baton Pass']}
+    good=repair_synthetic(bad)
+    assert good['evs']['atk']==32 and good['evs']['spa']==0
+    assert all(knowledge().moves[m.lower().replace(' ','')]['category']!='Status' for m in good['moves'])
