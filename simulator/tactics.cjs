@@ -12,7 +12,7 @@ function metadata(){
   // Conservative HP dependencies from the pinned simulator's actual callbacks.
   const hooks=/^on(?:Source|Any|Ally|Foe)?(?:BasePower|Modify(?:Atk|Def|SpA|SpD|Spe|Move|Priority|Damage|Accuracy|STAB)|Accuracy|TryHit|Effectiveness|CriticalHit|Damage)$/;
   const sensitive=(e,all=false)=>Object.entries(e).some(([k,v])=>(all||hooks.test(k))&&typeof v==='function'&&/\.(?:hp|maxhp|baseMaxhp)\b|getUndynamaxedHP\(/.test(v.toString()));
-  return {version:5,moves:dex.moves.all().filter(m=>sensitive(m,true)).map(m=>m.id),
+  return {version:6,moves:dex.moves.all().filter(m=>sensitive(m,true)).map(m=>m.id),
     abilities:dex.abilities.all().filter(a=>a.id!=='sturdy'&&sensitive(a)).map(a=>a.id),
     items:dex.items.all().filter(a=>a.id!=='focussash'&&sensitive(a)).map(a=>a.id),
     set_dependent_abilities:dex.abilities.all().filter(a=>Object.values(a).some(v=>typeof v==='function'&&/formeChange|formChange|transformInto/.test(v.toString()))).map(a=>a.id)};
@@ -97,7 +97,7 @@ function calculate(q,prepared){
     if(move.multihit)unsupported.push('correlated_multihit_rolls_and_between_hit_effects');
     if(q.target.volatiles?.substitute?.hp===undefined&&q.target.volatiles?.substitute&&move.multihit)unsupported.push('unknown_substitute_hp');
     const result={rows:[[0,1]],maxhp:d.maxhp,accuracy:1,speed,priority,survive_full:false,survive_chance:0,
-      reliable:unsupported.length===0,unsupported,method:'native-conditional-damage-v5'};
+      reliable:unsupported.length===0,unsupported,method:'native-conditional-damage-v6'};
     if(move.category==='Status'||move.id==='recharge'||!move.exists)return result;
     b.singleEvent('ModifyMove',move,null,a,d,move,move);
     move=b.runEvent('ModifyMove',a,d,move,move)||move;
@@ -118,7 +118,7 @@ function calculate(q,prepared){
       a.hasItem('loadeddice')?[[4,.5],[5,.5]]:[[2,.35],[3,.35],[4,.15],[5,.15]];
     const defenderAbility=name=>d.hasAbility(name)&&!(b.suppressingAbility(d)&&d.getAbility().flags.breakable);
     result.survive_full=!move.multihit&&(d.hasItem('focussash')||defenderAbility('sturdy'));
-    result.survive_chance=!move.multihit&&d.hasItem('focusband') ? 0.1 : 0;
+    result.survive_chance=!move.multihit&&d.hasItem('focusband')&&!(defenderAbility('disguise')&&['mimikyu','mimikyutotem'].includes(d.species.id)) ? 0.1 : 0;
     // The common single-hit calculation only reads the combatants. Expensive
     // restore/cloning is necessary for consuming berries and supported form or
     // substitute changes. Multi-hit estimates always take the conservative path.

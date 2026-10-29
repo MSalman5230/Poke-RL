@@ -94,6 +94,7 @@ def test_damage_distributions_match_resolved_moves_and_restore_state():
         q(known('Garchomp'),known('Dragonite',ability='Multiscale',hp=.8),'dragonclaw'),
         q(known('Primarina'),known('Garchomp',hp=.4),'brine'),
         q(known('Aegislash',ability='Stance Change'),known('Tyrantrum'),'shadowsneak'),
+        {**q(known('Basculegion'),known('Volcarona'),'lastrespects'),'faints':[2,0]},
     ]
     queries[0]['target']['set']['evs']={'hp':2}
     actual=json.loads(subprocess.run(['node',str(ROOT/'tests/native_outcomes.cjs')],input=json.dumps(queries),
@@ -160,3 +161,35 @@ def test_cache_normalization_matches_uncached_varied_native_queries():
         for q,actual,row in zip(queries,cached,direct):
             expected=native.summarize(row,q)
             assert actual==expected,(q['actor']['species'],q['target']['species'],q['move'],actual,expected)
+
+
+def test_all_status_hidden_sets_do_not_imply_certain_direct_damage():
+    from champions_rl.engine import Engine
+    team=TeamPool().data['reference_team']
+    with Engine() as engine:
+        engine.request('new',game='status',teams=[team,team],seed=[1,2,3,4])
+        obs=engine.request('step',game='status',actions=[14,14])['views'][0]
+        foe=next(m for m in obs['opponent'] if m['active'])
+        foe['moves']=['nastyplot','recover','substitute','protect']
+        encoder=Encoder(engine=engine);encoded=encoder.encode(obs)
+        for action in obs['legal']:
+            if not action.get('revive'):
+                assert encoded['actions'][action['id'],encoder.action_names.index('survival_probability')]==1
+
+
+def test_last_respects_keeps_cumulative_faints_in_cache_and_query():
+    from champions_rl.engine import Engine
+    from champions_rl.tactics import NativeTactics
+    actor,target=known('Basculegion'),known('Volcarona')
+    q={'actor':actor,'target':target,'move':'lastrespects','faints':[0,0]}
+    with Engine() as engine:
+        native=NativeTactics(engine)
+        before=native.calculate([q])[0];misses=native.metrics['misses']
+        after=native.calculate([{**q,'faints':[2,0]}])[0]
+        assert after['mean']>before['mean']*2.5 and native.metrics['misses']==misses+1
+    # Revival can make currently fainted party members differ from the public
+    # cumulative counter used by this move.
+    obs={'conditions':[{},{}],'own':[{'fainted':False}],'opponent':[{'fainted':False}],
+         'faints':[[{},{}],[{}]]}
+    assert NativeTactics.query(actor,target,'lastrespects',obs)['faints']==[2,1]
+    assert NativeTactics.query(actor,target,'lastrespects',obs,reverse=True)['faints']==[1,2]

@@ -51,6 +51,7 @@ def test_success_is_never_inferred_from_small_or_degraded_samples():
     report={name:dict(row) for name in ("reference","damage","balanced","setup","defensive")}
     assert acceptance(report,"test")["passed"]
     assert not acceptance(report,"validation")["passed"]
+    assert not acceptance(report,'test',roster='saved')['passed']
     report["reference"]["fallbacks"]=1
     assert not acceptance(report,"test")["passed"]
 

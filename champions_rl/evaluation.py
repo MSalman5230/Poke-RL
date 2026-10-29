@@ -30,11 +30,11 @@ def wilson(wins, total, z=1.96):
     return [max(0.,center-margin),min(1.,center+margin)]
 
 
-def acceptance(rows, split):
+def acceptance(rows, split,roster='manifest'):
     reference=rows.get("reference",{})
     other=[r for n,r in rows.items() if n!="reference"]
     requirements={
-        "held_out_test_split":split=="test",
+        "held_out_test_split":split=="test" and roster=='manifest',
         "at_least_200_reference_games":reference.get("games",0)>=200,
         "reference_win_rate_at_least_60_percent":reference.get("win_rate",0)>=.60,
         "reference_95_percent_lower_bound_at_least_60_percent":reference.get("confidence",[0])[0]>=.60,
@@ -170,7 +170,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                     for record in records:combined.update(record.get('search',{}))
                     summary['search']=dict(combined)
                 report["results"][style]=summary
-                report["acceptance"]=acceptance(report["results"],split)
+                report["acceptance"]=acceptance(report["results"],split,roster)
                 atomic_json(output/'report.json',report)
                 atomic_json(output/f'{style}_games.json',records)
                 emit("evaluation_game",opponent=style,**summary)
@@ -260,7 +260,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                         row['search']=dict(combined)
                     merged["results"][style]=row
                 merged["complete"]=len(reports)==workers and all(p.poll()==0 for p,_,_ in jobs)
-                merged["acceptance"]=acceptance(merged["results"],split)
+                merged["acceptance"]=acceptance(merged["results"],split,roster)
                 if not merged["complete"]:
                     merged["acceptance"]["passed"]=False
                 atomic_json(output/'report.json',merged)

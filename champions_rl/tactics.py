@@ -53,7 +53,8 @@ class NativeTactics:
         q['conditions']=[{k:{'layers':v.get('layers',0)} for k,v in side.items()} for side in q.get('conditions',[{},{}])]
         q['pseudo']={k:{} for k in q.get('pseudo',{})}
         q['mega']=bool(q.get('mega'));q['target_mega']=bool(q.get('target_mega'))
-        if all(m['set']['ability']!='supremeoverlord' for m in (q['actor'],q['target'])):q['faints']=[0,0]
+        # Keep public cumulative faint counts. Last Respects also reads them;
+        # they are not solely a Supreme Overlord ability dependency.
         return q
 
     @staticmethod
@@ -73,7 +74,7 @@ class NativeTactics:
         if self.engine is None:self.engine=Engine()
         if self.dependencies is None:
             meta=self.engine.request('tactics_metadata')
-            if meta['version']!=5:raise ValueError('Native tactics metadata version mismatch')
+            if meta['version']!=6:raise ValueError('Native tactics metadata version mismatch')
             self.dependencies={k:set(meta[k]) for k in ('moves','abilities','items','set_dependent_abilities')}
         normalized=[self.cache_query(q) for q in queries]
         keys=[json.dumps(q,sort_keys=True,separators=(',',':')) for q in normalized]
@@ -102,8 +103,10 @@ class NativeTactics:
         return {'actor':public(actor),'target':public(target),'move':move,'mega':mega,
                 'weather':obs.get('weather',''),'terrain':obs.get('terrain',''),'pseudo':obs.get('pseudo',{}),
                 'conditions':list(reversed(obs['conditions'])) if reverse else obs['conditions'],
-                'faints':[sum(p.get('fainted',False) for p in team) for team in
-                          ([obs['opponent'],obs['own']] if reverse else [obs['own'],obs['opponent']]) ]}
+                'faints':list(reversed([len(side) for side in obs['faints']])) if reverse and 'faints' in obs else
+                         [len(side) for side in obs['faints']] if 'faints' in obs else
+                         [sum(p.get('fainted',False) for p in team) for team in
+                          ([obs['opponent'],obs['own']] if reverse else [obs['own'],obs['opponent']])]}
 
     def enrich(self,encoder,obs,encoded):
         if obs['phase']=='preview' or not obs['legal']:return
@@ -113,6 +116,12 @@ class NativeTactics:
         scenarios=encoder.beliefs.scenarios(target)[:3]
         total=sum(w for _,w in scenarios)
         scenarios=[(m,w/total) for m,w in scenarios]
+        ix={name:i for i,name in enumerate(encoder.action_names)}
+        for action in obs['legal']:
+            if not action.get('revive'):
+                # A hypothesis with four status moves has no immediate direct
+                # attack risk. It must not inherit the zero-initialized survival.
+                encoded['actions'][action['id'],ix['survival_probability']]=1.
         queries=[];jobs=[]
         for action in obs['legal']:
             if action['kind']!='move':continue
@@ -134,7 +143,6 @@ class NativeTactics:
         grouped={}
         for (action,weight),row in zip(jobs,calculated[:outgoing_count]):
             grouped.setdefault(action,[]).append((row,weight))
-        ix={name:i for i,name in enumerate(encoder.action_names)}
         for action,rows in grouped.items():
             f=encoded['actions'][action]
             for key,out in [('mean','estimated_damage'),('ko','ko_probability')]:f[ix[out]]=sum(r[key]*w for r,w in rows)
@@ -165,3 +173,8 @@ class NativeTactics:
                         if own['priority']!=enemy['priority']:first=float(own['priority']>enemy['priority'])
                         probability+=weight*first/max(1,len(replies))
                 f[ix['move_first_probability']]=probability
+        for action in obs['legal']:
+            if action['kind']=='switch':
+                # Entry hazards have a separate feature; entry abilities and
+                # status changes are not a full switch simulation here.
+                encoded['actions'][action['id'],ix['native_tactics']]=0.
