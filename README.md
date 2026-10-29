@@ -63,10 +63,10 @@ All battles and training run offline after installation. The copied reference po
 4. **Improve through battles.** The 512,833-parameter transformer (two layers, width 128, four attention heads) has policy, value, and opponent-action heads. PPO uses legal-action masking, undiscounted match rewards, GAE, and entropy regularization. Use the parallel trainer:
 
    ```powershell
-   .\.venv\Scripts\python.exe -m champions_rl train-fast --initial runtime_data\my_bc.pt --steps 1000000 --workers 4 --envs 64 --reference-workers 1 --output runtime_data\my_run
+   .\.venv\Scripts\python.exe -m champions_rl train-fast --initial runtime_data\my_bc.pt --steps 1000000 --workers 16 --envs 128 --reference-workers 1 --output runtime_data\my_run
    ```
 
-   Four independent CPU processes run 64 battles in total. The central learner groups requests from all workers by policy and runs batched GPU inference. It freezes the current policy for each rollout, then performs PPO updates. The default fast-game mix is 30% current-policy self-play, 30% frozen snapshots, and 40% random/damage/balanced/setup/defensive/stochastic opponents. Change this with `--selfplay-fraction` and `--snapshot-fraction`. The historical league retains up to 12 snapshots, plus any older model still finishing a battle.
+   The example uses the fastest measured setting on this i9-13900K / RTX 4070: 16 independent CPU workers sharing 128 fast battles. Portable command defaults remain four workers and 64 battles. The central learner groups requests from all workers by policy and runs batched GPU inference. It freezes the current policy for each rollout, then performs PPO updates. The default fast-game mix is 30% current-policy self-play, 30% frozen snapshots, and 40% random/damage/balanced/setup/defensive/stochastic opponents. Change this with `--selfplay-fraction` and `--snapshot-fraction`. The historical league retains up to 12 snapshots, plus any older model still finishing a battle.
 
    Current-policy self-play learns from **both players' decisions**, with separate observations, rewards, and advantage calculations for each seat. Waiting phases contribute value targets and rewards but no policy loss. `--steps` counts actual learning-player decisions, not games or waiting phases; the final rollout can round it up. A self-play win rate is not a strength metric and is not included in opponent win-rate summaries.
 
@@ -81,10 +81,10 @@ All battles and training run offline after installation. The copied reference po
    ```powershell
    New-Item -ItemType File runtime_data\STOP
    Remove-Item -LiteralPath runtime_data\STOP
-   .\.venv\Scripts\python.exe -m champions_rl train-fast --resume runtime_data\my_run\trainer_state.pt --steps 1000000 --workers 4 --envs 64 --output runtime_data\my_run
+   .\.venv\Scripts\python.exe -m champions_rl train-fast --resume runtime_data\my_run\trainer_state.pt --steps 1000000 --workers 16 --envs 128 --output runtime_data\my_run
    ```
 
-   New trainer states preserve weights, optimizer, RNG streams, and the frozen opponent league, then start fresh battles. Keep the output directory to reload its durable reference replay shards. In-progress games are not restored, so this is not a bit-for-bit continuation. Early experiment checkpoints predate league/RNG persistence and restart those components from the supplied seed. `--steps` on resume means **additional** decisions. A STOP file applies to all trainers using that path; use distinct `--stop-file` paths for separate runs. Fresh models use positional information in public move history; old checkpoints retain their original behavior unless `--history-position` is explicitly enabled.
+   New trainer states preserve weights, optimizer, RNG streams, and the frozen opponent league, then start fresh battles. Keep the output directory to reload its durable reference replay shards. In-progress games are not restored, so this is not a bit-for-bit continuation. Changing the worker count starts new worker RNG streams. Early experiment checkpoints predate league/RNG persistence and restart those components from the supplied seed. `--steps` on resume means **additional** decisions. A STOP file applies to all trainers using that path; use distinct `--stop-file` paths for separate runs. Fresh models use positional information in public move history; old checkpoints retain their original behavior unless `--history-position` is explicitly enabled.
 
 5. **Select using validation only.** Evaluate immutable numbered checkpoints; compare stochastic and deterministic play on validation before choosing deployment settings:
 
@@ -134,6 +134,37 @@ with ChampionsEnv(opponent="balanced") as env:
 ```
 
 Tests cover restricted legality and every generated set/team, hidden-information separation, legal masks, deterministic replay, trapping retries, Illusion, revival, Gym operation, reward telescoping, truncation bootstrapping, dual-seat parallel trajectories, batched inference, replay-loss gradients, checkpoint/resume, process cleanup, and the acceptance gate.
+
+## Measure training speed
+
+Measured on 2026-10-29 with an i9-13900K and RTX 4070, using the same 512,833-parameter starting checkpoint. Each entry is the median of two sequential runs with different seeds; each run requests 20,000 decisions for 64 battles or 40,000 for 128 battles (rounded up to a complete rollout):
+
+| Trainer | CPU workers | Fast battles | Background reference workers | Learning decisions/s |
+| --- | ---: | ---: | ---: | ---: |
+| Serial | 1 | 64 | 0 | 357 |
+| Parallel | 1 | 64 | 0 | 477 |
+| Parallel | 2 | 64 | 0 | 777 |
+| Parallel | 4 | 64 | 0 | 1,097 |
+| Parallel | 8 | 64 | 0 | 1,467 |
+| Parallel | 8 | 128 | 1 | 1,675 |
+| Parallel | 12 | 128 | 1 | 1,868 |
+| Parallel | 16 | 128 | 1 | 2,025 |
+
+Eight workers with 64 battles provide **4.1×** the serial training throughput, or **3.6×** when process startup and shutdown are included. The 16-worker / 128-battle configuration is the fastest tested, including a concurrent full reference opponent. These are short runs; throughput changes with battle lengths, retained snapshots, PPO early stopping, and other machine activity. Full results and provenance are saved in [64-battle measurements](benchmarks/2026-10-29-workers64.json) and [128-battle measurements with reference games](benchmarks/2026-10-29-workers128-reference.json).
+
+A [longer integration run](benchmarks/2026-10-29-sustained-reference.json) resumed from 160,070 fast-training decisions and added 204,211 in 96.14 seconds (about 2,124 decisions/s). It successfully retained 12 league snapshots after creating 18, and its two phases completed 17 full reference games with 161 audited 32-trial decisions, no fallbacks, and no errors. The local continuation checkpoint is `runtime_data/parallel_reference_smoke/latest.pt`; its optimizer/league/replay can be resumed from the same directory with `trainer_state.pt`.
+
+Speed is the improvement established here. A separate deterministic validation of that checkpoint ran 200 held-out games per style: damage 48.5%, balanced 49%, setup 51.5%, defensive 50%, stochastic 56%, with zero errors or truncations. The report is retained in `runtime_data/validation_parallel_fast/`. This does not establish the 60% original-bot target or superiority to Jaxcalibur. Reference training-game wins are not a substitute for an independent frozen evaluation.
+
+Run one benchmark suite at a time, with other training/evaluation jobs stopped:
+
+```powershell
+.\.venv\Scripts\python.exe tools\benchmark_training.py --initial runtime_data\run_reference_mix\latest.pt --output runtime_data\speed_check --steps 20000 --workers 1,2,4,8 --envs 64 --repeats 2 --include-serial
+```
+
+Each run starts a fresh process from the same weights. `report.json` records source/checkpoint hashes, seeds, hardware, training throughput, whole-process time, inference batch sizes, and rollout/optimization time. The output folder must be new so previous measurements cannot be mixed into a run. Add `--reference-workers 1` to measure concurrent original-bot work. Use an existing compatible checkpoint for `--initial` if the local experiment checkpoint is unavailable.
+
+Parallel self-play supplies two learner trajectories; the serial trainer supplies one. Their default opponent mixtures differ, so this compares training systems, not identical battle trajectories or playing strength. `--workers` controls CPU processes; `--envs` is the total number of concurrent fast battles across those processes. Increasing workers indefinitely can reduce performance through smaller inference batches and contention. GPU learning remains centralized, and no CUDA toolkit reinstall is needed to change these settings.
 
 ## Scope and provenance
 

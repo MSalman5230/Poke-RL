@@ -1,0 +1,91 @@
+{
+  "source_commit": "5e64905",
+  "checkpoint_sha256": "228cc4f403930b9e4951c4a3443f2bddb6c527bfd7c35a6779cbf08633539464",
+  "reference_manifest_sha256": "ed3dcaec70748a5a71906824e5323f3064094106c1c7ab494c3494c955696ab7",
+  "parameter_count": 512833,
+  "saved_worker_count": 16,
+  "saved_league_size": 12,
+  "snapshots_created": 18,
+  "summary": {
+    "stopped": false,
+    "steps": 364281,
+    "additional_policy_decisions": 204211,
+    "startup_seconds": 0.34299999999348074,
+    "elapsed_training_seconds": 96.14100000000326,
+    "last_update": {
+      "update": 113,
+      "steps": 364281,
+      "games": 14615,
+      "selfplay_games": 4416,
+      "win_rates": {
+        "snapshot_fast_00000015": 0.5211267605633803,
+        "balanced": 0.6891891891891891,
+        "random": 1.0,
+        "defensive": 0.78125,
+        "damage": 0.5365853658536586,
+        "snapshot_fast_00000009": 0.5,
+        "stochastic": 0.6764705882352942,
+        "setup": 0.42105263157894735,
+        "snapshot_fast_00000010": 0.6226415094339622
+      },
+      "reference_games": 6,
+      "reference_errors": 0,
+      "reference_training_win_rate": 0.8333333333333334,
+      "replay_samples": 209,
+      "self_imitation_loss": 0.013933188281953335,
+      "optimization_seconds": 0.89,
+      "seconds": 96.0,
+      "decisions_per_second": 2127.2,
+      "loss": 0.23434893341689575,
+      "entropy": 0.48633888218461013,
+      "approx_kl": 0.014617023787007745,
+      "neural_batches": 179,
+      "neural_positions": 6317,
+      "current_batches": 75,
+      "current_positions": 5310,
+      "simulation_steps": 4096,
+      "rollout_seconds": 1.2190000000118744,
+      "policy_decisions": 4599,
+      "value_samples": 5310,
+      "mean_inference_batch": 35.29050279329609,
+      "mean_current_batch": 70.8
+    },
+    "settings": {
+      "trainer": "parallel_ppo_sil",
+      "initial": null,
+      "resumed_from": "runtime_data\\parallel_reference_smoke\\trainer_state.pt",
+      "steps_requested": 200000,
+      "starting_steps": 160070,
+      "workers": 16,
+      "envs": 128,
+      "horizon": 32,
+      "selfplay_fraction": 0.3,
+      "snapshot_fraction": 0.3,
+      "reference_workers": 1,
+      "reference_weight": 0.1,
+      "learning_rate": 0.0001,
+      "device": "cuda",
+      "seed": 101,
+      "model_config": {
+        "width": 128,
+        "layers": 2,
+        "heads": 4,
+        "action_context": true,
+        "heuristic_weight": 0.0,
+        "history_position": false
+      }
+    }
+  },
+  "reference_audit": {
+    "completed_training_games": 17,
+    "samples": 209,
+    "scored_decisions": 161,
+    "trial_counts": [
+      32
+    ],
+    "fallbacks": 0,
+    "errors": 0,
+    "deadline_failures": 0
+  },
+  "note": "A resumed training/integration run, not an independent playing-strength benchmark. First 160070 fast decisions used 4 workers / 64 battles; this continuation uses 16 workers / 128 battles."
+}
