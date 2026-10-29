@@ -10,7 +10,7 @@ import numpy as np
 from .engine import Engine
 from .features import Encoder,FEATURE_VERSION
 from .knowledge import knowledge
-from .policies import ScriptedBot
+from .policies import ScriptedBot,TRAINING_STYLES
 from .persistence import atomic_json,durable_npz
 from .provenance import feature_signature
 from .rewards import potential
@@ -29,7 +29,8 @@ def rebuild(job):
         raise ValueError('Incompatible/degraded source demonstration')
     with gzip.open(source.with_suffix('.observations.json.gz'),'rt',encoding='utf-8') as stream:raw=json.load(stream)
     rows=[];labels=[];changed=0
-    teacher=ScriptedBot(meta['teacher'],encoder=_encoder) if meta['teacher']!='reference' else None
+    scripted=(*TRAINING_STYLES,'damage','setup','defensive','stochastic')
+    teacher=ScriptedBot(meta['teacher'],encoder=_encoder) if meta['teacher'] in scripted else None
     for row in raw['rows']:
         encoded=_encoder.encode(row['observation']);rows.append(encoded)
         label=int(np.argmax(teacher.scores(row['observation'],encoded))) if teacher is not None else row['expert_action']

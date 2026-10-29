@@ -19,7 +19,7 @@ def interval(blocks,seed=240011):
             'bootstrap_95':np.quantile(samples,[.025,.975]).tolist()}
 
 
-def compare(baseline,candidate,opponents=None):
+def compare(baseline,candidate,opponents=None,allow_feature_change=False):
     baseline=Path(baseline);candidate=Path(candidate)
     a=json.loads((baseline/'report.json').read_text());b=json.loads((candidate/'report.json').read_text())
     for report in (a,b):
@@ -30,6 +30,10 @@ def compare(baseline,candidate,opponents=None):
             raise ValueError('Invalid games or fallback decisions cannot certify a paired improvement')
     for key in ('feature_signature','knowledge_sha256','team_manifest_sha256','reference_manifest_sha256',
                 'seed','split','roster','reference_teams','requested_games_per_opponent'):
+        if key=='feature_signature' and allow_feature_change:
+            if not a.get('opponent_feature_signature') or a['opponent_feature_signature']!=b.get('opponent_feature_signature'):
+                raise ValueError('Feature migration comparison requires identical opponent feature implementations')
+            continue
         if a.get(key)!=b.get(key):raise ValueError(f'Incompatible evaluation schedules: {key}')
     if opponents is None:
         if set(a['results'])!=set(b['results']):raise ValueError('Opponent schedules differ; explicitly select a shared schedule')
@@ -65,6 +69,8 @@ def compare(baseline,candidate,opponents=None):
     return {'baseline':str(baseline),'candidate':str(candidate),
             'baseline_checkpoint_sha256':a['checkpoint_sha256'],'candidate_checkpoint_sha256':b['checkpoint_sha256'],
             'feature_signature':a['feature_signature'],'baseline_implementation_sha256':a['implementation_sha256'],
+            'candidate_feature_signature':b['feature_signature'],'feature_migration_allowed':allow_feature_change,
+            'baseline_legacy_manifest_sha256':a.get('legacy_manifest_sha256'),
             'candidate_implementation_sha256':b['implementation_sha256'],'code_snapshots_compared':snapshots_compared,
             'changed_implementation_files':changed if snapshots_compared else None,'selected_opponents':sorted(opponents),
             'baseline_deterministic':a['deterministic'],'candidate_deterministic':b['deterministic'],
@@ -79,5 +85,6 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('baseline','candidate','output'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--opponents',help='Explicit comma-separated shared opponent schedule')
-    args=parser.parse_args();report=compare(args.baseline,args.candidate,args.opponents.split(',') if args.opponents else None)
+    parser.add_argument('--allow-feature-change',action='store_true',help='Explicit architecture migration with unchanged opponent inputs')
+    args=parser.parse_args();report=compare(args.baseline,args.candidate,args.opponents.split(',') if args.opponents else None,args.allow_feature_change)
     atomic_json(args.output,report);print(json.dumps(report['aggregate'],indent=2))

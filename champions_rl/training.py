@@ -19,6 +19,7 @@ from .reference import ReferenceBot
 from .teams import TeamPool
 from .persistence import durable_torch_save
 from .provenance import feature_signature
+from .power import keep_awake
 
 
 def emit(event, **fields):
@@ -125,6 +126,7 @@ def imitation_validation(model,data,valid_ids,batch_size,device,correction_mass=
                                          'agreement':float(agreements[mask].mean())} for name,(mask,mass) in groups.items()}}
 
 
+@keep_awake()
 def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43,width=128,layers=2,initial=None,learning_rate=1e-4,correction_mass=0.,identity_dropout=.25):
     if not 0<=correction_mass<1:raise ValueError('correction_mass must be in [0,1)')
     seed_all(seed)

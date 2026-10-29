@@ -97,9 +97,13 @@ def suite(checkpoint,initial,output,workers=4,games=256):
     manifest=evaluate_parallel(output=output/'manifest',opponents=['balanced','hyperoffense','setup_sweeper','attrition','pivot','frozen_initial'],
                                frozen_opponents={'frozen_initial':initial},**common)
     saved=evaluate_parallel(output=output/'saved',opponents=['balanced'],roster='saved',**common)
+    cores=evaluate_parallel(output=output/'cores',opponents=['balanced'],split='validation_cores',**common)
+    cross=evaluate_parallel(output=output/'saved_vs_varied',opponents=['balanced'],roster='saved_vs_varied',**common)
     atomic_json(output/'summary.json',{'manifest':manifest['results'],'saved':saved['results'],
-                                      'complete':manifest['complete'] and saved['complete']})
-    if not manifest['complete'] or not saved['complete']:
+                                      'cores':cores['results'],'saved_vs_varied':cross['results'],
+                                      'primary_metrics':['manifest','cores'],
+                                      'complete':all(r['complete'] for r in (manifest,saved,cores,cross))})
+    if not all(r['complete'] for r in (manifest,saved,cores,cross)):
         raise RuntimeError('Validation ended before the requested game counts were completed')
 
 

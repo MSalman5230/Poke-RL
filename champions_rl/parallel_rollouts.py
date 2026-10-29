@@ -25,7 +25,8 @@ def stop_process(process,timeout=5):
 
 class ParallelRollouts:
     def __init__(self,workers=4,envs=32,seed=47,selfplay_fraction=.3,snapshot_fraction=.3,
-                 max_turns=200,saved_roster_fraction=.15,restored=(),timeout=120,privileged=False):
+                 max_turns=200,saved_roster_fraction=.15,restored=(),timeout=120,privileged=False,
+                 saved_vs_varied_fraction=0.,team_mode='diverse'):
         if not 1<=workers<=envs:
             raise ValueError("workers must be between 1 and envs")
         if min(selfplay_fraction,snapshot_fraction)<0 or selfplay_fraction+snapshot_fraction>1:
@@ -43,6 +44,7 @@ class ParallelRollouts:
                           "seed":seed+104729*worker,"selfplay_fraction":selfplay_fraction,
                           "snapshot_fraction":snapshot_fraction,"max_turns":max_turns,
                           "saved_roster_fraction":saved_roster_fraction,
+                          'saved_vs_varied_fraction':saved_vs_varied_fraction,'team_mode':team_mode,
                           "privileged":privileged,
                           "restored":restored[worker] if len(restored)==workers else None}
                 process=self.context.Process(target=fast_worker,args=(child,settings),name=f"battle-worker-{worker}")

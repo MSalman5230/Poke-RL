@@ -24,7 +24,7 @@ from .power import keep_awake
 def evaluation_seed(split,seed):
     # The reference mirror uses the same teams in every split, so changing
     # only the team manifest would silently replay its validation battles.
-    return seed if seed is not None else 190731 if split=='test' else 92341
+    return seed if seed is not None else 290731 if split=='test_v7' else 190731 if split=='test' else 92341
 
 
 def wilson(wins, total, z=1.96):
@@ -41,7 +41,7 @@ def acceptance(rows, split,roster='manifest'):
     reference=rows.get("reference",{})
     other=[r for n,r in rows.items() if n!="reference"]
     requirements={
-        "held_out_test_split":split=="test" and roster=='manifest',
+        "held_out_test_split":split in ('test','test_v7') and roster=='manifest',
         "at_least_200_reference_games":reference.get("games",0)>=200,
         "reference_win_rate_at_least_60_percent":reference.get("win_rate",0)>=.60,
         "reference_95_percent_lower_bound_at_least_60_percent":reference.get("confidence",[0])[0]>=.60,
@@ -59,24 +59,29 @@ def acceptance(rows, split,roster='manifest'):
 @keep_awake()
 def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"),games=100,
              output=None, split="validation",seed=None,device="cpu",learner_style=None,reference_teams="saved",deterministic=False,
-             shard_index=0,shard_count=1,search=False,roster='manifest',critic_state=None,frozen_opponents=None):
+             shard_index=0,shard_count=1,search=False,roster='manifest',critic_state=None,frozen_opponents=None,legacy_runtime=None):
     if games<1 or not 0<=shard_index<shard_count:
         raise ValueError("Invalid game count or shard range")
     if len(set(opponents))!=len(opponents):
         raise ValueError("Opponent styles must be distinct")
     if search and (not checkpoint or not deterministic):raise ValueError('Search requires a checkpoint and deterministic evaluation')
     if search and not critic_state:raise ValueError('Experimental search requires --critic-state; public-value search is disabled')
-    if roster not in ('manifest','saved'):raise ValueError('Unknown roster schedule')
+    if roster not in ('manifest','saved','saved_vs_varied'):raise ValueError('Unknown roster schedule')
     frozen_opponents=frozen_opponents or {}
     seed=evaluation_seed(split,seed)
     seed_all(seed)
     import torch
     torch.set_num_threads(1)  # inference uses single positions; reserve CPU for simulators
     encoder=Encoder()
+    actor_encoder=encoder;actor_signature=feature_signature()
     checkpoint_bytes=Path(checkpoint).read_bytes() if checkpoint else None
     if checkpoint:
-        model,metadata=BattleModel.load(io.BytesIO(checkpoint_bytes),device)
-        learner=NeuralBot(model,encoder,deterministic=deterministic)
+        if legacy_runtime:
+            if search:raise ValueError('Legacy policy evaluation does not support the new search experiment')
+            from .legacy import load_frozen_policy
+            model,metadata,actor_encoder,actor_signature=load_frozen_policy(io.BytesIO(checkpoint_bytes),legacy_runtime,device)
+        else:model,metadata=BattleModel.load(io.BytesIO(checkpoint_bytes),device)
+        learner=NeuralBot(model,actor_encoder,deterministic=deterministic)
         if search:
             from .search import SearchBot
             from .model import PrivilegedCritic
@@ -99,7 +104,9 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
         snapshot.parent.mkdir(parents=True,exist_ok=True)
         snapshot.write_bytes(path.read_bytes())
     report={"format":knowledge().data["format"],"knowledge_sha256":knowledge().sha256,
-            'feature_signature':feature_signature(),
+            'feature_signature':actor_signature,'opponent_feature_signature':feature_signature(),
+            'legacy_runtime':str(Path(legacy_runtime).resolve()) if legacy_runtime else None,
+            'legacy_manifest_sha256':hashlib.sha256((Path(legacy_runtime)/'BASELINE_MANIFEST.json').read_bytes()).hexdigest() if legacy_runtime else None,
             "checkpoint_metadata":metadata,
             "model_config":model.config if checkpoint else None,
             "checkpoint":str(checkpoint) if checkpoint else None,
@@ -124,7 +131,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
             for game in range(games):
                 if game%2==0:
                     pair=[rng.choice(teams),rng.choice(teams)]
-                    if roster=='saved' or style=="reference" and reference_teams=="saved":
+                    if roster=='saved' or roster=='manifest' and style=="reference" and reference_teams=="saved":
                         # Identical original six on both sides isolates policy strength
                         # from team-building/counter-team advantages.
                         pair=[reference_team,reference_team]
@@ -139,6 +146,8 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                 # Reversing teams here as well would keep the learner on the
                 # same roster twice and fail to cancel team-strength advantage.
                 party=pair
+                if roster=='saved_vs_varied':
+                    party=[pair[1],pair[1]];party[seat]=reference_team
                 opponent=(NeuralBot(frozen_model,encoder,deterministic=True,name=style) if frozen_model is not None else
                           ReferenceBot(seed+game,strict=True) if style=="reference" else ScriptedBot(style,seed+game,encoder))
                 bots=[opponent,opponent]
@@ -157,6 +166,8 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                     counts["fallbacks"]+=getattr(opponent,"fallbacks",0)
                     record={k:v for k,v in result.items() if k!="trace"}
                     record.update(game=game,seat=seat,won=win,team_ids=list(map(fingerprint,party)))
+                    from .teammates import team_family
+                    record['team_families']=list(map(team_family,party))
                     if search:record['search']={key:value-before_search.get(key,0) for key,value in learner.statistics.items()}
                     if style=="reference":
                         record["reference_decisions"]=opponent.audit
@@ -192,7 +203,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
 @keep_awake()
 def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced","setup","defensive","stochastic"),
                       games=200, output=None,split="validation",seed=None,device="cpu",learner_style=None,
-                      reference_teams="saved",deterministic=False,workers=4,search=False,roster='manifest',critic_state=None,frozen_opponents=None):
+                      reference_teams="saved",deterministic=False,workers=4,search=False,roster='manifest',critic_state=None,frozen_opponents=None,legacy_runtime=None):
     """Separate processes preserve reference-policy isolation and exact trials.
 
     Each worker takes a disjoint subset of the same paired schedule. Reports
@@ -234,6 +245,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                 command.append("--deterministic")
             if search:command.append('--search')
             if critic_state:command.extend(['--critic-state',str(critic_state)])
+            if legacy_runtime:command.extend(['--legacy-runtime',str(Path(legacy_runtime).resolve())])
             for name,path in frozen_paths.items():command.extend(['--frozen-opponent',name+'='+str(path)])
             log=(output/f"worker_{index}.log").open("w",encoding="utf-8")
             process=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,
@@ -253,7 +265,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                     raise RuntimeError(f"Evaluation worker failed; see {folder.parent/(folder.name+'.log')}")
             if reports:
                 merged=dict(reports[0])
-                for key in ("checkpoint_sha256","implementation_sha256","knowledge_sha256","feature_signature","team_manifest_sha256","reference_manifest_sha256","roster","critic_sha256","frozen_opponents"):
+                for key in ("checkpoint_sha256","implementation_sha256","knowledge_sha256","feature_signature","opponent_feature_signature","legacy_manifest_sha256","team_manifest_sha256","reference_manifest_sha256","roster","critic_sha256","frozen_opponents"):
                     if len({json.dumps(r.get(key),sort_keys=True) for r in reports})!=1:
                         raise ValueError(f"Incompatible evaluation shards: {key}")
                 merged.update(checkpoint=str(checkpoint) if checkpoint else None,workers=workers,

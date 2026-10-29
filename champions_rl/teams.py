@@ -112,6 +112,11 @@ class TeamPool:
             if row.get('curated'):self.curated.setdefault(row['set']['species'],[]).append(row)
 
     def sample(self, rng, mode="mixed"):
+        if mode=='diverse':mode=rng.choices(['teammates','mixed','coverage','meta'],[.6,.2,.1,.1])[0]
+        if mode=='teammates':
+            from .teammates import TeammateSampler
+            if not hasattr(self,'_teammate_sampler'):self._teammate_sampler=TeammateSampler(self)
+            return self._teammate_sampler.sample(rng)
         k = knowledge()
         from .curated import ARCHETYPES
         if self.curated and (mode in ARCHETYPES or mode=='weather' or mode=='mixed' and rng.random()<.65):

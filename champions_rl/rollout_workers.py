@@ -17,7 +17,8 @@ from .holdouts import held_out_core
 
 class FastGames:
     def __init__(self, worker_id, count, seed, selfplay_fraction=.3, snapshot_fraction=.3,
-                 max_turns=200, saved_roster_fraction=.15, restored=None,privileged=False):
+                 max_turns=200, saved_roster_fraction=.15, restored=None,privileged=False,
+                 saved_vs_varied_fraction=0.,team_mode='diverse'):
         from .arena import load_teams
         self.worker_id=worker_id
         self.count=count
@@ -29,12 +30,19 @@ class FastGames:
         self.selfplay_fraction=selfplay_fraction
         self.snapshot_fraction=snapshot_fraction
         self.saved_roster_fraction=saved_roster_fraction
+        self.saved_vs_varied_fraction=saved_vs_varied_fraction;self.team_mode=team_mode
+        if min(saved_roster_fraction,saved_vs_varied_fraction)<0 or saved_roster_fraction+saved_vs_varied_fraction>1:
+            raise ValueError('Saved team fractions must sum to at most one')
         self.max_turns=max_turns
         self.privileged=privileged
         self.style_weights={n:(.025 if n=='random' else 1.) for n in TRAINING_STYLES}
         self.pool=TeamPool()
         self.fixed=[t for t in load_teams('train') if not held_out_core(t)]
         self.held_out={fingerprint(t) for split in ("validation","test","validation_competitive") for t in load_teams(split)}
+        from .engine import ROOT
+        for path in (ROOT/'data').glob('teams_test_*.json'):
+            import json
+            self.held_out.update(fingerprint(t['team']) for t in json.loads(path.read_text())['teams'])
         self.engine=Engine()
         self.encoder=Encoder(engine=self.engine)
         self.games=[None]*count
@@ -43,7 +51,7 @@ class FastGames:
         if self.rng.random()<.2:
             return self.rng.choice(self.fixed)
         while True:
-            team=self.pool.sample(self.rng)
+            team=self.pool.sample(self.rng,self.team_mode)
             if fingerprint(team) not in self.held_out and not held_out_core(team):
                 return team
 
@@ -57,16 +65,22 @@ class FastGames:
         else:
             opponent=self.rng.choices(list(self.style_weights),list(self.style_weights.values()))[0]
         parties=[self.sample_team(),self.sample_team()]
+        family=self.team_mode
         # Familiar rosters also face unrelated styles, so this roster does not
         # uniquely identify the reference policy to the learner.
-        if self.rng.random()<self.saved_roster_fraction:
-            parties=[self.pool.data["reference_team"]]*2
+        roster_draw=self.rng.random()
+        if roster_draw<self.saved_roster_fraction:
+            parties=[self.pool.data["reference_team"]]*2;family='saved_mirror'
+        elif roster_draw<self.saved_roster_fraction+self.saved_vs_varied_fraction:
+            parties[seat]=self.pool.data['reference_team'];family='saved_vs_varied'
+        from .teammates import team_family
+        family+=':'+team_family(parties[1-seat])
         state=self.engine.request("new",game=str(slot),teams=parties,
             seed=[self.rng.randrange(65536) for _ in range(4)],max_turns=self.max_turns,training=self.privileged)
         self.counter+=1
         self.games[slot]={"state":state,"seat":seat,"opponent":opponent,"episode":self.counter,
                           "bot":None if opponent in models else ScriptedBot(opponent,self.rng.randrange(2**31),self.encoder),
-                          "cache":{}}
+                          "cache":{},'team_family':family}
 
     def collect(self,connection,horizon,models,snapshot_ids):
         for slot,g in enumerate(self.games):
@@ -133,6 +147,7 @@ class FastGames:
                     outcomes.append({"opponent":"current_selfplay" if g["opponent"]=="current" else g["opponent"],
                         "win":None if g["opponent"]=="current" else state["winner"]==g["seat"],
                         "draw":state["winner"] is None,"truncated":state["truncated"],"turns":state["views"][0]["turn"]})
+                    outcomes[-1]['team_family']=g['team_family']
                     self.reset(slot,models,snapshot_ids)
         connection.send({"kind":"done","completed":completed,"outcomes":outcomes,
                          "simulation_steps":simulation_steps,

@@ -130,7 +130,8 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
                    reference_weight=0.,learning_rate=3e-5,batch_size=512,epochs=4,checkpoint_every=1,
                    stop_file=None,history_position=None,heuristic_weight=None,rollout_decisions=32768,privileged=True,
                    critic_learning_rate=1e-4,league_checkpoints=(),validation_every=10,validation_workers=4,validation_games=256,
-                   critic_epochs=2,value_baseline='public',private_blend=.5,critic_targets='bootstrapped',identity_dropout=None):
+                   critic_epochs=2,value_baseline='public',private_blend=.5,critic_targets='bootstrapped',identity_dropout=None,
+                   team_mode='diverse',saved_roster_fraction=.15,saved_vs_varied_fraction=0.):
     if min(steps,workers,envs,horizon,batch_size,epochs,checkpoint_every,rollout_decisions)<1:
         raise ValueError("Training sizes and intervals must be positive")
     if reference_workers<0 or reference_weight<0:
@@ -238,6 +239,7 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
               "learning_rate":learning_rate,'critic_learning_rate':critic_learning_rate,'batch_size':batch_size,'epochs':epochs,
               'critic_epochs':critic_epochs,'value_baseline':value_baseline,'private_blend':private_blend,
               'critic_targets':critic_targets,'identity_dropout':model.config.get('identity_dropout',0.),
+              'team_mode':team_mode,'saved_roster_fraction':saved_roster_fraction,'saved_vs_varied_fraction':saved_vs_varied_fraction,
               'league_checkpoints':list(map(str,league_checkpoints)),
               'validation_every':validation_every,'validation_workers':validation_workers,'validation_games':validation_games,
               "device":device,"seed":seed,"model_config":model.config}
@@ -278,6 +280,7 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
     try:
         actors=ParallelRollouts(workers,envs,seed,selfplay_fraction,snapshot_fraction,
                                privileged=privileged,
+                               team_mode=team_mode,saved_roster_fraction=saved_roster_fraction,saved_vs_varied_fraction=saved_vs_varied_fraction,
                                restored=restored.get("worker_states",()) if restored else ())
         references=ReferencePool(reference_workers,replay_folder,model,seed+391)
         started=time.monotonic()
@@ -335,6 +338,12 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
                 for result in matches:league_ratings[name]=.98*league_ratings.get(name,.5)+.02*(not result['win'])
             counts=Counter(r["opponent"] for r in recent if r["win"] is not None)
             win_rates={name:sum(r["win"] for r in recent if r["opponent"]==name)/n for name,n in counts.items()}
+            family_metrics={}
+            for result in recent:
+                if result['win'] is None:continue
+                key=result['opponent']+'/'+result.get('team_family','unknown')
+                group=family_metrics.setdefault(key,{'games':0,'wins':0,'truncated':0})
+                group['games']+=1;group['wins']+=int(result['win']);group['truncated']+=int(result['truncated'])
             awake_elapsed=awake_seconds()-awake_started
             row={"update":update,"steps":total,'phase_start_steps':starting_steps,'additional_policy_decisions':total-starting_steps,
                  'awake_seconds':round(awake_elapsed,3),
@@ -342,6 +351,7 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
                  'decisions_per_awake_second':round((total-starting_steps)/max(.001,awake_elapsed),2),
                  "games":len(outcomes),"selfplay_games":sum(r["opponent"]=="current_selfplay" for r in outcomes),
                  "win_rates":win_rates,"reference_games":reference_counts["game"],"reference_errors":reference_counts["error"],
+                 'by_opponent_and_team_family':family_metrics,
                  'script_sampling_weights':script_weights,'league_ratings':{n:league_ratings[n] for n in eligible},
                  "reference_training_win_rate":reference_counts["wins"]/max(1,reference_counts["game"]),
                  "replay_samples":len(replay.rows),"self_imitation_loss":sil_loss,
