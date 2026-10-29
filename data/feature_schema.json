@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "knowledge_sha256": "12e11f7485fb8e1d188c084fd3f9e594da08e28c2890c83c35b0118bf107a471",
   "pokemon": [
     "hp",
@@ -261,5 +261,5 @@
   },
   "unknown_id": 0,
   "known_none_id": 1,
-  "estimates": "Public-evidence-conditioned complete-set hypotheses weighted by usage. Damage remains approximate unless native_tactics=1; no actual hidden sets are supplied."
+  "estimates": "Public-compatible set hypotheses. native_tactics=1 means supported conditional damage on a successful hit, excluding random criticals and inability to act; 0 includes unsupported/approximate mechanics (e.g. correlated multi-hit rolls or unknown volatile state). No actual hidden sets are supplied to the actor."
 }

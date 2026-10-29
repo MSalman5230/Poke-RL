@@ -10,7 +10,7 @@ CONDITIONS = ("stealthrock", "spikes", "toxicspikes", "stickyweb", "reflect", "l
 WEATHER = ("", "sunnyday", "raindance", "sandstorm", "snow", "desolateland", "primordialsea")
 TERRAIN = ("", "electricterrain", "grassyterrain", "psychicterrain", "mistyterrain")
 N_ACTIONS = 134
-FEATURE_VERSION = 3
+FEATURE_VERSION = 4
 ACTION_NAMES = ["move", "switch", "preview", "mega", "power", "accuracy", "priority", "pp",
                 "physical", "special", "status", "estimated_damage", "ko_margin", "effectiveness", "stab",
                 "actor_hp", "target_hp", "speed_ratio", "heal", "recoil", "drain", "setup", "protect",
@@ -44,6 +44,8 @@ class Encoder:
         self.native=NativeTactics(engine) if native else None
         from .beliefs import SetBeliefs
         self.beliefs=SetBeliefs()
+        self._observation=None
+        self._damage_cache={}
         self.priors = {}
         from .teams import TeamPool
         for name, rows in TeamPool().by_species.items():
@@ -65,7 +67,8 @@ class Encoder:
     def mon_features(self, mon, ours, obs=None):
         k = self.k
         scenarios=self.beliefs.scenarios(mon)
-        stats={s:sum(w*k.mon_stats(m)[s] for m,w in scenarios) for s in STATS}
+        stat_rows=[(k.mon_stats(m),w) for m,w in scenarios]
+        stats={s:sum(w*row[s] for row,w in stat_rows) for s in STATS}
         base = k.species_info(mon.get("species")).get("baseStats", dict.fromkeys(STATS, 0))
         pp = [m["pp"] / max(1, m["maxpp"]) for m in mon.get("moves", []) if isinstance(m, dict)]
         if not ours and not mon.get('set'):
@@ -105,9 +108,16 @@ class Encoder:
         return selected,[probabilities.get(m,0.) for m in selected]
 
     def best_damage(self, a, b, weather=""):
+        key=(id(a),id(b),weather)
+        cached=self._damage_cache.get(key)
+        if cached is not None and cached[0] is a and cached[1] is b:return cached[2]
         targets=self.beliefs.scenarios(b)[:4]
-        return sum(w*max((sum(v*self.k.damage(actor,target,m,weather) for target,v in targets)/max(1e-9,sum(v for _,v in targets))
+        damage=sum(w*max((sum(v*self.k.damage(actor,target,m,weather) for target,v in targets)/max(1e-9,sum(v for _,v in targets))
                           for m in actor['set']['moves']),default=0.) for actor,w in self.beliefs.scenarios(a))
+        # Only cache immutable observations while encoding. Direct callers may
+        # mutate a mon between queries and must see the changed evidence.
+        if self._observation is not None:self._damage_cache[key]=(a,b,damage)
+        return damage
 
     def hazard_cost(self, mon, conditions):
         types = mon.get("types", [])
@@ -142,13 +152,14 @@ class Encoder:
                           physical=move.get("category") == "Physical", special=move.get("category") == "Special",
                           status=move.get("category") == "Status")
             values["pp"] = next((m["pp"]/max(1,m["maxpp"]) for m in actor.get("moves", []) if isinstance(m, dict) and m["id"] == action["move"]), 1.)
-            damages=[(k.damage(actor,m,action['move'],obs['weather'],action['mega']),w) for m,w in targets]
-            damage=sum(d*w for d,w in damages)
-            values['damage_min']=min((d*.85/.925 for d,_ in damages),default=0.)
-            values['damage_max']=max((d/ .925 for d,_ in damages),default=0.)
-            values['ko_probability']=sum(w*np.mean(np.arange(85,101)/92.5*d>=target['hp']) for d,w in damages)*move.get('accuracy',100)/100
-            values.update(estimated_damage=min(2., damage), ko_margin=max(-1., min(1., damage-target["hp"])),
-                          effectiveness=k.effectiveness(move.get("type"), target["types"])/4,
+            if not self.native:
+                damages=[(k.damage(actor,m,action['move'],obs['weather'],action['mega']),w) for m,w in targets]
+                damage=sum(d*w for d,w in damages)
+                values['damage_min']=min((d*.85/.925 for d,_ in damages),default=0.)
+                values['damage_max']=max((d/ .925 for d,_ in damages),default=0.)
+                values['ko_probability']=sum(w*np.mean(np.arange(85,101)/92.5*d>=target['hp']) for d,w in damages)*move.get('accuracy',100)/100
+                values.update(estimated_damage=min(2.,damage),ko_margin=max(-1.,min(1.,damage-target['hp'])))
+            values.update(effectiveness=k.effectiveness(move.get("type"), target["types"])/4,
                           stab=move.get("type") in actor["types"])
             for attr in ("heal", "drain", "recoil"):
                 fraction = move.get(attr)
@@ -165,10 +176,11 @@ class Encoder:
             values[f"type_{move.get('type')}"] = 1.
         if kind == "switch":
             values["revive"] = bool(action.get("revive"))
-            values["incoming_damage"] = min(2., self.best_damage(target, actor, obs["weather"]))
+            if not self.native or action.get('revive'):
+                values["incoming_damage"] = min(2., self.best_damage(target, actor, obs["weather"]))
             values["switch_offense"] = min(2., self.best_damage(actor, target, obs["weather"]))
             values["hazard_cost"] = self.hazard_cost(actor, obs["conditions"][0])
-        if kind!='preview':
+        if kind!='preview' and (not self.native or action.get('revive')):
             incoming=self.best_damage(target,actor,obs['weather'])
             values['survival_probability']=float(incoming<actor.get('hp',1))
         if kind == "preview":
@@ -182,6 +194,8 @@ class Encoder:
         return [float(values[n]) for n in self.action_names]
 
     def encode(self, obs, entities_only=False):
+        self._observation=obs
+        self._damage_cache={}
         mons = obs["own"] + obs["opponent"]
         if len(mons) != 12:
             raise ValueError("Expected six public preview species per team")
@@ -265,4 +279,4 @@ class Encoder:
                 "action_ids": {"0-3": "move slots", "4-7": "Mega + move", "8-13": "switch to original roster slot",
                                "14-133": "ordered 3-of-6 team preview permutations"},
                 "unknown_id": 0, "known_none_id": 1,
-                "estimates": "Public-evidence-conditioned complete-set hypotheses weighted by usage. Damage remains approximate unless native_tactics=1; no actual hidden sets are supplied."}
+                "estimates": "Public-compatible set hypotheses. native_tactics=1 means supported conditional damage on a successful hit, excluding random criticals and inability to act; 0 includes unsupported/approximate mechanics (e.g. correlated multi-hit rolls or unknown volatile state). No actual hidden sets are supplied to the actor."}

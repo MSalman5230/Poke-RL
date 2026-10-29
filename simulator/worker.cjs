@@ -231,7 +231,8 @@ class Game {
 const games=new Map();
 function dispatch(q){
   if(q.op==='ping')return {format:FORMAT,revision:'c0845f33d381402dfcb18ce324c20a94f18af075',node:process.version};
-  if(q.op==='calculate')return q.queries.map(require('./tactics.cjs').calculate);
+  if(q.op==='calculate')return require('./tactics.cjs').calculateMany(q.queries);
+  if(q.op==='tactics_metadata')return require('./tactics.cjs').metadata();
   if(q.op==='lookahead')return require('./lookahead.cjs').lookahead(q,Game,PublicState);
   if(q.op==='validate')return q.teams?q.teams.map(t=>validator.validateTeam(clone(t))):q.sets.map(s=>validator.validateSet(clone(s)));
   if(q.op==='new'){if(games.has(q.game))games.get(q.game).battle.destroy();const g=new Game(q.teams,q.seed,q.max_turns,!!q.training);games.set(q.game,g);return g.result();}
