@@ -77,7 +77,7 @@ def main():
     evaluate.add_argument("--games",type=int,default=200)
     evaluate.add_argument("--split",choices=["validation","validation_competitive","validation_cores","test"],default="validation")
     evaluate.add_argument("--output",type=Path)
-    evaluate.add_argument("--seed",type=int,default=92341)
+    evaluate.add_argument("--seed",type=int,help="Default: 92341 for validation, 190731 for the independent test schedule")
     evaluate.add_argument("--device",default="cpu")
     evaluate.add_argument("--deterministic",action="store_true",help="Use the highest-probability legal action")
     evaluate.add_argument('--search',action='store_true',help='Prototype one-turn search; requires --deterministic')

@@ -105,7 +105,7 @@ All battles and training run offline after installation. The copied reference po
 6. **Run the final frozen benchmark.** Once validation is good enough:
 
    ```powershell
-   .\.venv\Scripts\python.exe -m champions_rl evaluate --checkpoint runtime_data\my_validation\evaluated_model.pt --opponents reference,balanced,hyperoffense,setup_sweeper,attrition,pivot --games 256 --workers 4 --deterministic --split test --output runtime_data\final_test
+   .\.venv\Scripts\python.exe -m champions_rl evaluate --checkpoint runtime_data\my_validation\evaluated_model.pt --opponents reference,balanced,hyperoffense,setup_sweeper,attrition,pivot --games 256 --workers 4 --deterministic --split test --seed 190731 --output runtime_data\final_test
    ```
 
    This suite includes the original reference and five distinct scripted styles. Against the original, both players use its saved six, so a counter-team does not manufacture an advantage. Seats alternate and matchup seeds are paired. Other styles use the held-out team manifest. Original-roster results generalize to that roster and matchup distribution; they do not prove superiority on every possible team.
@@ -113,6 +113,8 @@ All battles and training run offline after installation. The copied reference po
    Parallel evaluation assigns disjoint game IDs to independent processes and sums game counts. Each pair holds the teams and engine seed fixed while swapping the policies, so the learner controls each team once. Checkpoint/source/data hashes must agree across workers. Public logs, per-game reference trial audits, and a snapshot of the evaluated implementation are retained alongside reports. Four evaluation processes and the reference bot's four probe workers per process suit a many-core CPU; use `--workers 1` on a smaller machine. This does not reduce the reference policy's 32 trials.
 
    Passing requires at least 200 reference games, at least 60% wins **and a 95% Wilson lower bound of at least 60%**, at least four other styles with 200 games and 55% wins each, no adapter errors or reference fallbacks, and at most 1% truncations. A 60/100 result does not pass this stricter uncertainty check. Errors remain in the denominator; time limits are truncations, not invented wins. The final report explicitly records whether each condition passed.
+
+Test evaluation defaults to seed 190731; validation defaults to 92341. The reference mirror uses the same saved teams in both splits, so a new split name alone does not make those battles independent. When supplying custom seeds, reserve non-overlapping seed ranges for validation and test, and freeze the candidate before inspecting test results.
 
 ## Expert corrections and optional search
 

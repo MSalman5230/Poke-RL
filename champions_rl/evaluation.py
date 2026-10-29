@@ -21,6 +21,12 @@ from .provenance import feature_signature
 from .power import keep_awake
 
 
+def evaluation_seed(split,seed):
+    # The reference mirror uses the same teams in every split, so changing
+    # only the team manifest would silently replay its validation battles.
+    return seed if seed is not None else 190731 if split=='test' else 92341
+
+
 def wilson(wins, total, z=1.96):
     if not total:
         return [0.,1.]
@@ -52,7 +58,7 @@ def acceptance(rows, split,roster='manifest'):
 
 @keep_awake()
 def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"),games=100,
-             output=None, split="validation",seed=92341,device="cpu",learner_style=None,reference_teams="saved",deterministic=False,
+             output=None, split="validation",seed=None,device="cpu",learner_style=None,reference_teams="saved",deterministic=False,
              shard_index=0,shard_count=1,search=False,roster='manifest',critic_state=None,frozen_opponents=None):
     if games<1 or not 0<=shard_index<shard_count:
         raise ValueError("Invalid game count or shard range")
@@ -62,6 +68,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
     if search and not critic_state:raise ValueError('Experimental search requires --critic-state; public-value search is disabled')
     if roster not in ('manifest','saved'):raise ValueError('Unknown roster schedule')
     frozen_opponents=frozen_opponents or {}
+    seed=evaluation_seed(split,seed)
     seed_all(seed)
     import torch
     torch.set_num_threads(1)  # inference uses single positions; reserve CPU for simulators
@@ -184,7 +191,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
 
 @keep_awake()
 def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced","setup","defensive","stochastic"),
-                      games=200, output=None,split="validation",seed=92341,device="cpu",learner_style=None,
+                      games=200, output=None,split="validation",seed=None,device="cpu",learner_style=None,
                       reference_teams="saved",deterministic=False,workers=4,search=False,roster='manifest',critic_state=None,frozen_opponents=None):
     """Separate processes preserve reference-policy isolation and exact trials.
 
@@ -194,6 +201,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
     """
     import subprocess
     import sys
+    seed=evaluation_seed(split,seed)
     if workers<1 or workers>min(8,games):
         raise ValueError("Use 1 to min(8, games) evaluation workers")
     output=Path(output or ROOT/"runtime_data/evaluation"/time.strftime("%Y%m%d_%H%M%S"))
