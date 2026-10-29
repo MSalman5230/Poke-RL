@@ -43,3 +43,8 @@ def test_step_zero_is_a_checkpoint_candidate(tmp_path):
     behavior_clone(data,output,steps=0,device='cpu',initial=initial)
     _,metadata=BattleModel.load(output)
     assert metadata['updates']==0 and 'balanced_validation_loss' in metadata and 'promotion' in metadata
+    from champions_rl.training import load_demonstrations
+    import pytest
+    assert len(load_demonstrations([data])['labels'])==2
+    with pytest.raises(ValueError,match='Duplicate demonstration'):
+        load_demonstrations([data,data])

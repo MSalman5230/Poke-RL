@@ -1,0 +1,61 @@
+{
+  "baseline": "runtime_data\\eval_v6_anchor_saved",
+  "candidate": "runtime_data\\eval_v6_bc_saved",
+  "baseline_checkpoint_sha256": "f78496eeef57afb65d95541b538722d3e8e1841e4a5ad2633cf5c54bfc0e8a9a",
+  "candidate_checkpoint_sha256": "c5809348af9e86483ebfdab5127cfa0df381e620f4fdbb9a6bb5773b301b370a",
+  "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+  "baseline_implementation_sha256": "5179b98e31638c3115f05311d146032f4b0023d15507ba5066b1bfac7e6673b8",
+  "candidate_implementation_sha256": "5179b98e31638c3115f05311d146032f4b0023d15507ba5066b1bfac7e6673b8",
+  "changed_implementation_files": [],
+  "baseline_deterministic": true,
+  "candidate_deterministic": true,
+  "baseline_search": false,
+  "candidate_search": false,
+  "by_opponent": {
+    "balanced": {
+      "baseline": {
+        "games": 256,
+        "wins": 29,
+        "losses": 227,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.11328125,
+        "confidence": [
+          0.08004020882965396,
+          0.1579570941426184
+        ]
+      },
+      "candidate": {
+        "games": 256,
+        "wins": 29,
+        "losses": 227,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.11328125,
+        "confidence": [
+          0.08004020882965396,
+          0.1579570941426184
+        ]
+      },
+      "candidate_minus_baseline": 0.0,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "aggregate": {
+    "candidate_minus_baseline": 0.0,
+    "paired_seed_blocks": 128,
+    "bootstrap_95": [
+      0.0,
+      0.0
+    ]
+  },
+  "interpretation": "Exploratory validation. Bootstrap retains both seats and all opponents within each seed block. Repeated checkpoint selection and per-opponent comparisons are not multiplicity-adjusted. Promotion still requires a separately frozen test benchmark; truncations are reported, not treated as wins."
+}

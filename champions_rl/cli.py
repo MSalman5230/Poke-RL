@@ -16,7 +16,7 @@ def main():
     collect.add_argument("--teacher",choices=["reference","balanced","damage","setup","defensive"],default="balanced")
     collect.add_argument("--seed",type=int,default=41)
     clone=sub.add_parser("pretrain",help="Domain pretraining followed by behavior cloning")
-    clone.add_argument("--data",type=Path,default=ROOT/"runtime_data/demos")
+    clone.add_argument("--data",type=Path,nargs='+',default=ROOT/"runtime_data/demos",help='One or more compatible demonstration folders')
     clone.add_argument("--output",type=Path,default=ROOT/"runtime_data/bc.pt")
     clone.add_argument("--steps",type=int,default=1500)
     clone.add_argument("--device",default="cuda")

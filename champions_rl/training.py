@@ -42,7 +42,11 @@ def collect_demonstrations(output, games=100, teacher="balanced", seed=41):
 def load_demonstrations(folder,with_manifest=False):
     buckets=defaultdict(list)
     manifest=[]
-    for path in sorted(Path(folder).glob("*.npz")):
+    folders=folder if isinstance(folder,(list,tuple)) else [folder]
+    paths=sorted(p for directory in folders for p in Path(directory).glob('*.npz'))
+    if len({p.stem for p in paths})!=len(paths):
+        raise ValueError('Duplicate demonstration game identifiers across data folders')
+    for path in paths:
         if not path.with_suffix(".json").exists():
             continue  # collection commits metadata after finishing a shard
         meta=json.loads(path.with_suffix(".json").read_text())

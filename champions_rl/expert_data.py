@@ -16,7 +16,7 @@ from .features import Encoder,FEATURE_VERSION
 from .knowledge import knowledge
 from .opponent_labels import action_label
 from .persistence import atomic_json,durable_npz,append_json
-from .policies import ScriptedBot
+from .policies import ScriptedBot,TRAINING_STYLES
 from .provenance import feature_signature
 from .rewards import potential
 from .teams import TeamPool,fingerprint
@@ -36,7 +36,7 @@ def initialize(settings):
         from .model import BattleModel,NeuralBot
         torch.set_num_threads(1)
         model,_=BattleModel.load(settings['student'])
-        _student=NeuralBot(model,_encoder,deterministic=False)
+        _student=NeuralBot(model,_encoder,deterministic=settings.get('student_deterministic',False))
     Finalize(None,_engine.close,exitpriority=10)
 
 
@@ -66,7 +66,8 @@ def game(index):
             from .reference import ReferenceBot
             expert=ReferenceBot(seed,strict=True)
         else:expert=ScriptedBot(teacher,seed,_encoder)
-        opponent_name='reference' if settings.get('opponents')=='reference' else rng.choice(STYLES[1:])
+        opponent_name=settings.get('opponents','mixture')
+        if opponent_name=='mixture':opponent_name=rng.choice(STYLES[1:])
         if opponent_name=='reference':
             from .reference import ReferenceBot
             opponent=ReferenceBot(seed+719,strict=True)
@@ -126,7 +127,7 @@ def game(index):
         _engine.request('close',game='demonstration')
 
 
-def collect(output,games=128,teacher='reference',workers=4,seed=51001,teams='saved',student=None,beta=.25,query_probability=1.,opponents='mixture',search_certificate=None,critic_state=None):
+def collect(output,games=128,teacher='reference',workers=4,seed=51001,teams='saved',student=None,beta=.25,query_probability=1.,opponents='mixture',search_certificate=None,critic_state=None,student_deterministic=False):
     if games<1 or workers<1 or not 0<=beta<=1 or not 0<query_probability<=1:raise ValueError('Invalid collection settings')
     if teacher=='search':
         # A high imitation agreement or a search-score margin is insufficient.
@@ -138,7 +139,7 @@ def collect(output,games=128,teacher='reference',workers=4,seed=51001,teams='sav
     output=Path(output);output.mkdir(parents=True,exist_ok=True)
     settings={'output':str(output.resolve()),'games':games,'teacher':teacher,'seed':seed,'teams':teams,'beta':beta,
               'query_probability':query_probability,'student':str(Path(student).resolve()) if student else None,
-              'opponents':opponents,
+              'opponents':opponents,'student_deterministic':student_deterministic,
               'search_certificate':str(search_certificate) if search_certificate else None,
               'critic_state':str(critic_state) if critic_state else None,
               'student_sha256':hashlib.sha256(Path(student).read_bytes()).hexdigest() if student else None,
@@ -146,6 +147,7 @@ def collect(output,games=128,teacher='reference',workers=4,seed=51001,teams='sav
     manifest=output/f'collection_{teacher}_{seed}.json'
     if manifest.exists():
         previous=json.loads(manifest.read_text());previous.setdefault('opponents','mixture');previous.setdefault('search_certificate',None);previous.setdefault('critic_state',None)
+        previous.setdefault('student_deterministic',False)
         if previous!=settings:raise ValueError('Collection settings changed; use a new seed or directory')
     atomic_json(manifest,settings)
     rows=[];jobs=[]
@@ -178,7 +180,8 @@ if __name__=='__main__':
     parser.add_argument('--seed',type=int,default=51001)
     parser.add_argument('--teams',choices=['saved','cross','train'],default='saved')
     parser.add_argument('--student')
-    parser.add_argument('--opponents',choices=['mixture','reference'],default='mixture')
+    parser.add_argument('--opponents',choices=['mixture','reference',*TRAINING_STYLES],default='mixture')
+    parser.add_argument('--student-deterministic',action='store_true',help='Query corrections on deployment-policy positions')
     parser.add_argument('--beta',type=float,default=.25)
     parser.add_argument('--query-probability',type=float,default=1.)
     parser.add_argument('--search-certificate',type=Path)
