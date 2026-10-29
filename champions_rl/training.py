@@ -125,10 +125,12 @@ def imitation_validation(model,data,valid_ids,batch_size,device,correction_mass=
                                          'agreement':float(agreements[mask].mean())} for name,(mask,mass) in groups.items()}}
 
 
-def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43,width=128,layers=2,initial=None,learning_rate=1e-4,correction_mass=0.):
+def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43,width=128,layers=2,initial=None,learning_rate=1e-4,correction_mass=0.,identity_dropout=.25):
     if not 0<=correction_mass<1:raise ValueError('correction_mass must be in [0,1)')
     seed_all(seed)
     model=BattleModel.load(initial,device)[0] if initial else BattleModel(width=width,layers=layers).to(device)
+    if not 0<=identity_dropout<1:raise ValueError('Identity dropout must be in [0,1)')
+    model.config['identity_dropout']=identity_dropout
     if not initial:pretrain_knowledge(model,device=device)
     data,manifest=load_demonstrations(folder,with_manifest=True)
     from .persistence import atomic_json
@@ -163,6 +165,8 @@ def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43
     for step in range(steps):
         index=rng.choice(n,size=batch_size,p=weights)
         obs={k:torch.as_tensor(v[index],device=device) for k,v in data.items() if k not in excluded}
+        from .augmentation import identity_dropout as drop_identities
+        obs,_=drop_identities(obs,identity_dropout)
         label=torch.as_tensor(data["labels"][index],device=device)
         target=torch.as_tensor(data["outcomes"][index],device=device)
         logits,value,enemy=model(obs)

@@ -13,7 +13,7 @@ from .engine import ROOT
 from .features import FEATURE_VERSION
 from .knowledge import knowledge
 from .model import BattleModel,PrivilegedCritic,tensor_batch
-from .parallel_rollouts import ParallelRollouts,trajectory_targets,terminal_critic_targets
+from .parallel_rollouts import ParallelRollouts,trajectory_targets,terminal_critic_targets,pre_update_value_metrics
 from .reference_replay import ReferencePool,ReferenceReplay,self_imitation_loss
 from .training import emit,seed_all
 from .provenance import feature_signature
@@ -27,7 +27,8 @@ def cpu_weights(model):
 
 
 def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=512,epochs=4,critic=None,
-               critic_optimizer=None,target_kl=.02,kl_sample_size=4096):
+               critic_optimizer=None,target_kl=.02,kl_sample_size=4096,critic_passes=None):
+    critic_passes=epochs if critic_passes is None else critic_passes
     data=tensor_batch([r["obs"] for r in records],device)
     private=tensor_batch([r['critic_obs'] for r in records],device) if critic is not None else None
     active=torch.tensor([r["policy_active"] for r in records],device=device,dtype=torch.bool)
@@ -74,9 +75,9 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=512,e
             uniform=uniform[learn].mean() if learn.any() else value.sum()*0
             valid=enemies[index]>=0
             auxiliary=nn.functional.cross_entropy(enemy[valid],enemies[index][valid]) if valid.any() else value.sum()*0
-            # The private critic supplies PPO's baseline. Keep a public value
-            # head for experimental search, but its noisy partial-view targets
-            # must not push the policy encoder through a second critic loss.
+            # Keep the public value head usable as a baseline, without a second
+            # value gradient competing with the policy encoder when the
+            # independent private critic is trained alongside it.
             value_weight=.1 if critic is not None else .5
             loss=policy+value_weight*nn.functional.mse_loss(value,returns[index])-.01*entropy+.001*uniform+.03*auxiliary
             optimizer.zero_grad(set_to_none=True)
@@ -100,10 +101,10 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=512,e
         if early:
             break
     # The independent critic sees every rollout record, including wait states,
-    # for every requested epoch even when the actor hits its trust-region cap.
+    # for its separately requested passes even if the actor hits its KL cap.
     if critic is not None:
         if critic_optimizer is None:raise ValueError('A separate critic optimizer is required')
-        for epoch in range(epochs):
+        for epoch in range(critic_passes):
             for index in torch.randperm(len(records),device=device).split(batch_size):
                 private_error=nn.functional.mse_loss(critic({k:v[index] for k,v in private.items()}),returns[index])
                 critic_optimizer.zero_grad(set_to_none=True)
@@ -128,11 +129,17 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
                    device="cuda",seed=101,selfplay_fraction=.1,snapshot_fraction=.1,reference_workers=0,
                    reference_weight=0.,learning_rate=3e-5,batch_size=512,epochs=4,checkpoint_every=1,
                    stop_file=None,history_position=None,heuristic_weight=None,rollout_decisions=32768,privileged=True,
-                   critic_learning_rate=3e-4,league_checkpoints=(),validation_every=10,validation_workers=4,validation_games=256):
+                   critic_learning_rate=1e-4,league_checkpoints=(),validation_every=10,validation_workers=4,validation_games=256,
+                   critic_epochs=2,value_baseline='public',private_blend=.5,critic_targets='bootstrapped',identity_dropout=None):
     if min(steps,workers,envs,horizon,batch_size,epochs,checkpoint_every,rollout_decisions)<1:
         raise ValueError("Training sizes and intervals must be positive")
     if reference_workers<0 or reference_weight<0:
         raise ValueError("Reference worker count and loss weight must be nonnegative")
+    if value_baseline not in ('public','private','blend') or not 0<=private_blend<=1:
+        raise ValueError('Invalid PPO baseline or blend')
+    if critic_epochs<1 or critic_targets not in ('bootstrapped','terminal'):
+        raise ValueError('Invalid critic training settings')
+    if not privileged and value_baseline!='public':raise ValueError('Private/blended baseline requires a private critic')
     seed_all(seed)
     torch.set_num_threads(2)
     output=Path(output)
@@ -151,6 +158,9 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
         model,_=BattleModel.load(initial,device)
     else:
         model=BattleModel().to(device)
+    if identity_dropout is not None:
+        if not 0<=identity_dropout<1:raise ValueError('Identity dropout must be in [0,1)')
+        model.config['identity_dropout']=identity_dropout
     if history_position is not None:
         model.config["history_position"]=history_position
     if heuristic_weight is not None:
@@ -226,6 +236,8 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
               "reference_workers":reference_workers,"reference_weight":reference_weight,
               "rollout_decisions":rollout_decisions,"privileged_critic":privileged,
               "learning_rate":learning_rate,'critic_learning_rate':critic_learning_rate,'batch_size':batch_size,'epochs':epochs,
+              'critic_epochs':critic_epochs,'value_baseline':value_baseline,'private_blend':private_blend,
+              'critic_targets':critic_targets,'identity_dropout':model.config.get('identity_dropout',0.),
               'league_checkpoints':list(map(str,league_checkpoints)),
               'validation_every':validation_every,'validation_workers':validation_workers,'validation_games':validation_games,
               "device":device,"seed":seed,"model_config":model.config}
@@ -282,19 +294,19 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
             records=[];finished=[];timing=Counter()
             target=min(rollout_decisions,steps-(total-starting_steps))
             while timing['policy_decisions']<target:
-                fragment,games,stats=actors.collect(models,horizon,opponents,device,critic,script_weights)
+                fragment,games,stats=actors.collect(models,horizon,opponents,device,critic,script_weights,value_baseline,private_blend)
                 records.extend(fragment);finished.extend(games)
                 for key in ('neural_batches','neural_positions','current_batches','current_positions','simulation_steps',
                             'rollout_seconds','policy_decisions','value_samples'):timing[key]+=stats[key]
                 emit('rollout_progress',update=update,decisions=timing['policy_decisions'],target=target)
             timing['mean_inference_batch']=timing['neural_positions']/max(1,timing['neural_batches'])
             timing['mean_current_batch']=timing['current_positions']/max(1,timing['current_batches'])
-            advantage,returns=trajectory_targets(records,model,device,critic=critic)
-            # GAE remains the policy estimator. Completed matches supply actual
-            # terminal-result supervision to the independent value heads.
-            returns,terminal_samples=terminal_critic_targets(records,returns)
+            advantage,returns=trajectory_targets(records,model,device,critic=critic,value_baseline=value_baseline,private_blend=private_blend)
+            diagnostics=pre_update_value_metrics(records,returns)
+            terminal_returns,terminal_samples=terminal_critic_targets(records,returns)
+            if critic_targets=='terminal':returns=terminal_returns
             optimize_started=time.monotonic()
-            losses=ppo_update(model,optimizer,records,advantage,returns,device,batch_size,epochs,critic,critic_optimizer)
+            losses=ppo_update(model,optimizer,records,advantage,returns,device,batch_size,epochs,critic,critic_optimizer,critic_passes=critic_epochs)
             for message in references.poll():
                 reference_counts[message["kind"]]+=1
                 if message["kind"]=="game":
@@ -336,7 +348,7 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
                  "optimization_seconds":round(time.monotonic()-optimize_started,3),
                  'critic_terminal_samples':terminal_samples,'critic_terminal_fraction':terminal_samples/len(records),
                  "seconds":round(time.monotonic()-started,2),
-                 "decisions_per_second":round((total-starting_steps)/(time.monotonic()-started),2),**losses,**timing}
+                 "decisions_per_second":round((total-starting_steps)/(time.monotonic()-started),2),**diagnostics,**losses,**timing}
             append_json(output/'metrics.jsonl',row)
             emit("parallel_ppo_update",**row)
             if validation:validation.poll()

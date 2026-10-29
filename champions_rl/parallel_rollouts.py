@@ -60,7 +60,7 @@ class ParallelRollouts:
             self.close()
             raise
 
-    def collect(self,models,horizon=32,snapshot_ids=(),device="cuda",critic=None,style_weights=None):
+    def collect(self,models,horizon=32,snapshot_ids=(),device="cuda",critic=None,style_weights=None,value_baseline='public',private_blend=.5):
         """Models stay frozen for this whole collection; PPO updates afterward.
 
         A shared current policy acts for both sides of self-play. Historical
@@ -136,24 +136,39 @@ class ParallelRollouts:
                     raise RuntimeError(f"Unexpected actor message: {message['kind']}")
             with torch.no_grad():
                 for model_id,requests in groups.items():
+                    from .augmentation import identity_dropout,ID_FIELDS
                     model=models[model_id]
                     batch=tensor_batch([r["obs"] for _,_,r in requests],device)
-                    action,logp,value=model.act(batch)
+                    probability=model.config.get('identity_dropout',0.) if model_id=='current' else 0.
+                    batch,drop_masks=identity_dropout(batch,probability)
+                    action,logp,public_value=model.act(batch)
+                    private_value=None;private_batch=None
                     if model_id=='current' and critic is not None:
-                        value=critic(tensor_batch([r['critic_obs'] for _,_,r in requests],device))
+                        private_batch=tensor_batch([r['critic_obs'] for _,_,r in requests],device)
+                        private_batch,_=identity_dropout(private_batch,probability,drop_masks or None)
+                        private_value=critic(private_batch)
+                    value=baseline_values(public_value,private_value,value_baseline,private_blend)
                     action,logp,value=action.cpu().tolist(),logp.cpu().tolist(),value.cpu().tolist()
+                    public_value=public_value.cpu().tolist()
+                    private_values=private_value.cpu().tolist() if private_value is not None else [None]*len(requests)
+                    id_fields={k for fields in ID_FIELDS.values() for k in fields}
+                    augmented={k:v.cpu().numpy() for k,v in batch.items() if probability and k in id_fields}
+                    private_augmented={k:v.cpu().numpy() for k,v in (private_batch or {}).items() if probability and k in id_fields}
                     stats["neural_batches"]+=1
                     stats["neural_positions"]+=len(requests)
                     if model_id=="current":
                         stats["current_batches"]+=1
                         stats["current_positions"]+=len(requests)
-                    for (worker,index,request),a,p,v in zip(requests,action,logp,value):
+                    for position,((worker,index,request),a,p,v) in enumerate(zip(requests,action,logp,value)):
                         responses[worker][index]=a
                         if request["learn"]:
-                            stash[worker,request["id"]]={"obs":request["obs"],"action":a,"logp":p,"value":v,
+                            observation={**request['obs'],**{k:v[position].copy() for k,v in augmented.items()}}
+                            stash[worker,request["id"]]={"obs":observation,"action":a,"logp":p,"value":v,
+                                'public_value':public_value[position],'private_value':private_values[position],
                                 "policy_active":request["active"]}
                             if critic is not None:
-                                stash[worker,request['id']]['critic_obs']=request['critic_obs']
+                                stash[worker,request['id']]['critic_obs']={**request['critic_obs'],
+                                    **{k:v[position].copy() for k,v in private_augmented.items()}}
             for worker,actions in responses.items():
                 self.connections[worker].send({"kind":"actions","actions":actions})
         if stash:
@@ -182,15 +197,28 @@ class ParallelRollouts:
         self.close()
 
 
-def trajectory_targets(records,model,device="cuda",lam=.95,critic=None):
+def baseline_values(public,private,mode='public',blend=.5):
+    if mode not in ('public','private','blend'):raise ValueError('Unknown PPO value baseline')
+    if not 0<=blend<=1:raise ValueError('Private blend must be in [0,1]')
+    if mode=='public' or private is None:return public
+    return private if mode=='private' else (1-blend)*public+blend*private
+
+
+def trajectory_targets(records,model,device="cuda",lam=.95,critic=None,value_baseline='public',private_blend=.5):
     """GAE per player/episode, including passive turns and truncation bootstrap."""
     bootstraps=[i for i,r in enumerate(records) if "bootstrap" in r]
     next_values={}
     with torch.no_grad():
         for chunk in range(0,len(bootstraps),256):
             ids=bootstraps[chunk:chunk+256]
-            values=(critic(tensor_batch([records[i]['bootstrap_critic'] for i in ids],device)) if critic is not None else
-                    model(tensor_batch([records[i]["bootstrap"] for i in ids],device))[1]).cpu().tolist()
+            from .augmentation import identity_dropout
+            batch,masks=identity_dropout(tensor_batch([records[i]['bootstrap'] for i in ids],device),model.config.get('identity_dropout',0.))
+            public=model(batch)[1];private=None
+            if critic is not None:
+                batch,_=identity_dropout(tensor_batch([records[i]['bootstrap_critic'] for i in ids],device),
+                                         model.config.get('identity_dropout',0.),masks or None)
+                private=critic(batch)
+            values=baseline_values(public,private,value_baseline,private_blend).cpu().tolist()
             next_values.update(zip(ids,values))
     trajectories=defaultdict(list)
     for i,row in enumerate(records):
@@ -211,11 +239,12 @@ def trajectory_targets(records,model,device="cuda",lam=.95,critic=None):
     return torch.as_tensor(adv,device=device),torch.as_tensor(returns,device=device)
 
 
-def terminal_critic_targets(records,bootstrap_returns):
+def terminal_critic_targets(records,bootstrap_returns,with_mask=False):
     """Observed match returns where available; bootstrap only unfinished games."""
     trajectories=defaultdict(list)
     for i,row in enumerate(records):trajectories[row['trajectory']].append(i)
     targets=bootstrap_returns.detach().clone();observed=0
+    mask=torch.zeros(len(records),dtype=torch.bool,device=targets.device)
     for indices in trajectories.values():
         complete=False;total=0.
         for i in reversed(indices):
@@ -223,5 +252,20 @@ def terminal_critic_targets(records,bootstrap_returns):
             if row['truncated']:complete=False
             if row['terminal']:complete=True;total=0.
             if complete:
-                total+=row['reward'];targets[i]=total;observed+=1
-    return targets,observed
+                total+=row['reward'];targets[i]=total;observed+=1;mask[i]=True
+    return (targets,observed,mask) if with_mask else (targets,observed)
+
+
+def pre_update_value_metrics(records,bootstrap_returns):
+    """Assess frozen collection-time values, never fitted post-update predictions."""
+    realized,observed,mask=terminal_critic_targets(records,bootstrap_returns,with_mask=True)
+    mask=mask.cpu().numpy();target=realized.cpu().numpy()[mask]
+    result={'pre_update_realized_samples':observed}
+    for kind in ('public','private'):
+        values=[r.get(kind+'_value') for r in records]
+        if not observed or any(v is None for v in values):continue
+        prediction=np.asarray(values)[mask];error=target-prediction
+        variance=float(np.var(target))
+        result[f'pre_update_{kind}_realized_mse']=float(np.mean(error**2))
+        result[f'pre_update_{kind}_realized_ev']=float(1-np.var(error)/variance) if variance>1e-10 else None
+    return result

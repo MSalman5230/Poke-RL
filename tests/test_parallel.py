@@ -15,6 +15,11 @@ def test_parallel_selfplay_learns_both_seats_and_complete_rewards():
         assert len(rows)==stats["simulation_steps"]*2
         assert stats["policy_decisions"]>stats["simulation_steps"]
         assert stats["mean_current_batch"]>1
+        from champions_rl.model import tensor_batch
+        with torch.no_grad():
+            logits=model(tensor_batch([r['obs'] for r in rows]))[0]
+            replayed=torch.distributions.Categorical(logits=logits).log_prob(torch.tensor([r['action'] for r in rows]))
+        torch.testing.assert_close(replayed,torch.tensor([r['logp'] for r in rows]),atol=2e-6,rtol=2e-6)
         assert results and all(r["win"] is None for r in results)
         reward=defaultdict(float)
         for r in rows:
@@ -55,6 +60,19 @@ def test_private_value_targets_use_finished_matches_and_preserve_truncation_boot
           {'trajectory':0,'reward':.9,'terminal':True,'truncated':False}]
     targets,n=terminal_critic_targets(rows,torch.tensor([.3,.6,.9]))
     assert torch.allclose(targets,torch.tensor([1.,.6,.9])) and n==2
+
+
+def test_pre_update_value_audit_uses_actual_finished_results_only():
+    from champions_rl.parallel_rollouts import pre_update_value_metrics,baseline_values
+    rows=[{'trajectory':0,'reward':1.,'terminal':True,'truncated':False,'public_value':1.,'private_value':-1.},
+          {'trajectory':1,'reward':-1.,'terminal':True,'truncated':False,'public_value':-1.,'private_value':1.},
+          {'trajectory':2,'reward':0.,'terminal':False,'truncated':True,'public_value':100.,'private_value':100.}]
+    result=pre_update_value_metrics(rows,torch.tensor([.1,-.1,0.]))
+    assert result['pre_update_realized_samples']==2
+    assert result['pre_update_public_realized_ev']==1
+    assert result['pre_update_private_realized_ev']==-3
+    assert baseline_values(1.,-1.,'public')==1
+    assert baseline_values(1.,-1.,'blend',.25)==.5
 
 
 def test_parallel_training_checkpoint_resume(tmp_path):

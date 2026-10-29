@@ -25,6 +25,7 @@ def main():
     clone.add_argument('--initial',type=Path,help='Fine-tune a compatible policy on the aggregated expert dataset')
     clone.add_argument('--learning-rate',type=float,default=1e-4)
     clone.add_argument('--correction-mass',type=float,default=0.,help='Sampling and validation mass reserved for learner-state teacher corrections')
+    clone.add_argument('--identity-dropout',type=float,default=.25)
     train=sub.add_parser("train",help="Masked PPO against varied opponents and snapshots")
     train.add_argument("--initial",type=Path)
     train.add_argument("--resume",type=Path,help="Continue optimizer/weights; starts fresh seeded battles")
@@ -57,7 +58,12 @@ def main():
     fast.add_argument("--reference-workers",type=int,default=0)
     fast.add_argument("--reference-weight",type=float,default=0.)
     fast.add_argument("--learning-rate",type=float,default=3e-5)
-    fast.add_argument('--critic-learning-rate',type=float,default=3e-4)
+    fast.add_argument('--critic-learning-rate',type=float,default=1e-4)
+    fast.add_argument('--critic-epochs',type=int,default=2)
+    fast.add_argument('--value-baseline',choices=['public','private','blend'],default='public')
+    fast.add_argument('--private-blend',type=float,default=.5)
+    fast.add_argument('--critic-targets',choices=['bootstrapped','terminal'],default='bootstrapped')
+    fast.add_argument('--identity-dropout',type=float,help='Training-only ID masking; preserved in PPO records')
     fast.add_argument("--batch-size",type=int,default=512)
     fast.add_argument('--epochs',type=int,default=4)
     fast.add_argument('--league-checkpoint',type=Path,action='append',default=[])
@@ -117,7 +123,7 @@ def main():
         collect_demonstrations(args.output,args.games,args.teacher,args.seed)
     elif args.command=="pretrain":
         from .training import behavior_clone
-        behavior_clone(args.data,args.output,args.steps,device=args.device,width=args.width,layers=args.layers,initial=args.initial,learning_rate=args.learning_rate,correction_mass=args.correction_mass)
+        behavior_clone(args.data,args.output,args.steps,device=args.device,width=args.width,layers=args.layers,initial=args.initial,learning_rate=args.learning_rate,correction_mass=args.correction_mass,identity_dropout=args.identity_dropout)
     elif args.command=="train":
         from .training import train_ppo
         train_ppo(args.output,args.initial,args.steps,args.envs,args.horizon,device=args.device,seed=args.seed,
@@ -135,6 +141,8 @@ def main():
                        stop_file=args.stop_file,history_position=args.history_position,heuristic_weight=args.heuristic_weight,
                        rollout_decisions=args.rollout_decisions,privileged=args.privileged_critic,
                        epochs=args.epochs,critic_learning_rate=args.critic_learning_rate,league_checkpoints=args.league_checkpoint,
+                       critic_epochs=args.critic_epochs,value_baseline=args.value_baseline,private_blend=args.private_blend,
+                       critic_targets=args.critic_targets,identity_dropout=args.identity_dropout,
                        validation_every=args.validation_every,validation_workers=args.validation_workers,validation_games=args.validation_games)
     elif args.command=="play":
         from .evaluation import evaluate
