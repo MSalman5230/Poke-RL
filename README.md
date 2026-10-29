@@ -191,6 +191,10 @@ The recovered 355,544-decision reference validation completed at 82/128 wins (64
 
 Value audits now record the action-selection mode. Their default remains deterministic deployment play; add `--no-deterministic` to audit the sampled policy used in PPO. At 1,058,624 decisions, private-value explained variance on held-out teams was -0.292 for deterministic play and -0.117 for sampled play. Whole-game cross-fitted shrinkage reduced overconfidence but left little predictive signal (explained variance -0.020 and +0.023 respectively). No calibration transform was deployed and search remains disabled. These diagnostics are not a ranking test for alternative continuations.
 
+At 1,410,044 decisions, the five-script competitive-team suite improved from 648/1,280 wins to 909/1,280 (50.6% to 71.0%; paired difference +20.4 points, interval +16.0 to +24.9). Sampling actions scored 855/1,280, so deterministic play remained the candidate setting. On excluded team cores against balanced, wins improved from 110/256 to 141/256; this is a harder and distinct schedule. Broad legacy validation teams still scored only 55.2% across the five scripts. These results support learning beyond the saved mirror roster, while exposing remaining team-generalization limits.
+
+A Windows idle-sleep incident interrupted two reference decisions and inflated one rollout's wall time by about 45 minutes. Failed games and Windows event evidence are retained in `benchmarks/2026-10-30-sleep-interruption.json`; recovery retries only invalid or missing schedule entries. Temporary power requests now cover active jobs. Historical timing includes sleep and is not presented as measured awake time.
+
 ## Historical feature-v2 speed measurements
 
 These archived results predate native tactical features and the private critic; they are not current throughput claims. Measured on 2026-10-29 with an i9-13900K and RTX 4070, using the same 512,833-parameter starting checkpoint. Each entry is the median of two sequential runs with different seeds; each run requests 20,000 decisions for 64 battles or 40,000 for 128 battles (rounded up to a complete rollout):

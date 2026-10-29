@@ -1,0 +1,47 @@
+{
+  "event_source": "Windows System / Microsoft-Windows-Power-Troubleshooter",
+  "source_artifact": "runtime_data/ppo_v6_full/power_resume_events.json",
+  "source_sha256": "890e4493898c702226546a3aabf12927af26cbb9fd0d54776ddc043afacdd74c",
+  "resume_events": [
+    {
+      "TimeCreated": "2026-10-30T00:00:57.7130234+05:30",
+      "Id": 1,
+      "ProviderName": "Microsoft-Windows-Power-Troubleshooter",
+      "Message": "The system has returned from a low power state.\r\n\r\nSleep Time: \u200e2026\u200e-\u200e10\u200e-\u200e29T17:45:53.167335500Z\r\nWake Time: \u200e2026\u200e-\u200e10\u200e-\u200e29T18:30:56.820437600Z\r\n\r\nWake Source: Power Button"
+    },
+    {
+      "TimeCreated": "2026-10-29T22:29:28.9583407+05:30",
+      "Id": 1,
+      "ProviderName": "Microsoft-Windows-Power-Troubleshooter",
+      "Message": "The system has returned from a low power state.\r\n\r\nSleep Time: \u200e2026\u200e-\u200e10\u200e-\u200e29T16:53:25.582361800Z\r\nWake Time: \u200e2026\u200e-\u200e10\u200e-\u200e29T16:59:28.440553300Z\r\n\r\nWake Source: Power Button"
+    }
+  ],
+  "affected_reference_games": [
+    {
+      "game": 26,
+      "seconds": 2684.844,
+      "errors": [
+        {
+          "error": "Error: Error: deadline\n    at check (C:\\MegaSync\\Projects\\Git\\Poke-RL\\opponents\\autoplay_reference\\bot\\simulator\\node\\worker.cjs:28:62)\n    at C:\\MegaSync\\Projects\\Git\\Poke-RL\\opponents\\autoplay_reference\\bot\\simulator\\node\\worker.cjs:430:7\n    at Array.map (<anonymous>)\n    at probeOptions (C:\\MegaSync\\Projects\\Git\\Poke-RL\\opponents\\autoplay_reference\\bot\\simulator\\node\\worker.cjs:427:18)\n    at MessagePort.<anonymous> (C:\\MegaSync\\Projects\\Git\\Poke-RL\\opponents\\autoplay_reference\\bot\\simulator\\node\\worker.cjs:606:53)\n    at [nodejs.internal.kHybridDispatch] (node:internal/event_target:843:20)\n    at MessagePort.<anonymous> (node:internal/per_context/messageport:23:28)\n    at Worker.<anonymous> (C:\\MegaSync\\Projects\\Git\\Poke-RL\\opponents\\autoplay_reference\\bot\\simulator\\node\\worker.cjs:411:37)\n    at Worker.emit (node:events:508:28)\n    at Worker.emit (node:domain:489:12)\n    at MessagePort.<anonymous> (node:internal/worker:332:53)\n    at [nodejs.internal.kHybridDispatch] (node:internal/event_target:843:20)\n    at MessagePort.<anonymous> (node:internal/per_context/messageport:23:28)",
+          "stage": "simulator"
+        }
+      ],
+      "retry_required": true
+    },
+    {
+      "game": 25,
+      "seconds": 2679.937,
+      "errors": [
+        {
+          "error": "deadline",
+          "stage": "simulator"
+        }
+      ],
+      "retry_required": true
+    }
+  ],
+  "training_resume_steps": 1549622,
+  "fix_commit": "32e3a92",
+  "fix": "Thread-scoped ES_SYSTEM_REQUIRED request during training and evaluation; restored on exit. No power-plan or display changes. Explicit sleep remains available.",
+  "timing": "Historical wall-time throughput includes sleep; only the new phase has measured awake-time counters. No historical active-time values were fabricated."
+}
