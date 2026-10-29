@@ -17,6 +17,8 @@ from .model import BattleModel, NeuralBot, tensor_batch, encode_for_model
 from .policies import ScriptedBot
 from .reference import ReferenceBot
 from .teams import TeamPool
+from .persistence import durable_torch_save
+from .provenance import feature_signature
 
 
 def emit(event, **fields):
@@ -32,66 +34,33 @@ def seed_all(seed):
 
 
 def collect_demonstrations(output, games=100, teacher="balanced", seed=41):
-    output=Path(output)
-    output.mkdir(parents=True,exist_ok=True)
-    rng=random.Random(seed)
-    encoder=Encoder()
-    teams=load_teams("train")
-    reference=TeamPool().data["reference_team"]
-    count=0
-    last_progress=time.monotonic()
-    with Engine() as engine:
-        for game in range(games):
-            observations, labels = [], []
-            seat=game%2
-            policy=ReferenceBot(seed+game,strict=True) if teacher=="reference" else ScriptedBot(teacher,seed+game,encoder)
-            opponent=ScriptedBot(rng.choice(STYLES[1:]),seed+game+1000,encoder)
-            bots=[opponent,opponent]
-            bots[seat]=policy
-            party=[rng.choice(teams),rng.choice(teams)]
-            if teacher=="reference":
-                party=[reference,reference]
-            def capture(side,obs,action):
-                if side==seat:
-                    observations.append(encoder.encode(obs))
-                    labels.append(action)
-            def progress(row):
-                nonlocal last_progress
-                if time.monotonic()-last_progress>10:
-                    emit("collect_progress",game=game,**{k:v for k,v in row.items() if k!="event"})
-                    last_progress=time.monotonic()
-            result=play_match(engine,party,bots,seed+game,capture=capture,progress=progress)
-            payload={k:np.stack([o[k] for o in observations]) for k in observations[0]}
-            payload["labels"]=np.asarray(labels,dtype=np.int64)
-            payload["outcomes"]=np.full(len(labels),0 if result["winner"] is None else 1 if result["winner"]==seat else -1,dtype=np.float32)
-            # Each completed game is independently durable and can be consumed
-            # while a longer collection job continues.
-            np.savez_compressed(output/f"{teacher}_{seed}_{game:06d}.npz",**payload)
-            metadata={**{k:v for k,v in result.items() if k!="trace"},"teacher":teacher,
-                      "knowledge_sha256":knowledge().sha256,"feature_version":FEATURE_VERSION,"samples":len(labels),"seed":seed+game,
-                      "reference_fallbacks":getattr(policy,"fallbacks",0)}
-            metadata["team_distribution"]="matched saved roster" if teacher=="reference" else "diverse training manifest"
-            (output/f"{teacher}_{seed}_{game:06d}.json").write_text(json.dumps(metadata,indent=2)+"\n")
-            count+=len(labels)
-            emit("demonstration_game",game=game+1,games=games,total_samples=count,**metadata)
-    return count
+    from .expert_data import collect
+    return collect(output,games,teacher,workers=1,seed=seed,
+                   teams='saved' if teacher=='reference' else 'train')['samples']
 
 
-def load_demonstrations(folder):
+def load_demonstrations(folder,with_manifest=False):
     buckets=defaultdict(list)
+    manifest=[]
     for path in sorted(Path(folder).glob("*.npz")):
         if not path.with_suffix(".json").exists():
             continue  # collection commits metadata after finishing a shard
         meta=json.loads(path.with_suffix(".json").read_text())
-        if meta["knowledge_sha256"]!=knowledge().sha256 or meta.get("feature_version")!=FEATURE_VERSION or meta.get("reference_fallbacks",0):
+        if meta["knowledge_sha256"]!=knowledge().sha256 or meta.get("feature_version")!=FEATURE_VERSION or meta.get("reference_fallbacks",0) or meta.get('feature_signature')!=feature_signature():
             raise ValueError(f"Incompatible or degraded teacher shard {path}")
+        manifest.append({'path':str(path.resolve()),'samples':meta['samples'],'teacher':meta['teacher'],'seed':meta['seed']})
         with np.load(path,allow_pickle=False) as data:
             for key in data.files:
                 buckets[key].append(data[key])
-            buckets["teacher_weights"].append(np.full(len(data["labels"]),20. if meta["teacher"]=="reference" else 1.))
+            buckets['expert'].append(np.full(len(data['labels']),meta['teacher']=='reference'))
+            import hashlib
+            # Hold out entire games, not correlated turns from the same game.
+            heldout=int(hashlib.sha256(path.stem.encode()).hexdigest()[:8],16)%10==0
+            buckets['validation'].append(np.full(len(data['labels']),heldout))
     if not buckets:
         raise ValueError(f"No demonstration shards in {folder}")
-    return {k:np.concatenate(v) for k,v in buckets.items()}
+    data={k:np.concatenate(v) for k,v in buckets.items()}
+    return (data,manifest) if with_manifest else data
 
 
 def pretrain_knowledge(model,steps=300,device="cuda"):
@@ -113,34 +82,68 @@ def pretrain_knowledge(model,steps=300,device="cuda"):
     emit("domain_pretraining",steps=steps,loss=float(loss.detach()))
 
 
-def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43,width=128,layers=2):
+def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43,width=128,layers=2,initial=None):
     seed_all(seed)
-    model=BattleModel(width=width,layers=layers).to(device)
-    pretrain_knowledge(model,device=device)
-    data=load_demonstrations(folder)
+    model=BattleModel.load(initial,device)[0] if initial else BattleModel(width=width,layers=layers).to(device)
+    if not initial:pretrain_knowledge(model,device=device)
+    data,manifest=load_demonstrations(folder,with_manifest=True)
+    from .persistence import atomic_json
+    atomic_json(Path(output).with_suffix('.data.json'),{'shards':manifest,'feature_signature':feature_signature(),
+                'validation':'10% of whole games by SHA256 shard name','sampling':'50% reference expert / 50% other teachers when both present'})
     n=len(data["labels"])
     rng=np.random.default_rng(seed)
     optimizer=torch.optim.AdamW(model.parameters(),lr=3e-4,weight_decay=1e-4)
+    excluded={'labels','outcomes','expert','validation','student_actions','enemy_labels'}
+    weights=np.zeros(n)
+    for expert in (False,True):
+        selected=(data['expert']==expert)&~data['validation']
+        if selected.any():weights[selected]=.5/selected.sum()
+    if not weights.any():raise ValueError('No training games outside validation split')
+    weights/=weights.sum()
+    valid_ids=np.flatnonzero(data['validation'])
+    if not len(valid_ids):raise ValueError('Collect more games to form a game-disjoint validation split')
+    best=float('inf')
+    emit('demonstrations_loaded',samples=n,expert_samples=int(data['expert'].sum()),validation_samples=len(valid_ids),
+         expert_sampling_mass=float(weights[data['expert']].sum()),history_position=model.config['history_position'])
     model.train()
     started=time.monotonic()
     for step in range(steps):
-        weights=data["teacher_weights"]
-        index=rng.choice(n,size=batch_size,p=weights/weights.sum())
-        obs={k:torch.as_tensor(v[index],device=device) for k,v in data.items() if k not in ("labels","outcomes","teacher_weights")}
+        index=rng.choice(n,size=batch_size,p=weights)
+        obs={k:torch.as_tensor(v[index],device=device) for k,v in data.items() if k not in excluded}
         label=torch.as_tensor(data["labels"][index],device=device)
         target=torch.as_tensor(data["outcomes"][index],device=device)
-        logits,value,_=model(obs)
+        logits,value,enemy=model(obs)
         loss=nn.functional.cross_entropy(logits,label)+.1*nn.functional.mse_loss(value,target)
+        if 'enemy_labels' in data:
+            enemies=torch.as_tensor(data['enemy_labels'][index],device=device)
+            mask=enemies>=0
+            if mask.any():loss+=.05*nn.functional.cross_entropy(enemy[mask],enemies[mask])
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(),1.)
         optimizer.step()
         if step%100==0 or step==steps-1:
+            model.eval()
+            validation_loss=correct=0.
+            with torch.no_grad():
+                for ids in np.array_split(valid_ids,max(1,math.ceil(len(valid_ids)/batch_size))):
+                    validation_obs={k:torch.as_tensor(v[ids],device=device) for k,v in data.items() if k not in excluded}
+                    predictions=model(validation_obs)[0]
+                    targets=torch.as_tensor(data['labels'][ids],device=device)
+                    validation_loss+=float(nn.functional.cross_entropy(predictions,targets,reduction='sum'))
+                    correct+=int((predictions.argmax(-1)==targets).sum())
+            validation_loss/=len(valid_ids)
+            if validation_loss<best:
+                best=validation_loss
+                model.save(output,phase='behavior_cloning',samples=n,updates=step+1,seed=seed,validation_loss=best,
+                           expert_samples=int(data['expert'].sum()),initial=str(initial) if initial else None)
             emit("behavior_cloning",step=step+1,steps=steps,loss=float(loss.detach()),
+                 validation_loss=validation_loss,validation_accuracy=correct/len(valid_ids),
                  batch_accuracy=float((logits.argmax(-1)==label).float().mean()),samples=n,seconds=round(time.monotonic()-started,1))
+            model.train()
     model.eval()
-    model.save(output,phase="behavior_cloning",samples=n,updates=steps,seed=seed)
-    return model
+    model.save(Path(output).with_suffix('.last.pt'),phase="behavior_cloning_last",samples=n,updates=steps,seed=seed)
+    return BattleModel.load(output,device)[0]
 
 
 def advantages(rewards,values,next_values,terminated,done,lam=.95):
@@ -165,7 +168,7 @@ def train_ppo(output,initial=None,steps=200_000,n_envs=16,horizon=64,epochs=4,ba
     output=Path(output)
     output.mkdir(parents=True,exist_ok=True)
     restored=torch.load(resume,map_location=device,weights_only=True) if resume else None
-    if restored and (restored["knowledge_sha256"]!=knowledge().sha256 or restored.get("feature_version")!=FEATURE_VERSION):
+    if restored and (restored["knowledge_sha256"]!=knowledge().sha256 or restored.get("feature_version")!=FEATURE_VERSION or restored.get('feature_signature')!=feature_signature()):
         raise ValueError("Resume state is incompatible with the current knowledge/features")
     if restored:
         restored["config"].setdefault("action_context",False)
@@ -299,18 +302,18 @@ def train_ppo(output,initial=None,steps=200_000,n_envs=16,horizon=64,epochs=4,ba
                 # Optimizer/RNG state is separate from inference-only weights.
                 resume={"model":model.state_dict(),"optimizer":optimizer.state_dict(),"config":model.config,
                         "steps":total,"knowledge_sha256":knowledge().sha256,"feature_version":FEATURE_VERSION,
+                        'feature_signature':feature_signature(),
                         "torch_rng":torch.get_rng_state(),"cuda_rng":torch.cuda.get_rng_state() if device.startswith("cuda") else None}
                 resume.update(arena.checkpoint_state())
-                torch.save(resume,output/"trainer_state.pt.tmp")
-                (output/"trainer_state.pt.tmp").replace(output/"trainer_state.pt")
+                durable_torch_save(resume,output/'trainer_state.pt')
                 arena.add_snapshot(model)
         model.save(output/"latest.pt",phase="ppo",steps=total,seed=seed)
         state={"model":model.state_dict(),"optimizer":optimizer.state_dict(),"config":model.config,
                "steps":total,"knowledge_sha256":knowledge().sha256,"feature_version":FEATURE_VERSION,
+               'feature_signature':feature_signature(),
                "torch_rng":torch.get_rng_state(),"cuda_rng":torch.cuda.get_rng_state() if device.startswith("cuda") else None}
         state.update(arena.checkpoint_state())
-        torch.save(state,output/"trainer_state.pt.tmp")
-        (output/"trainer_state.pt.tmp").replace(output/"trainer_state.pt")
+        durable_torch_save(state,output/'trainer_state.pt')
     finally:
         arena.close()
     return output/"latest.pt"

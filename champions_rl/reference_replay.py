@@ -14,6 +14,8 @@ import numpy as np
 from .engine import ROOT
 from .features import FEATURE_VERSION
 from .knowledge import knowledge
+from .provenance import feature_signature
+from .persistence import durable_npz,atomic_json
 
 
 class ReferenceStopped(Exception):
@@ -93,16 +95,14 @@ def reference_worker(index,folder,seed,policy_queue,result_queue,stop_event):
                 # Gamma=1 and terminal potential=0 make this the exact return
                 # from each decision, including intervening waiting phases.
                 arrays["returns"]=np.asarray([outcome-.15*phi for _,_,phi in captured],dtype=np.float32)
-                with path.with_suffix(".npz.tmp").open("wb") as handle:
-                    np.savez_compressed(handle,**arrays)
-                path.with_suffix(".npz.tmp").replace(path.with_suffix(".npz"))
+                durable_npz(path.with_suffix('.npz'),**arrays)
                 metadata={"knowledge_sha256":knowledge().sha256,"feature_version":FEATURE_VERSION,
+                          'feature_signature':feature_signature(),
                           "config":model.config,"policy_version":payload["version"],"seed":game_seed,
                           "outcome":outcome,"samples":len(captured),"seconds":result["seconds"],
                           "reference_manifest_sha256":reference.snapshot_sha256,
                           "reference_decisions":reference.audit,"reference_fallbacks":reference.fallbacks}
-                path.with_suffix(".json.tmp").write_text(json.dumps(metadata,indent=2)+"\n",encoding="utf-8")
-                path.with_suffix(".json.tmp").replace(path.with_suffix(".json"))
+                atomic_json(path.with_suffix('.json'),metadata)
                 result_queue.put({"kind":"game","worker":index,"path":str(path.with_suffix(".npz")),
                                   "outcome":outcome,"samples":len(captured),"policy_version":payload["version"]})
                 consecutive_errors=0
@@ -184,7 +184,7 @@ class ReferenceReplay:
         if key in self.loaded:
             return 0
         metadata=json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
-        if metadata["knowledge_sha256"]!=knowledge().sha256 or metadata["feature_version"]!=FEATURE_VERSION:
+        if metadata["knowledge_sha256"]!=knowledge().sha256 or metadata["feature_version"]!=FEATURE_VERSION or metadata.get('feature_signature')!=feature_signature():
             raise ValueError("Incompatible reference replay knowledge/features")
         if metadata.get("reference_fallbacks"):
             raise ValueError("Reference replay contains a degraded reference policy")

@@ -25,7 +25,7 @@ def stop_process(process,timeout=5):
 
 class ParallelRollouts:
     def __init__(self,workers=4,envs=32,seed=47,selfplay_fraction=.3,snapshot_fraction=.3,
-                 max_turns=200,saved_roster_fraction=.15,restored=(),timeout=120):
+                 max_turns=200,saved_roster_fraction=.15,restored=(),timeout=120,privileged=False):
         if not 1<=workers<=envs:
             raise ValueError("workers must be between 1 and envs")
         if min(selfplay_fraction,snapshot_fraction)<0 or selfplay_fraction+snapshot_fraction>1:
@@ -43,6 +43,7 @@ class ParallelRollouts:
                           "seed":seed+104729*worker,"selfplay_fraction":selfplay_fraction,
                           "snapshot_fraction":snapshot_fraction,"max_turns":max_turns,
                           "saved_roster_fraction":saved_roster_fraction,
+                          "privileged":privileged,
                           "restored":restored[worker] if len(restored)==workers else None}
                 process=self.context.Process(target=fast_worker,args=(child,settings),name=f"battle-worker-{worker}")
                 process.start()
@@ -59,7 +60,7 @@ class ParallelRollouts:
             self.close()
             raise
 
-    def collect(self,models,horizon=32,snapshot_ids=(),device="cuda"):
+    def collect(self,models,horizon=32,snapshot_ids=(),device="cuda",critic=None,style_weights=None):
         """Models stay frozen for this whole collection; PPO updates afterward.
 
         A shared current policy acts for both sides of self-play. Historical
@@ -68,9 +69,10 @@ class ParallelRollouts:
         """
         for model in models.values():
             model.eval()
+        if critic is not None:critic.eval()
         configs={name:model.config for name,model in models.items()}
         for connection in self.connections:
-            connection.send({"kind":"collect","horizon":horizon,"models":configs,"snapshot_ids":list(snapshot_ids)})
+            connection.send({"kind":"collect","horizon":horizon,"models":configs,"snapshot_ids":list(snapshot_ids),'style_weights':style_weights})
         live=set(range(len(self.connections)))
         lookup={connection:i for i,connection in enumerate(self.connections)}
         stash={}
@@ -137,6 +139,8 @@ class ParallelRollouts:
                     model=models[model_id]
                     batch=tensor_batch([r["obs"] for _,_,r in requests],device)
                     action,logp,value=model.act(batch)
+                    if model_id=='current' and critic is not None:
+                        value=critic(tensor_batch([r['critic_obs'] for _,_,r in requests],device))
                     action,logp,value=action.cpu().tolist(),logp.cpu().tolist(),value.cpu().tolist()
                     stats["neural_batches"]+=1
                     stats["neural_positions"]+=len(requests)
@@ -148,6 +152,8 @@ class ParallelRollouts:
                         if request["learn"]:
                             stash[worker,request["id"]]={"obs":request["obs"],"action":a,"logp":p,"value":v,
                                 "policy_active":request["active"]}
+                            if critic is not None:
+                                stash[worker,request['id']]['critic_obs']=request['critic_obs']
             for worker,actions in responses.items():
                 self.connections[worker].send({"kind":"actions","actions":actions})
         if stash:
@@ -176,14 +182,15 @@ class ParallelRollouts:
         self.close()
 
 
-def trajectory_targets(records,model,device="cuda",lam=.95):
+def trajectory_targets(records,model,device="cuda",lam=.95,critic=None):
     """GAE per player/episode, including passive turns and truncation bootstrap."""
     bootstraps=[i for i,r in enumerate(records) if "bootstrap" in r]
     next_values={}
     with torch.no_grad():
         for chunk in range(0,len(bootstraps),256):
             ids=bootstraps[chunk:chunk+256]
-            values=model(tensor_batch([records[i]["bootstrap"] for i in ids],device))[1].cpu().tolist()
+            values=(critic(tensor_batch([records[i]['bootstrap_critic'] for i in ids],device)) if critic is not None else
+                    model(tensor_batch([records[i]["bootstrap"] for i in ids],device))[1]).cpu().tolist()
             next_values.update(zip(ids,values))
     trajectories=defaultdict(list)
     for i,row in enumerate(records):

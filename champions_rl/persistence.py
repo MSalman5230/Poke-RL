@@ -32,3 +32,14 @@ def durable_torch_save(value,path):
         handle.flush()
         os.fsync(handle.fileno())
     temporary.replace(path)
+
+
+def durable_npz(path,**arrays):
+    import numpy as np
+    path=Path(path)
+    temporary=path.with_suffix(path.suffix+'.tmp')
+    with temporary.open('wb') as handle:
+        np.savez_compressed(handle,**arrays)
+        handle.flush()
+        os.fsync(handle.fileno())
+    temporary.replace(path)

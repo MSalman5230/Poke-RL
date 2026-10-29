@@ -16,6 +16,8 @@ from .policies import ScriptedBot
 from .reference import ReferenceBot
 from .teams import TeamPool, fingerprint
 from .training import emit, seed_all
+from .persistence import atomic_json
+from .provenance import feature_signature
 
 
 def wilson(wins, total, z=1.96):
@@ -49,11 +51,12 @@ def acceptance(rows, split):
 
 def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"),games=100,
              output=None, split="validation",seed=92341,device="cpu",learner_style=None,reference_teams="saved",deterministic=False,
-             shard_index=0,shard_count=1):
+             shard_index=0,shard_count=1,search=False):
     if games<1 or not 0<=shard_index<shard_count:
         raise ValueError("Invalid game count or shard range")
     if len(set(opponents))!=len(opponents):
         raise ValueError("Opponent styles must be distinct")
+    if search and (not checkpoint or not deterministic):raise ValueError('Search requires a checkpoint and deterministic evaluation')
     seed_all(seed)
     import torch
     torch.set_num_threads(1)  # inference uses single positions; reserve CPU for simulators
@@ -62,6 +65,9 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
     if checkpoint:
         model,metadata=BattleModel.load(io.BytesIO(checkpoint_bytes),device)
         learner=NeuralBot(model,encoder,deterministic=deterministic)
+        if search:
+            from .search import SearchBot
+            learner=SearchBot(model,encoder,seed=seed)
     else:
         learner=ScriptedBot(learner_style or "balanced",seed,encoder)
         metadata={}
@@ -80,6 +86,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
         snapshot.parent.mkdir(parents=True,exist_ok=True)
         snapshot.write_bytes(path.read_bytes())
     report={"format":knowledge().data["format"],"knowledge_sha256":knowledge().sha256,
+            'feature_signature':feature_signature(),
             "checkpoint_metadata":metadata,
             "model_config":model.config if checkpoint else None,
             "checkpoint":str(checkpoint) if checkpoint else None,
@@ -88,6 +95,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
             "team_manifest_sha256":hashlib.sha256((ROOT/f"data/teams_{split}.json").read_bytes()).hexdigest(),
             "reference_manifest_sha256":hashlib.sha256((ROOT/"opponents/autoplay_reference/SOURCE_MANIFEST.json").read_bytes()).hexdigest(),
             "split":split,"seed":seed,"reference_teams":reference_teams,"deterministic":deterministic,
+            'search':search,
             "shard_index":shard_index,"shard_count":shard_count,"requested_games_per_opponent":games,
             "reference_policy":"Frozen 32-trial original scoring/prediction; public-state adapter",
             "results":{}}
@@ -108,6 +116,8 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                     continue
                 # Independent per-game RNG streams make worker count irrelevant.
                 torch.manual_seed(seed+104729*game)
+                if search:learner.rng.seed(seed+104729*game)
+                before_search=dict(learner.statistics) if search else {}
                 seat=game%2
                 # Hold the teams/engine seed fixed while swapping the policies.
                 # Reversing teams here as well would keep the learner on the
@@ -130,6 +140,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                     counts["fallbacks"]+=getattr(opponent,"fallbacks",0)
                     record={k:v for k,v in result.items() if k!="trace"}
                     record.update(game=game,seat=seat,won=win,team_ids=list(map(fingerprint,party)))
+                    if search:record['search']={key:value-before_search.get(key,0) for key,value in learner.statistics.items()}
                     if style=="reference":
                         record["reference_decisions"]=opponent.audit
                     if game<4 or result["truncated"]:
@@ -146,10 +157,14 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                 summary={"games":n,"wins":counts["wins"],"losses":counts["losses"],"draws":counts["draws"],
                          "errors":counts["errors"],"truncations":counts["truncations"],"fallbacks":counts["fallbacks"],
                          "win_rate":counts["wins"]/n,"confidence":wilson(counts["wins"],n)}
+                if search:
+                    combined=Counter()
+                    for record in records:combined.update(record.get('search',{}))
+                    summary['search']=dict(combined)
                 report["results"][style]=summary
                 report["acceptance"]=acceptance(report["results"],split)
-                (output/"report.json").write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
-                (output/f"{style}_games.json").write_text(json.dumps(records,indent=2)+"\n",encoding="utf-8")
+                atomic_json(output/'report.json',report)
+                atomic_json(output/f'{style}_games.json',records)
                 emit("evaluation_game",opponent=style,**summary)
                 if counts["errors"]>=3:
                     emit("evaluation_aborted",opponent=style,reason="Three invalid games; fix adapter before benchmarking")
@@ -159,7 +174,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
 
 def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced","setup","defensive","stochastic"),
                       games=200, output=None,split="validation",seed=92341,device="cpu",learner_style=None,
-                      reference_teams="saved",deterministic=False,workers=4):
+                      reference_teams="saved",deterministic=False,workers=4,search=False):
     """Separate processes preserve reference-policy isolation and exact trials.
 
     Each worker takes a disjoint subset of the same paired schedule. Reports
@@ -190,6 +205,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                 command.extend(["--learner-style",learner_style])
             if deterministic:
                 command.append("--deterministic")
+            if search:command.append('--search')
             log=(output/f"worker_{index}.log").open("w",encoding="utf-8")
             process=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,
                                      creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
@@ -208,7 +224,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                     raise RuntimeError(f"Evaluation worker failed; see {folder.parent/(folder.name+'.log')}")
             if reports:
                 merged=dict(reports[0])
-                for key in ("checkpoint_sha256","implementation_sha256","knowledge_sha256","team_manifest_sha256","reference_manifest_sha256"):
+                for key in ("checkpoint_sha256","implementation_sha256","knowledge_sha256","feature_signature","team_manifest_sha256","reference_manifest_sha256"):
                     if len({r.get(key) for r in reports})!=1:
                         raise ValueError(f"Incompatible evaluation shards: {key}")
                 merged.update(checkpoint=str(checkpoint) if checkpoint else None,workers=workers,
@@ -220,12 +236,16 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                         continue
                     row={key:sum(r[key] for r in rows) for key in ("games","wins","losses","draws","errors","truncations","fallbacks")}
                     row.update(win_rate=row["wins"]/row["games"],confidence=wilson(row["wins"],row["games"]))
+                    if search:
+                        combined=Counter()
+                        for r in rows:combined.update(r.get('search',{}))
+                        row['search']=dict(combined)
                     merged["results"][style]=row
                 merged["complete"]=len(reports)==workers and all(p.poll()==0 for p,_,_ in jobs)
                 merged["acceptance"]=acceptance(merged["results"],split)
                 if not merged["complete"]:
                     merged["acceptance"]["passed"]=False
-                (output/"report.json").write_text(json.dumps(merged,indent=2)+"\n",encoding="utf-8")
+                atomic_json(output/'report.json',merged)
                 if time.monotonic()-last_progress>15:
                     emit("parallel_evaluation_progress",workers=workers,
                          completed_games={s:r["games"] for s,r in merged["results"].items()})
@@ -240,7 +260,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                         records.sort(key=lambda r:r["game"])
                         if len({r["game"] for r in records})!=len(records):
                             raise ValueError("Duplicate game IDs across evaluation shards")
-                        (output/f"{style}_games.json").write_text(json.dumps(records,indent=2)+"\n",encoding="utf-8")
+                        atomic_json(output/f'{style}_games.json',records)
                     return merged
             if all(p.poll()==0 for p,_,_ in jobs) and len(reports)!=workers:
                 raise RuntimeError("Evaluation worker exited without a readable report")

@@ -57,6 +57,8 @@ class ReferenceBot:
                 belief.reveal_item(p["item"])
             if p["ability"] is not None:
                 belief.reveal_ability(p["ability"])
+            elif any(key in p.get('volatiles',{}) for key in ('fallen1','fallen2','fallen3','fallen4','fallen5')):
+                belief.reveal_ability('supremeoverlord')
             if p["species"] != p["base_species"]:
                 belief.set_form(p["species"])
             belief.moves_this_stint = [self.c.display("moves", mid) for mid in p.get("moves_this_stint",[])]
@@ -86,6 +88,13 @@ class ReferenceBot:
             effects = {key: {"elapsed": max(0, obs["turn"] - row["turn"]),
                              **({"move": row["move"]} if row.get("move") else {})}
                        for key, row in p.get("volatiles", {}).items() if not row.get("single") or row["turn"] >= obs["turn"] - 1}
+            # Showdown displays Supreme Overlord's faint counter as a fallenN
+            # protocol marker. The frozen simulator already reconstructs its
+            # abilityState.fallen from total_fainted; it is not a volatile.
+            # Remove only a marker whose value is verified by public history.
+            if p.get('ability')=='supremeoverlord' or any(key in effects for key in ('fallen1','fallen2','fallen3','fallen4','fallen5')):
+                side=0 if any(p is mon for mon in obs['own']) else 1
+                effects.pop('fallen'+str(min(len(obs['faints'][side]),5)),None)
             result = {"effects": effects, "times_attacked": p.get("times_attacked", 0),
                       "last_move": self.c.display("moves", p.get("last_move")), "entry_round": p.get("entry_turn", 0)}
             for name in ("substitute", "leechseed", "confusion", "partiallytrapped"):

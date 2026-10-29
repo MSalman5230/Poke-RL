@@ -64,13 +64,14 @@ class Encoder:
 
     def mon_features(self, mon, ours, obs=None):
         k = self.k
-        stats = k.mon_stats(mon)
+        scenarios=self.beliefs.scenarios(mon)
+        stats={s:sum(w*k.mon_stats(m)[s] for m,w in scenarios) for s in STATS}
         base = k.species_info(mon.get("species")).get("baseStats", dict.fromkeys(STATS, 0))
         pp = [m["pp"] / max(1, m["maxpp"]) for m in mon.get("moves", []) if isinstance(m, dict)]
-        if not ours:
+        if not ours and not mon.get('set'):
             pp=[max(0.,1-mon.get('pp_used',{}).get(mid,0)/max(1,k.moves.get(mid,{}).get('pp',1))) for mid in move_ids(mon)]
         pp = (pp + [0.] * 4)[:4]
-        selected = mon.get("selected") if ours else True if mon.get("seen") else None
+        selected = mon.get("selected") if ours or mon.get('set') else True if mon.get("seen") else None
         values = [mon.get("hp", 1), ours or mon.get("seen", False), mon.get("seen", False), mon.get("active", False),
                   mon.get("fainted", False), bool(selected), selected is not None, ours,
                   mon.get("item") is not None, mon.get("ability") is not None]
@@ -180,7 +181,7 @@ class Encoder:
                           team_hp=sum(obs["own"][i]["hp"] for i in action["picks"])/3)
         return [float(values[n]) for n in self.action_names]
 
-    def encode(self, obs):
+    def encode(self, obs, entities_only=False):
         mons = obs["own"] + obs["opponent"]
         if len(mons) != 12:
             raise ValueError("Expected six public preview species per team")
@@ -194,7 +195,14 @@ class Encoder:
             weights=np.zeros((12,3),dtype=np.float32)
             key='item' if kind=='items' else 'ability'
             for i,mon in enumerate(mons):
-                choices=[(mon[key],1.)] if mon.get(key) is not None else self.k.prior(mon['species'],label,3)
+                if mon.get(key) is not None:choices=[(mon[key],1.)]
+                else:
+                    distribution={}
+                    for candidate,weight in self.beliefs.candidates(mon):
+                        name=canonical(candidate[key]);distribution[name]=distribution.get(name,0)+weight
+                    choices=sorted(distribution.items(),key=lambda p:-p[1])[:3]
+                    total=sum(w for _,w in choices)
+                    choices=[(n,w/total) for n,w in choices]
                 for j,(name,weight) in enumerate(choices[:3]):
                     ids[i,j]=self.k.token(kind,name)
                     weights[i,j]=weight
@@ -215,6 +223,8 @@ class Encoder:
             result["history_moves"][i] = self.k.token("moves", e.get("move"))
             result['history_species'][i]=self.k.token('species',e.get('species'))
             result["history"][i] = [e["side"]==0, e["side"]==1, min(20,obs["turn"]-e["turn"])/20]+[e.get('actor')==j for j in range(6)]+[min(4,e.get('order',0))/4]
+        if entities_only:
+            return result
         result["actions"] = np.zeros((N_ACTIONS,len(self.action_names)),dtype=np.float32)
         result["action_moves"] = np.zeros(N_ACTIONS,dtype=np.int64)
         result["mask"] = np.zeros(N_ACTIONS,dtype=bool)

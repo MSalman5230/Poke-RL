@@ -142,7 +142,8 @@ class PublicState {
   }
 }
 class Game {
-  constructor(teams,seed,maxTurns=200) {
+  constructor(teams,seed,maxTurns=200,training=false) {
+    this.training=training;
     this.teams=clone(teams);this.maxTurns=maxTurns;this.truncated=false;
     // Showdown shortens species-as-nicknames (Arcanine-Hisui -> Arcanine).
     // Stable legal nicknames keep our private six roster slots unambiguous.
@@ -201,8 +202,15 @@ class Game {
       faints:[clone(pub.faints[i]),clone(pub.faints[1-i])],
       ended:this.battle.ended,truncated:this.truncated};
   }
-  result(){return {views:[this.view(0),this.view(1)],ended:this.battle.ended,truncated:this.truncated,
-    winner:this.battle.ended?(this.battle.winner==='player0'?0:this.battle.winner==='player1'?1:null):null};}
+  result(){
+    const views=[this.view(0),this.view(1)];
+    const result={views,ended:this.battle.ended,truncated:this.truncated,
+      winner:this.battle.ended?(this.battle.winner==='player0'?0:this.battle.winner==='player1'?1:null):null};
+    // Never put privileged data inside a player's observation. The actor is
+    // passed views only; an opt-in training channel serves a separate critic.
+    if(this.training)result.training={critic_views:views.map((v,i)=>({...clone(v),opponent:clone(views[1-i].own)}))};
+    return result;
+  }
   step(actions){
     // Validate BOTH choices before submitting either. Policies never see a committed enemy choice.
     const choices=[0,1].map(i=>{const legal=this.legal(i);if(!legal.length)return null;
@@ -224,8 +232,9 @@ const games=new Map();
 function dispatch(q){
   if(q.op==='ping')return {format:FORMAT,revision:'c0845f33d381402dfcb18ce324c20a94f18af075',node:process.version};
   if(q.op==='calculate')return q.queries.map(require('./tactics.cjs').calculate);
+  if(q.op==='lookahead')return require('./lookahead.cjs').lookahead(q,Game,PublicState);
   if(q.op==='validate')return q.teams?q.teams.map(t=>validator.validateTeam(clone(t))):q.sets.map(s=>validator.validateSet(clone(s)));
-  if(q.op==='new'){if(games.has(q.game))games.get(q.game).battle.destroy();const g=new Game(q.teams,q.seed,q.max_turns);games.set(q.game,g);return g.result();}
+  if(q.op==='new'){if(games.has(q.game))games.get(q.game).battle.destroy();const g=new Game(q.teams,q.seed,q.max_turns,!!q.training);games.set(q.game,g);return g.result();}
   if(q.op==='step')return games.get(q.game).step(q.actions);
   if(q.op==='trace')return games.get(q.game).trace;
   if(q.op==='close'){const g=games.get(q.game);if(g)g.battle.destroy();games.delete(q.game);return true;}

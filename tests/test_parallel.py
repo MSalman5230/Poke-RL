@@ -63,3 +63,6 @@ def test_parallel_training_checkpoint_resume(tmp_path):
     state=torch.load(second/"trainer_state.pt",map_location="cpu",weights_only=True)
     assert state["steps"]>=first_state["steps"]+8
     assert len(state["worker_states"])==2 and state["league"]
+    assert state['critic'] and state['feature_signature']
+    saved=torch.load(second/'latest.pt',map_location='cpu',weights_only=True)
+    assert 'critic' not in saved

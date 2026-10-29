@@ -126,7 +126,8 @@ class VectorArena:
         for i, (state, seat, action) in enumerate(zip(self.states,self.seats,actions)):
             other = state["views"][1-seat]
             enemy = self.opponents[i].choose(other) if other["legal"] else None
-            enemy_actions.append(-100 if enemy is None else enemy)
+            from .opponent_labels import action_label
+            enemy_actions.append(action_label(other,enemy))
             choices = [None,None]
             choices[seat] = int(action)
             choices[1-seat] = enemy

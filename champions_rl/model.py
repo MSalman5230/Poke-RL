@@ -39,7 +39,8 @@ class BattleModel(nn.Module):
         # particular roster member, even if the transformer understands it.
         self.action = nn.Sequential(nn.Linear(len(encoder.action_names)+24+width*(4 if action_context else 2),width),nn.GELU(),nn.Linear(width,1))
         self.value = nn.Sequential(nn.Linear(width,width),nn.GELU(),nn.Linear(width,1))
-        self.opponent_action = nn.Linear(width,N_ACTIONS)
+        from .opponent_labels import label_count
+        self.opponent_action = nn.Linear(width,label_count())
         self.species_type = nn.Linear(32,len(k.type_names))
         self.move_properties = nn.Linear(24,len(k.type_names)+5)
         self.register_buffer("segments",torch.tensor([0]+[1]*6+[2]*6+[3]*12,dtype=torch.long))
@@ -55,7 +56,7 @@ class BattleModel(nn.Module):
         nn.init.orthogonal_(self.action[-1].weight,gain=.01)
         nn.init.zeros_(self.action[-1].bias)
 
-    def forward(self, obs):
+    def context(self, obs):
         items=(self.item_embedding(obs['items_prior'])*obs['items_weights'].unsqueeze(-1)).sum(-2)
         abilities=(self.ability_embedding(obs['abilities_prior'])*obs['abilities_weights'].unsqueeze(-1)).sum(-2)
         mons = self.mon(torch.cat([obs["pokemon"],self.species_embedding(obs["species"]),
@@ -67,6 +68,10 @@ class BattleModel(nn.Module):
             # histories as a bag and cannot learn observed speed order.
             tokens[:,13:]=tokens[:,13:]+self.history_order.unsqueeze(0)
         context = self.norm(self.transformer(tokens + self.segment(self.segments).unsqueeze(0)))
+        return context
+
+    def forward(self, obs):
+        context=self.context(obs)
         pooled = context[:,0]
         if self.config["action_context"]:
             own = context[:,1:7]
@@ -101,13 +106,16 @@ class BattleModel(nn.Module):
         path = Path(path)
         path.parent.mkdir(parents=True,exist_ok=True)
         from .persistence import durable_torch_save
+        from .provenance import feature_signature
         durable_torch_save({"schema":1,"feature_version":FEATURE_VERSION,"knowledge_sha256":knowledge().sha256,"config":self.config,
+                    "feature_signature":feature_signature(),"opponent_labels":"semantic_move_or_switch_v1",
                     "model":self.state_dict(),"metadata":metadata},path)
 
     @classmethod
     def load(cls,path,device="cpu"):
         data=torch.load(path,map_location=device,weights_only=True)
-        if data["knowledge_sha256"] != knowledge().sha256 or data.get("feature_version")!=FEATURE_VERSION:
+        from .provenance import feature_signature
+        if data["knowledge_sha256"] != knowledge().sha256 or data.get("feature_version")!=FEATURE_VERSION or data.get('feature_signature')!=feature_signature():
             raise ValueError("Checkpoint and knowledge snapshot differ")
         config=dict(data["config"])
         config.setdefault("action_context",False)  # first local experiment
@@ -116,6 +124,16 @@ class BattleModel(nn.Module):
         model.load_state_dict(data["model"])
         model.eval()
         return model,data.get("metadata",{})
+
+
+class PrivilegedCritic(BattleModel):
+    """Separate training-only parameters; the deployed actor has no private path."""
+    def __init__(self,width=128,layers=2,heads=4):
+        super().__init__(width,layers,heads,action_context=False,history_position=True)
+        del self.action,self.opponent_action,self.species_type,self.move_properties
+
+    def forward(self,obs):
+        return self.value(self.context(obs)[:,0]).squeeze(-1)
 
 
 class NeuralBot:

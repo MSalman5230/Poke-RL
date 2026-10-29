@@ -11,11 +11,12 @@ from .features import Encoder,encode_observation
 from .policies import ScriptedBot
 from .rewards import battle_reward
 from .teams import TeamPool,fingerprint
+from .opponent_labels import action_label
 
 
 class FastGames:
     def __init__(self, worker_id, count, seed, selfplay_fraction=.3, snapshot_fraction=.3,
-                 max_turns=200, saved_roster_fraction=.15, restored=None):
+                 max_turns=200, saved_roster_fraction=.15, restored=None,privileged=False):
         from .arena import load_teams
         self.worker_id=worker_id
         self.count=count
@@ -28,11 +29,13 @@ class FastGames:
         self.snapshot_fraction=snapshot_fraction
         self.saved_roster_fraction=saved_roster_fraction
         self.max_turns=max_turns
+        self.privileged=privileged
+        self.style_weights=[.025,.2,.25,.15,.275,.1]
         self.pool=TeamPool()
         self.fixed=load_teams("train")
-        self.held_out={fingerprint(t) for split in ("validation","test") for t in load_teams(split)}
-        self.encoder=Encoder()
+        self.held_out={fingerprint(t) for split in ("validation","test","validation_competitive") for t in load_teams(split)}
         self.engine=Engine()
+        self.encoder=Encoder(engine=self.engine)
         self.games=[None]*count
 
     def sample_team(self):
@@ -52,14 +55,14 @@ class FastGames:
             opponent=self.rng.choice(snapshot_ids)
         else:
             opponent=self.rng.choices(["random","damage","balanced","setup","defensive","stochastic"],
-                                     [.05,.2,.3,.15,.15,.15])[0]
+                                     self.style_weights)[0]
         parties=[self.sample_team(),self.sample_team()]
         # Familiar rosters also face unrelated styles, so this roster does not
         # uniquely identify the reference policy to the learner.
         if self.rng.random()<self.saved_roster_fraction:
             parties=[self.pool.data["reference_team"]]*2
         state=self.engine.request("new",game=str(slot),teams=parties,
-            seed=[self.rng.randrange(65536) for _ in range(4)],max_turns=self.max_turns)
+            seed=[self.rng.randrange(65536) for _ in range(4)],max_turns=self.max_turns,training=self.privileged)
         self.counter+=1
         self.games[slot]={"state":state,"seat":seat,"opponent":opponent,"episode":self.counter,
                           "bot":None if opponent in models else ScriptedBot(opponent,self.rng.randrange(2**31),self.encoder),
@@ -88,6 +91,8 @@ class FastGames:
                         request_id=self.sequence
                         requests.append({"id":request_id,"model":model_id,"obs":encoded,"learn":learned,
                                          "active":bool(view["legal"]),"slot":slot,"side":side})
+                        if learned and self.privileged:
+                            requests[-1]['critic_obs']=self.encoder.encode(g['state']['training']['critic_views'][side],entities_only=True)
                         if learned:
                             learners.append((slot,side,request_id,view,g["episode"],bool(view["legal"])))
                     elif view["legal"]:
@@ -109,11 +114,13 @@ class FastGames:
                 view=state["views"][side]
                 row={"id":request_id,"episode":episode,"side":side,
                      "reward":battle_reward(before,view,state["winner"]),"terminal":state["ended"],
-                     "truncated":state["truncated"],"enemy":choices[slot][1-side] if choices[slot][1-side] is not None else -100}
+                     "truncated":state["truncated"],"enemy":action_label(self.games[slot]['state']['views'][1-side],choices[slot][1-side])}
                 encoded=encode_observation(self.encoder,models["current"],view)
                 self.games[slot]["cache"][side]=encoded
                 if not state["ended"] and (state["truncated"] or t==horizon-1):
                     row["bootstrap"]=encoded
+                    if self.privileged:
+                        row['bootstrap_critic']=self.encoder.encode(state['training']['critic_views'][side],entities_only=True)
                 completed.append(row)
             for slot,state in enumerate(after):
                 g=self.games[slot]
@@ -148,6 +155,7 @@ def fast_worker(connection,settings):
                 break
             if message["kind"]!="collect":
                 raise RuntimeError("Unknown worker command")
+            if message.get('style_weights') is not None:actor.style_weights=message['style_weights']
             if not actor.collect(connection,message["horizon"],message["models"],message["snapshot_ids"]):
                 break
     except (EOFError,BrokenPipeError):
