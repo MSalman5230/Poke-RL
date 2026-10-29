@@ -259,7 +259,8 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                         for r in rows:combined.update(r.get('search',{}))
                         row['search']=dict(combined)
                     merged["results"][style]=row
-                merged["complete"]=len(reports)==workers and all(p.poll()==0 for p,_,_ in jobs)
+                finished=len(reports)==workers and all(p.poll()==0 for p,_,_ in jobs)
+                merged["complete"]=finished and all(merged['results'].get(style,{}).get('games')==games for style in opponents)
                 merged["acceptance"]=acceptance(merged["results"],split,roster)
                 if not merged["complete"]:
                     merged["acceptance"]["passed"]=False
@@ -268,7 +269,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                     emit("parallel_evaluation_progress",workers=workers,
                          completed_games={s:r["games"] for s,r in merged["results"].items()})
                     last_progress=time.monotonic()
-                if merged["complete"]:
+                if finished:
                     for style in opponents:
                         records=[]
                         for _,_,folder in jobs:

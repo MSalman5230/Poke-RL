@@ -336,6 +336,11 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
                 snapshot()
                 model.save(output/f"step_{total:09d}.pt",phase="parallel_ppo_sil",**row,seed=seed)
                 checkpoint()
+                if critic is not None:
+                    durable_torch_save({'critic':cpu_weights(critic),'config':model.config,
+                                        'steps':total,'updates':update,'feature_version':FEATURE_VERSION,
+                                        'feature_signature':feature_signature(),'knowledge_sha256':knowledge().sha256},
+                                       output/f'critic_{total:09d}.pt')
                 if validation and update%validation_every==0:validation.schedule(output/f'step_{total:09d}.pt',total)
                 retained={"current",*eligible,*set().union(*actors.active_models)}
                 for name in list(models):

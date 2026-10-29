@@ -75,3 +75,6 @@ def test_parallel_training_checkpoint_resume(tmp_path):
     assert state['critic'] and state['feature_signature']
     saved=torch.load(second/'latest.pt',map_location='cpu',weights_only=True)
     assert 'critic' not in saved
+    from champions_rl.model import PrivilegedCritic
+    private=PrivilegedCritic.load_training_state(second/f"critic_{state['steps']:09d}.pt")
+    assert all(torch.equal(value,state['critic'][key]) for key,value in private.state_dict().items())
