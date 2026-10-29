@@ -1,0 +1,115 @@
+{
+  "checkpoint": "runtime_data\\bc_v7_dropout.pt",
+  "solved": 3,
+  "exercises": 3,
+  "results": [
+    {
+      "name": "priority_over_raw_power",
+      "winning_actions": [
+        0,
+        2
+      ],
+      "results": {
+        "0": {
+          "trials": 64,
+          "terminal_wins": 64,
+          "terminal_losses": 0,
+          "unresolved": 0
+        },
+        "1": {
+          "trials": 64,
+          "terminal_wins": 32,
+          "terminal_losses": 32,
+          "unresolved": 0
+        },
+        "2": {
+          "trials": 64,
+          "terminal_wins": 64,
+          "terminal_losses": 0,
+          "unresolved": 0
+        },
+        "3": {
+          "trials": 64,
+          "terminal_wins": 0,
+          "terminal_losses": 32,
+          "unresolved": 32
+        }
+      },
+      "limits": "Immediate terminal wins against every legal enemy reply across 16 simulator seeds. Controlled complete-information fixture; not a proof for arbitrary hidden battles.",
+      "policy_action": 2,
+      "solved": true
+    },
+    {
+      "name": "priority_and_ghost_immunity",
+      "winning_actions": [
+        2
+      ],
+      "results": {
+        "0": {
+          "trials": 64,
+          "terminal_wins": 0,
+          "terminal_losses": 62,
+          "unresolved": 2
+        },
+        "1": {
+          "trials": 64,
+          "terminal_wins": 0,
+          "terminal_losses": 62,
+          "unresolved": 2
+        },
+        "2": {
+          "trials": 64,
+          "terminal_wins": 64,
+          "terminal_losses": 0,
+          "unresolved": 0
+        },
+        "3": {
+          "trials": 64,
+          "terminal_wins": 0,
+          "terminal_losses": 62,
+          "unresolved": 2
+        }
+      },
+      "limits": "Immediate terminal wins against every legal enemy reply across 16 simulator seeds. Controlled complete-information fixture; not a proof for arbitrary hidden battles.",
+      "policy_action": 2,
+      "solved": true
+    },
+    {
+      "name": "status_immunity_winning_attack",
+      "winning_actions": [
+        2
+      ],
+      "results": {
+        "0": {
+          "trials": 64,
+          "terminal_wins": 0,
+          "terminal_losses": 62,
+          "unresolved": 2
+        },
+        "1": {
+          "trials": 64,
+          "terminal_wins": 0,
+          "terminal_losses": 62,
+          "unresolved": 2
+        },
+        "2": {
+          "trials": 64,
+          "terminal_wins": 64,
+          "terminal_losses": 0,
+          "unresolved": 0
+        },
+        "3": {
+          "trials": 64,
+          "terminal_wins": 0,
+          "terminal_losses": 62,
+          "unresolved": 2
+        }
+      },
+      "limits": "Immediate terminal wins against every legal enemy reply across 16 simulator seeds. Controlled complete-information fixture; not a proof for arbitrary hidden battles.",
+      "policy_action": 2,
+      "solved": true
+    }
+  ],
+  "training_performed": false,
+  "limits": "A small diagnostic suite. Never substitute these scores for paired battle validation."
+}

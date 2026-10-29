@@ -1,0 +1,38 @@
+{
+  "action": 74,
+  "used": true,
+  "policy": 74,
+  "chosen": 74,
+  "worlds": 16,
+  "options": [
+    74,
+    114,
+    15
+  ],
+  "terminal_games": 48,
+  "rollout_decisions": 1393,
+  "intervals": {
+    "114": [
+      -1.25,
+      -0.25
+    ],
+    "15": [
+      -0.875,
+      0.0
+    ]
+  },
+  "mean_terminal_scores": {
+    "74": 1.0,
+    "114": 0.25,
+    "15": 0.625
+  },
+  "seconds": 17.625,
+  "value_head_used": false,
+  "statistics": {
+    "decisions": 1,
+    "searched": 1,
+    "overrides": 0,
+    "terminal_games": 48,
+    "rollout_decisions": 1393
+  }
+}

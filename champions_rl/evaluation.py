@@ -59,13 +59,16 @@ def acceptance(rows, split,roster='manifest'):
 @keep_awake()
 def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"),games=100,
              output=None, split="validation",seed=None,device="cpu",learner_style=None,reference_teams="saved",deterministic=False,
-             shard_index=0,shard_count=1,search=False,roster='manifest',critic_state=None,frozen_opponents=None,legacy_runtime=None):
+             shard_index=0,shard_count=1,search=False,roster='manifest',critic_state=None,frozen_opponents=None,legacy_runtime=None,preview_rollout_search=False):
     if games<1 or not 0<=shard_index<shard_count:
         raise ValueError("Invalid game count or shard range")
     if len(set(opponents))!=len(opponents):
         raise ValueError("Opponent styles must be distinct")
     if search and (not checkpoint or not deterministic):raise ValueError('Search requires a checkpoint and deterministic evaluation')
     if search and not critic_state:raise ValueError('Experimental search requires --critic-state; public-value search is disabled')
+    if preview_rollout_search and (search or not checkpoint or not deterministic or legacy_runtime):
+        raise ValueError('Terminal preview search requires a current deterministic policy and cannot be combined with value search')
+    uses_search=search or preview_rollout_search
     if roster not in ('manifest','saved','saved_vs_varied'):raise ValueError('Unknown roster schedule')
     frozen_opponents=frozen_opponents or {}
     seed=evaluation_seed(split,seed)
@@ -86,6 +89,9 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
             from .search import SearchBot
             from .model import PrivilegedCritic
             learner=SearchBot(model,encoder,seed=seed,critic=PrivilegedCritic.load_training_state(critic_state,device))
+        elif preview_rollout_search:
+            from .preview_search import TerminalPreviewBot
+            learner=TerminalPreviewBot(model,encoder,seed=seed)
     else:
         learner=ScriptedBot(learner_style or "balanced",seed,encoder)
         metadata={}
@@ -117,7 +123,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
             "split":split,"seed":seed,"reference_teams":reference_teams,"deterministic":deterministic,
             'roster':roster,'critic_sha256':hashlib.sha256(Path(critic_state).read_bytes()).hexdigest() if critic_state else None,
             'frozen_opponents':{name:hashlib.sha256(Path(path).read_bytes()).hexdigest() for name,path in frozen_opponents.items()},
-            'search':search,
+            'search':uses_search,'search_method':'terminal_preview' if preview_rollout_search else 'private_one_turn' if search else None,
             "shard_index":shard_index,"shard_count":shard_count,"requested_games_per_opponent":games,
             "reference_policy":"Frozen 32-trial original scoring/prediction; public-state adapter",
             "results":{}}
@@ -139,8 +145,8 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                     continue
                 # Independent per-game RNG streams make worker count irrelevant.
                 torch.manual_seed(seed+104729*game)
-                if search:learner.rng.seed(seed+104729*game)
-                before_search=dict(learner.statistics) if search else {}
+                if uses_search:learner.rng.seed(seed+104729*game)
+                before_search=dict(learner.statistics) if uses_search else {}
                 seat=game%2
                 # Hold the teams/engine seed fixed while swapping the policies.
                 # Reversing teams here as well would keep the learner on the
@@ -168,7 +174,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                     record.update(game=game,seat=seat,won=win,team_ids=list(map(fingerprint,party)))
                     from .teammates import team_family
                     record['team_families']=list(map(team_family,party))
-                    if search:record['search']={key:value-before_search.get(key,0) for key,value in learner.statistics.items()}
+                    if uses_search:record['search']={key:value-before_search.get(key,0) for key,value in learner.statistics.items()}
                     if style=="reference":
                         record["reference_decisions"]=opponent.audit
                     if game<4 or result["truncated"]:
@@ -185,7 +191,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                 summary={"games":n,"wins":counts["wins"],"losses":counts["losses"],"draws":counts["draws"],
                          "errors":counts["errors"],"truncations":counts["truncations"],"fallbacks":counts["fallbacks"],
                          "win_rate":counts["wins"]/n,"confidence":wilson(counts["wins"],n)}
-                if search:
+                if uses_search:
                     combined=Counter()
                     for record in records:combined.update(record.get('search',{}))
                     summary['search']=dict(combined)
@@ -203,7 +209,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
 @keep_awake()
 def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced","setup","defensive","stochastic"),
                       games=200, output=None,split="validation",seed=None,device="cpu",learner_style=None,
-                      reference_teams="saved",deterministic=False,workers=4,search=False,roster='manifest',critic_state=None,frozen_opponents=None,legacy_runtime=None):
+                      reference_teams="saved",deterministic=False,workers=4,search=False,roster='manifest',critic_state=None,frozen_opponents=None,legacy_runtime=None,preview_rollout_search=False):
     """Separate processes preserve reference-policy isolation and exact trials.
 
     Each worker takes a disjoint subset of the same paired schedule. Reports
@@ -244,6 +250,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
             if deterministic:
                 command.append("--deterministic")
             if search:command.append('--search')
+            if preview_rollout_search:command.append('--preview-rollout-search')
             if critic_state:command.extend(['--critic-state',str(critic_state)])
             if legacy_runtime:command.extend(['--legacy-runtime',str(Path(legacy_runtime).resolve())])
             for name,path in frozen_paths.items():command.extend(['--frozen-opponent',name+'='+str(path)])
@@ -277,7 +284,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                         continue
                     row={key:sum(r[key] for r in rows) for key in ("games","wins","losses","draws","errors","truncations","fallbacks")}
                     row.update(win_rate=row["wins"]/row["games"],confidence=wilson(row["wins"],row["games"]))
-                    if search:
+                    if search or preview_rollout_search:
                         combined=Counter()
                         for r in rows:combined.update(r.get('search',{}))
                         row['search']=dict(combined)

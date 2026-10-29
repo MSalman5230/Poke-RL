@@ -39,7 +39,7 @@ def rebuild(job):
         payload={k:old[k].copy() for k in old.files if k not in rows[0]}
     payload.update({k:np.stack([r[k] for r in rows]) for k in rows[0]})
     payload['labels']=np.asarray(labels,dtype=np.int64)
-    payload['outcomes']=np.asarray([raw['outcome']-.15*potential(r['observation']) for r in raw['rows']],dtype=np.float32)
+    payload['outcomes']=np.asarray([r.get('outcome',raw['outcome'])-.15*potential(r['observation']) for r in raw['rows']],dtype=np.float32)
     durable_npz(output,**payload)
     raw['feature_signature']=feature_signature()
     with gzip.open(output.with_suffix('.observations.json.gz'),'wt',encoding='utf-8') as stream:json.dump(raw,stream)

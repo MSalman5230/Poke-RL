@@ -1,0 +1,40 @@
+{
+  "status": "paused_by_user",
+  "reason": "User requested all work stop before PC restart; resume only on explicit request.",
+  "stop_marker": "runtime_data/STOP",
+  "running_project_processes_after_stop": 0,
+  "runs": {
+    "ppo_v7_mix_control": {
+      "trainer_state": "C:\\MegaSync\\Projects\\Git\\Poke-RL\\runtime_data\\ppo_v7_mix_control\\trainer_state.pt",
+      "saved_decisions": 164843,
+      "saved_updates": 5,
+      "optimizer_saved": true,
+      "private_critic_saved": true,
+      "target_total_decisions": 262144,
+      "remaining_requested_decisions": 97301
+    },
+    "ppo_v7_mix_neural": {
+      "trainer_state": "C:\\MegaSync\\Projects\\Git\\Poke-RL\\runtime_data\\ppo_v7_mix_neural\\trainer_state.pt",
+      "saved_decisions": 199574,
+      "saved_updates": 6,
+      "optimizer_saved": true,
+      "private_critic_saved": true,
+      "target_total_decisions": 262144,
+      "remaining_requested_decisions": 62570
+    }
+  },
+  "preserved_baseline": "runtime_data/candidates/v6_2m_review/policy.pt",
+  "frozen_v6_runtime": "runtime_data/baselines/v6_3cc5468",
+  "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
+  "last_full_test_result": "70 passed; tactical-exercise audit added afterward and executed successfully (3/3 solved).",
+  "preview_search_trial": "32 paired core games: 16 wins search, 16 wins plain; five preview overrides, 1536 terminal rollout games, no demonstrated benefit; no search distillation.",
+  "pending_after_authorized_resume": [
+    "Remove STOP only after user asks to resume. Resume each pilot for its remaining decisions with settings_000000000.json parameters; preserve optimizers, league and RNG.",
+    "Evaluate completed pilots on 256-game broad/core/saved/saved-vs-varied schedules and audit held-out public/private values; do not promote on training metrics.",
+    "Finish replay importer review: add opponent labels to captured frames; raw public replays intentionally lack policy imitation masks and complete hidden sets.",
+    "Update README and play CLI for legacy v6 runtime; current README quickstart lacks the required legacy option.",
+    "Expand tactical exercises only where diagnostics show mistakes; persistent damage/speed belief updates remain unimplemented experiments.",
+    "Fresh test_v7 teams/seed 290731 are reserved and unplayed. Do not consume test during candidate selection."
+  ],
+  "checkpoint_note": "Latest completed updates are durable. In-flight rollout work was discarded to stop immediately."
+}

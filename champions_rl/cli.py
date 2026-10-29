@@ -93,6 +93,7 @@ def main():
     evaluate.add_argument("--device",default="cpu")
     evaluate.add_argument("--deterministic",action="store_true",help="Use the highest-probability legal action")
     evaluate.add_argument('--search',action='store_true',help='Prototype one-turn search; requires --deterministic')
+    evaluate.add_argument('--preview-rollout-search',action='store_true',help='Experimental 16-world terminal preview rollouts; no value head')
     evaluate.add_argument('--critic-state',type=Path)
     evaluate.add_argument('--roster',choices=['manifest','saved','saved_vs_varied'],default='manifest')
     evaluate.add_argument('--frozen-opponent',action='append',default=[],metavar='frozen_NAME=PATH')
@@ -161,7 +162,7 @@ def main():
         runner=evaluate_parallel if args.workers>1 else evaluate
         report=runner(args.checkpoint,args.opponents.split(","),args.games,args.output,args.split,args.seed,
                       args.device,args.learner_style,args.reference_teams,args.deterministic,search=args.search,
-                      roster=args.roster,critic_state=args.critic_state,frozen_opponents=dict(x.split('=',1) for x in args.frozen_opponent),legacy_runtime=args.legacy_runtime,**options)
+                      roster=args.roster,critic_state=args.critic_state,frozen_opponents=dict(x.split('=',1) for x in args.frozen_opponent),legacy_runtime=args.legacy_runtime,preview_rollout_search=args.preview_rollout_search,**options)
         print(json.dumps(report,indent=2))
     elif args.command=="status":
         import torch
