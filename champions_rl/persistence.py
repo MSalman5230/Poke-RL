@@ -1,7 +1,20 @@
 """Durable, atomic local experiment records."""
 import json
 import os
+import time
 from pathlib import Path
+
+
+def replace_with_retry(temporary,path):
+    # Windows readers, antivirus, and sync clients may briefly hold the old
+    # destination without delete sharing. Keep the fsynced temporary intact.
+    for attempt in range(20):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            if os.name!='nt' or attempt==19:raise
+            time.sleep(min(.25,.01*2**attempt))
 
 
 def atomic_json(path,value):
@@ -13,7 +26,7 @@ def atomic_json(path,value):
         handle.write('\n')
         handle.flush()
         os.fsync(handle.fileno())
-    temporary.replace(path)
+    replace_with_retry(temporary,path)
 
 
 def append_json(path,value):
@@ -31,7 +44,7 @@ def durable_torch_save(value,path):
         torch.save(value,handle)
         handle.flush()
         os.fsync(handle.fileno())
-    temporary.replace(path)
+    replace_with_retry(temporary,path)
 
 
 def durable_npz(path,**arrays):
@@ -42,4 +55,4 @@ def durable_npz(path,**arrays):
         np.savez_compressed(handle,**arrays)
         handle.flush()
         os.fsync(handle.fileno())
-    temporary.replace(path)
+    replace_with_retry(temporary,path)
