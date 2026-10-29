@@ -36,6 +36,11 @@ def summarize():
         training.update(actor_coverage_min=min(r['actor_sample_coverage'] for r in updates),
                         critic_coverage_min=min(r['critic_sample_coverage'] for r in updates),
                         actor_kl_stops=sum(r['kl_early_stop'] for r in updates),metrics_sha256=digest(metrics))
+        phases={}
+        for row in updates:phases[row.get('phase_start_steps',0)]=max(phases.get(row.get('phase_start_steps',0),0),row['seconds'])
+        training['elapsed_active_training_seconds']=sum(phases.values())
+        training['training_phases']=phases
+        training['aggregate_decisions_per_active_second']=last['steps']/sum(phases.values())
     training['paired_validations']={p.parent.name:read(p) for p in (run/'validation').glob('step_*/summary.json')}
     speed=runtime/'throughput_v5/report.json'
     benchmark=read(speed)

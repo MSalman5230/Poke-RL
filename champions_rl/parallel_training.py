@@ -320,7 +320,8 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
                 for result in matches:league_ratings[name]=.98*league_ratings.get(name,.5)+.02*(not result['win'])
             counts=Counter(r["opponent"] for r in recent if r["win"] is not None)
             win_rates={name:sum(r["win"] for r in recent if r["opponent"]==name)/n for name,n in counts.items()}
-            row={"update":update,"steps":total,"games":len(outcomes),"selfplay_games":sum(r["opponent"]=="current_selfplay" for r in outcomes),
+            row={"update":update,"steps":total,'phase_start_steps':starting_steps,'additional_policy_decisions':total-starting_steps,
+                 "games":len(outcomes),"selfplay_games":sum(r["opponent"]=="current_selfplay" for r in outcomes),
                  "win_rates":win_rates,"reference_games":reference_counts["game"],"reference_errors":reference_counts["error"],
                  'script_sampling_weights':script_weights,'league_ratings':{n:league_ratings[n] for n in eligible},
                  "reference_training_win_rate":reference_counts["wins"]/max(1,reference_counts["game"]),

@@ -17,6 +17,8 @@ class ReferenceBot:
         from .integrity import verify_reference
         self.snapshot_sha256=verify_reference()
         reference_environment()
+        from .reference_diagnostics import install
+        install()
         from opponents.autoplay_reference.bot.domain import catalog
         self.c = catalog.get()
         self.seed = seed
@@ -157,6 +159,9 @@ class ReferenceBot:
             "seconds": d.get("timings", {}).get("total"), "selected": d.get("selected_action"),
             "preview_policy": d.get("team_selection", {}).get("policy"),
             "preview_details": d.get("team_selection", {}).get("details", {})}
+        if d.get('errors'):
+            from opponents.autoplay_reference.bot.simulator.bridge import get
+            self.last_diagnostics['transport_failure']=getattr(get(),'champions_last_failure',None)
         self.audit.append({"turn":obs["turn"],"source":decision.source,"errors":d.get("errors",[]),
                            "trials":len(d.get("rollout_seeds",[])),"deadline_passed":d.get("deadline_passed",False),
                            "preview_policy":self.last_diagnostics["preview_policy"]})
