@@ -40,9 +40,15 @@ def summarize():
                         actor_kl_stops=sum(r['kl_early_stop'] for r in updates),metrics_sha256=digest(metrics))
         phases={}
         for row in updates:phases[row.get('phase_start_steps',0)]=max(phases.get(row.get('phase_start_steps',0),0),row['seconds'])
-        training['elapsed_active_training_seconds']=sum(phases.values())
+        training['elapsed_training_wall_seconds']=sum(phases.values())
         training['training_phases']=phases
-        training['aggregate_decisions_per_active_second']=last['steps']/sum(phases.values())
+        training['aggregate_decisions_per_wall_second']=last['steps']/sum(phases.values())
+        awake_phases={}
+        for row in updates:
+            if 'awake_seconds' in row:awake_phases[row.get('phase_start_steps',0)]=row['awake_seconds']
+        training['measured_awake_phase_seconds']=awake_phases
+        training['awake_time_available_for_all_phases']=set(awake_phases)==set(phases)
+        training['timing_note']='Wall time includes Windows sleep. Awake time is recorded only in newer phases; missing values are not inferred from performance.'
     training['paired_validations']={p.parent.name:read(p) for p in (run/'validation').glob('step_*/summary.json')}
     speed=runtime/'throughput_v5/report.json'
     benchmark=read(speed)

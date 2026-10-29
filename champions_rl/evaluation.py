@@ -18,6 +18,7 @@ from .teams import TeamPool, fingerprint
 from .training import emit, seed_all
 from .persistence import atomic_json
 from .provenance import feature_signature
+from .power import keep_awake
 
 
 def wilson(wins, total, z=1.96):
@@ -49,6 +50,7 @@ def acceptance(rows, split,roster='manifest'):
             "jaxcalibur_comparison":"Not measured: different format; no public executable/weights supplied."}
 
 
+@keep_awake()
 def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"),games=100,
              output=None, split="validation",seed=92341,device="cpu",learner_style=None,reference_teams="saved",deterministic=False,
              shard_index=0,shard_count=1,search=False,roster='manifest',critic_state=None,frozen_opponents=None):
@@ -180,6 +182,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
     return report
 
 
+@keep_awake()
 def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced","setup","defensive","stochastic"),
                       games=200, output=None,split="validation",seed=92341,device="cpu",learner_style=None,
                       reference_teams="saved",deterministic=False,workers=4,search=False,roster='manifest',critic_state=None,frozen_opponents=None):

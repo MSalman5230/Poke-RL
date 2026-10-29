@@ -19,6 +19,7 @@ from .training import emit,seed_all
 from .provenance import feature_signature
 from .persistence import durable_torch_save,atomic_json,append_json
 from .curriculum import style_weights,retain_league
+from .power import keep_awake,awake_seconds
 
 
 def cpu_weights(model):
@@ -122,6 +123,7 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=512,e
             'critic_completed_epochs':critic_epochs}
 
 
+@keep_awake()
 def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=64,horizon=32,
                    device="cuda",seed=101,selfplay_fraction=.1,snapshot_fraction=.1,reference_workers=0,
                    reference_weight=0.,learning_rate=3e-5,batch_size=512,epochs=4,checkpoint_every=1,
@@ -267,6 +269,7 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
                                restored=restored.get("worker_states",()) if restored else ())
         references=ReferencePool(reference_workers,replay_folder,model,seed+391)
         started=time.monotonic()
+        awake_started=awake_seconds()
         emit("parallel_workers_ready",startup_seconds=round(started-startup,2))
         while total-starting_steps<steps:
             if stop_file and Path(stop_file).exists():
@@ -320,7 +323,11 @@ def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=6
                 for result in matches:league_ratings[name]=.98*league_ratings.get(name,.5)+.02*(not result['win'])
             counts=Counter(r["opponent"] for r in recent if r["win"] is not None)
             win_rates={name:sum(r["win"] for r in recent if r["opponent"]==name)/n for name,n in counts.items()}
+            awake_elapsed=awake_seconds()-awake_started
             row={"update":update,"steps":total,'phase_start_steps':starting_steps,'additional_policy_decisions':total-starting_steps,
+                 'awake_seconds':round(awake_elapsed,3),
+                 'suspended_seconds':round(max(0.,time.monotonic()-started-awake_elapsed),3),
+                 'decisions_per_awake_second':round((total-starting_steps)/max(.001,awake_elapsed),2),
                  "games":len(outcomes),"selfplay_games":sum(r["opponent"]=="current_selfplay" for r in outcomes),
                  "win_rates":win_rates,"reference_games":reference_counts["game"],"reference_errors":reference_counts["error"],
                  'script_sampling_weights':script_weights,'league_ratings':{n:league_ratings[n] for n in eligible},
