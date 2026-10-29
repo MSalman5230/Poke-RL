@@ -1,6 +1,6 @@
 # Champions RL
 
-An offline battle bot for **PokÃ©mon Champions, Regulation M-C, Battle Stadium Singles**. It plays complete battles programmatically: six-PokÃ©mon preview, select three and a lead, moves, switches, forced replacements, and Mega Evolution. No account, battle server, OCR, tablet, or controller is involved.
+An offline battle bot for **Pokémon Champions, Regulation M-C, Battle Stadium Singles**. It plays complete battles programmatically: six-Pokémon preview, select three and a lead, moves, switches, forced replacements, and Mega Evolution. No account, battle server, OCR, tablet, or controller is involved.
 
 The method is **knowledge-guided reinforcement learning with imitation pretraining**. Game facts become structured inputs and pretrained embeddings; demonstrations teach an initial policy; masked PPO improves the policy through battles against a mixture of opponents and frozen versions of itself.
 
@@ -54,7 +54,7 @@ All battles and training run offline after installation. The copied reference po
 
    The reference teacher uses the original scoring, opponent predictions, 32 seeded simulations, and prepared damage/speed preview cache. Its demonstrations use its saved six on both sides. Other teachers use diverse teams. Reference collection is much slower than the simple opponents; degraded fallback decisions are rejected, not silently counted as the original bot.
 
-3. **Load domain knowledge and imitate.** The first phase learns speciesâ†’types and moveâ†’properties in the embedding tables. Behavior cloning then learns legal actions from the demonstrations, giving reference examples 50% of the sampling mass when both expert and scripted data exist. Whole games are held out for imitation validation; the best validation-loss checkpoint is saved:
+3. **Load domain knowledge and imitate.** The first phase learns species→types and move→properties in the embedding tables. Behavior cloning then learns legal actions from the demonstrations, giving reference examples 50% of the sampling mass when both expert and scripted data exist. Whole games are held out for imitation validation; the best validation-loss checkpoint is saved:
 
    ```powershell
    .\.venv\Scripts\python.exe -m champions_rl pretrain --data runtime_data\my_demos --output runtime_data\my_bc.pt --steps 5000
@@ -133,11 +133,11 @@ The recovered paired baseline is in `benchmarks/2026-10-29-scripted-round-robin.
 
 ## Knowledge, features, and rewards
 
-`data/feature_schema.json` lists every input. Entity features include species/type, known own stats, estimated enemy stats with knowledge flags, HP, status, boosts, PP, revealed moves/items/abilities, field conditions, and recent public move history. Candidate features include approximate damage, KO margin, accuracy, priority, recovery, setup, hazards, switches, Mega options, and preview coverage. Contextual PokÃ©mon embeddings connect each candidate to its actor and selected team.
+`data/feature_schema.json` lists every input. Entity features include species/type, known own stats, estimated enemy stats with knowledge flags, HP, status, boosts, PP, revealed moves/items/abilities, field conditions, and recent public move history. Candidate features include approximate damage, KO margin, accuracy, priority, recovery, setup, hazards, switches, Mega options, and preview coverage. Contextual Pokémon embeddings connect each candidate to its actor and selected team.
 
 Unknown opponents use compatible complete-set hypotheses weighted by usage, conditioned on revealed moves/items/abilities. Revealing one status move retains plausible unrevealed attacks; unknown stats use invested spreads and natures. Native tactical queries enumerate damage rolls for hypothetical sets and expose KO, survival-risk, and effective-order hints. Ordinary random critical hits are omitted, multi-hit rolls are correlated approximations, and survival/order features are not complete joint-turn probabilities. Public ages and unknown effect durations remain estimates. The native simulator resolves the actual battle. The full legacy catalog is retained only inside the isolated reference adapter for compatibility; the learned model's vocabulary is the restricted Champions export.
 
-Rewards are +1 for winning, -1 for losing, and 0 for a draw, plus `0.15 Ã— (next_potential - current_potential)`. Potential measures visible HP and remaining PokÃ©mon advantage and is zero at true terminal states. With gamma=1 the shaping terms telescope, preserving the completed-match objective instead of rewarding damage farming or excessive switching. Time caps bootstrap the value estimate and stop GAE from crossing into a reset game.
+Rewards are +1 for winning, -1 for losing, and 0 for a draw, plus `0.15 × (next_potential - current_potential)`. Potential measures visible HP and remaining Pokémon advantage and is zero at true terminal states. With gamma=1 the shaping terms telescope, preserving the completed-match objective instead of rewarding damage farming or excessive switching. Time caps bootstrap the value estimate and stop GAE from crossing into a reset game.
 
 ## Programmatic use and checks
 
@@ -175,7 +175,7 @@ These archived results predate native tactical features and the private critic; 
 | Parallel | 12 | 128 | 1 | 1,868 |
 | Parallel | 16 | 128 | 1 | 2,025 |
 
-Eight workers with 64 battles provide **4.1Ã—** the serial training throughput, or **3.6Ã—** when process startup and shutdown are included. The 16-worker / 128-battle configuration is the fastest tested, including a concurrent full reference opponent. These are short runs; throughput changes with battle lengths, retained snapshots, PPO early stopping, and other machine activity. Full results and provenance are saved in [64-battle measurements](benchmarks/2026-10-29-workers64.json) and [128-battle measurements with reference games](benchmarks/2026-10-29-workers128-reference.json).
+Eight workers with 64 battles provide **4.1×** the serial training throughput, or **3.6×** when process startup and shutdown are included. The 16-worker / 128-battle configuration is the fastest tested, including a concurrent full reference opponent. These are short runs; throughput changes with battle lengths, retained snapshots, PPO early stopping, and other machine activity. Full results and provenance are saved in [64-battle measurements](benchmarks/2026-10-29-workers64.json) and [128-battle measurements with reference games](benchmarks/2026-10-29-workers128-reference.json).
 
 A [longer integration run](benchmarks/2026-10-29-sustained-reference.json) resumed from 160,070 fast-training decisions and added 204,211 in 96.14 seconds (about 2,124 decisions/s). It successfully retained 12 league snapshots after creating 18, and its two phases completed 17 full reference games with 161 audited 32-trial decisions, no fallbacks, and no errors. That legacy checkpoint remains archived at `runtime_data/parallel_reference_smoke/latest.pt`; continuing it requires its frozen feature-v2 implementation.
 
@@ -193,7 +193,7 @@ Parallel self-play supplies two learner trajectories; the serial trainer supplie
 
 ## Scope and provenance
 
-- The engine is PokÃ©mon Showdown's Champions mod at `c0845f33d381402dfcb18ce324c20a94f18af075`, format `gen9championsbssregmc`. See the [pinned implementation](https://github.com/smogon/pokemon-showdown/tree/c0845f33d381402dfcb18ce324c20a94f18af075/data/mods/champions) and [official M-C announcement](https://champions-news.pokemon-home.com/en/page/816.html). Do not substitute generic Gen 9 OU or Scarlet/Violet Battle Stadium rules.
+- The engine is Pokémon Showdown's Champions mod at `c0845f33d381402dfcb18ce324c20a94f18af075`, format `gen9championsbssregmc`. See the [pinned implementation](https://github.com/smogon/pokemon-showdown/tree/c0845f33d381402dfcb18ce324c20a94f18af075/data/mods/champions) and [official M-C announcement](https://champions-news.pokemon-home.com/en/page/816.html). Do not substitute generic Gen 9 OU or Scarlet/Violet Battle Stadium rules.
 - Champions uses its stat-point system (66 total, 32 per stat), level 50, six choose three, and one Mega. Tera, Z-Moves, and Dynamax are not enabled. Showdown stores Champions stat points in the `evs` field; these are not ordinary 252-EV spreads.
 - Offline turn caps are implemented; cartridge decision clocks and total time limits are not simulated. Simulator accuracy depends on the pinned mod. Rare public-state effects and the legacy adapter remain areas for further differential testing.
 - `opponents/autoplay_reference/SOURCE_MANIFEST.json` identifies the original files and snapshot hashes. Imports and runtime paths were namespaced; only pure state helpers were extracted from the original perception layer. No OCR/device code is used. `tools/import_reference.py` refreshes that snapshot only when explicitly run with a source directory.

@@ -1,0 +1,26 @@
+{
+  "results": {
+    "full_imitation": {
+      "samples": 3571,
+      "expert_action_agreement": 0.8627835340240829,
+      "public_value_mse": 0.8670134767007074,
+      "public_value_explained_variance": 0.11048326954587606,
+      "reference_action_agreement": 0.8852459016393442
+    },
+    "corrected_imitation": {
+      "samples": 3571,
+      "expert_action_agreement": 0.8658639036684402,
+      "public_value_mse": 0.8473562114188338,
+      "public_value_explained_variance": 0.13019693025174373,
+      "reference_action_agreement": 0.8819672131147541
+    },
+    "small_data_ppo": {
+      "samples": 3571,
+      "expert_action_agreement": 0.728647437692523,
+      "public_value_mse": 0.8442714013043507,
+      "public_value_explained_variance": 0.14733921845319398,
+      "reference_action_agreement": 0.7114754098360656
+    }
+  },
+  "interpretation": "Held-out complete demonstration games; value targets are shaped returns under teacher/mixed behavior. This diagnoses in-distribution prediction, not counterfactual search accuracy or an independent playing-strength benchmark."
+}
