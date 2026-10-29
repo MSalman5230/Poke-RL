@@ -18,31 +18,40 @@ def recover(source,output):
     if source==output:raise ValueError('Recovery must preserve the original output folder')
     report=json.loads((source/'report.json').read_text())
     if set(report['results'])!={'reference'}:raise ValueError('Use a reference-only evaluation')
-    records=json.loads((source/'reference_games.json').read_text())
+    merged=source/'reference_games.json'
+    records=json.loads(merged.read_text()) if merged.exists() else [row for path in sorted(source.glob('worker_*/reference_games.json')) for row in json.loads(path.read_text())]
     games=report['requested_games_per_opponent']
-    if {r['game'] for r in records}!=set(range(games)):raise ValueError('Original schedule has missing games')
+    by_game={r['game']:r for r in records}
+    if len(by_game)!=len(records) or not set(by_game)<=set(range(games)):raise ValueError('Invalid original game IDs')
+    records=[by_game.get(game,{'game':game,'error':'Game not completed before source interruption',
+                               'interrupted_before_completion':True}) for game in range(games)]
     output.mkdir(parents=True,exist_ok=True)
     repairs=[];source_hashes={report['implementation_sha256']}
     for index,record in enumerate(records):
         if not record.get('error'):continue  # never rerun a valid loss
-        folder=output/f"retry_{record['game']:06d}"
-        completed=folder/'reference_games.json'
-        if not completed.exists():
-            command=[sys.executable,'-u','-m','champions_rl','evaluate','--checkpoint',str(source/'evaluated_model.pt'),
+        retried=None
+        for attempt in range(3):
+            folder=output/(f"retry_{record['game']:06d}"+(f'_attempt{attempt+1}' if attempt else ''))
+            completed=folder/'reference_games.json'
+            if folder.exists() and not completed.exists():continue  # preserve an interrupted retry
+            if not completed.exists():
+                command=[sys.executable,'-u','-m','champions_rl','evaluate','--checkpoint',str(source/'evaluated_model.pt'),
                      '--opponents','reference','--games',str(games),'--seed',str(report['seed']),
                      '--split',report['split'],'--roster',report['roster'],'--reference-teams',report['reference_teams'],
                      '--shard-count',str(games),'--shard-index',str(record['game']),'--output',str(folder)]
-            if report['deterministic']:command.append('--deterministic')
-            with (output/(folder.name+'.log')).open('w',encoding='utf-8') as log:
-                subprocess.run(command,cwd=ROOT,stdout=log,stderr=subprocess.STDOUT,check=True,
+                if report['deterministic']:command.append('--deterministic')
+                with (output/(folder.name+'.log')).open('w',encoding='utf-8') as log:
+                    subprocess.run(command,cwd=ROOT,stdout=log,stderr=subprocess.STDOUT,check=True,
                                creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+            candidate=json.loads(completed.read_text())
+            if len(candidate)!=1 or candidate[0]['game']!=record['game']:raise ValueError('Unexpected retry game IDs')
+            if not candidate[0].get('error'):
+                retried=candidate;break
+        if retried is None:raise RuntimeError(f'Three incomplete/invalid retries; retained at {output}')
         retry_report=json.loads((folder/'report.json').read_text())
         for key in ('checkpoint_sha256','feature_signature','knowledge_sha256','team_manifest_sha256',
                     'reference_manifest_sha256','seed','split','roster','reference_teams','deterministic'):
             if report.get(key)!=retry_report.get(key):raise ValueError(f'Recovery changed {key}')
-        retried=json.loads(completed.read_text())
-        if len(retried)!=1 or retried[0]['game']!=record['game'] or retried[0].get('error'):
-            raise RuntimeError(f'Retry still invalid; original and retry retained at {folder}')
         repairs.append({'game':record['game'],'original_invalid_attempt':record,'retry':str(folder),
                         'retry_implementation_sha256':retry_report['implementation_sha256']})
         source_hashes.add(retry_report['implementation_sha256']);records[index]=retried[0]
@@ -55,7 +64,7 @@ def recover(source,output):
         raise ValueError('An allegedly valid reference game contains a failed decision audit')
     report.update(results={'reference':row},complete=True,recovered=True,original_report=str(source/'report.json'),
                   invalid_attempts_preserved=repairs,implementation_sources=sorted(source_hashes),
-                  recovery_policy='Only runtime-invalid scheduled games retried; valid losses never rerun. Original failure evidence retained. This validation recovery is not a clean test certification.')
+                  recovery_policy='Only interrupted or runtime-invalid scheduled games retried in separate processes; valid losses never rerun. Original failure evidence retained. This validation recovery is not a clean test certification.')
     report['implementation_sha256']=hashlib.sha256(json.dumps(sorted(source_hashes)).encode()).hexdigest()
     report['acceptance']=acceptance(report['results'],report['split'],report['roster'])
     report['acceptance']['passed']=False
