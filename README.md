@@ -12,10 +12,12 @@ From this directory in PowerShell:
 
 ```powershell
 .\.venv\Scripts\python.exe -m champions_rl status
-.\.venv\Scripts\python.exe -m champions_rl play --checkpoint runtime_data\candidates\v6_2m_review\policy.pt --opponent balanced
+.\.venv\Scripts\python.exe -m champions_rl play --checkpoint runtime_data\candidates\v6_2m_review\policy.pt --legacy-runtime runtime_data\baselines\v6_3cc5468 --opponent balanced
 ```
 
 `play` writes a complete public Showdown protocol log and a JSON result to `runtime_data/play/`. A neural policy receives only its own player-visible state. An opponent's actual moveset, items, selected trio, and pending action are not inputs.
+
+The source now uses feature version 7. The tested v6 policy requires the explicit, hash-verified frozen runtime shown above; it is never silently loaded into a different encoder. A v7 checkpoint, such as the experimental `runtime_data/bc_v7_dropout.pt`, runs without `--legacy-runtime`. Neither the v7 imitation policy nor the ongoing PPO pilots has been promoted over v6.
 
 The completed run is `runtime_data/ppo_v6_full/`. `latest.pt` is an inference checkpoint; `trainer_state.pt` also includes both optimizers, RNG streams, and the frozen opponent league. The candidate folder preserves the tested policy and its result separately. Training logs contain **training** win rates, which are not benchmark results.
 
@@ -41,9 +43,9 @@ All battles and training run offline after installation. The copied reference po
 
    `data/knowledge.json` contains the restricted species, legal learnsets, abilities, items, types, natures, and move properties. `data/sets.json` contains 2,189 simulator-validated example sets covering all 269 selectable species/forms in this snapshot. There are 366 forms including battle-only transformations, representing 231 National Dex numbers, and 511 learnable/forced moves. These are all **eligible facts**, not an exhaustive enumeration of every possible legal competitive set.
 
-   The library includes 50 authored complete strategy templates. Mixed sampling selects coherent rain, sun, sand, snow, balance, or offense teams 65% of the time, with broader coverage otherwise. Synthetic fallback sets have obvious item/move/investment contradictions repaired; they are not claimed to be tournament sets. Team identities ignore roster and move-slot permutations. Train/validation/test contain 128/64/128 disjoint compositions; `validation_competitive` adds 64 curated-mixture compositions. Existing benchmark manifests survive `prepare`. Individual species and sets can overlap.
+   The library includes 50 authored complete strategy templates. The v7 `diverse` generator selects usage-teammate compositions 60% of the time, the earlier mixed generator 20%, broad species coverage 10%, and usage-ranked teams 10%. It keeps complete sets intact, checks item/species constraints, and accounts for weather dependencies and team coverage. These are synthetic plausible teams, not recovered tournament rosters. Team identities ignore roster and move-slot permutations. Train/validation/test contain 128/64/128 disjoint compositions; `validation_competitive` adds 64 curated-mixture compositions. The separate `test_v7` manifest reserves 128 fresh teams for a future frozen candidate. Existing benchmark manifests survive `prepare`. Individual species and sets can overlap; held-out three-Pokemon cores are excluded from new training compositions.
 
-2. **Collect demonstrations from several policies.** Each completed game is a durable shard. The current feature schema is v6. Its fingerprint covers the knowledge, set priors, encoder, public-state parser, and native damage implementation. Older encoded vectors are incompatible. Use `runtime_data/demos_v6_final` or collect fresh data:
+2. **Collect demonstrations from several policies.** Each completed game is a durable shard. The current feature schema is v7. Its fingerprint covers the knowledge, set priors, encoder, public-state parser, and native damage implementation. Older encoded vectors are incompatible. Use the rebuilt `runtime_data/demos_v7` or collect fresh data:
 
    ```powershell
    .\.venv\Scripts\python.exe -m champions_rl collect --teacher balanced --games 1000 --seed 101 --output runtime_data\my_demos
@@ -60,13 +62,15 @@ All battles and training run offline after installation. The copied reference po
    .\.venv\Scripts\python.exe -m champions_rl pretrain --data runtime_data\my_demos --output runtime_data\my_bc.pt --steps 5000
    ```
 
-4. **Improve through battles.** The 574,786-parameter transformer (two layers, width 128, four attention heads) has policy, public-value, and semantic opponent-move/switch heads. A separate 428,841-parameter critic sees both actual teams only during training. Its weights and private inputs are excluded from deployed policy checkpoints. PPO uses legal-action masking, undiscounted match rewards, GAE, and entropy regularization. Use the parallel trainer:
+4. **Improve through battles.** The v7 transformer has **613,437 parameters** (two layers, width 128, four attention heads), with policy, public-value, and semantic opponent-move/switch heads. A separate **435,241-parameter critic** sees both actual teams only during training. Its weights and private inputs are excluded from deployed policy checkpoints. PPO uses legal-action masking, undiscounted match rewards, GAE, and entropy regularization. Use the parallel trainer:
 
    ```powershell
    .\.venv\Scripts\python.exe -m champions_rl train-fast --initial runtime_data\my_bc.pt --steps 2000000 --workers 16 --envs 256 --horizon 16 --rollout-decisions 32768 --batch-size 512 --learning-rate 0.00003 --output runtime_data\my_run
    ```
 
    The central learner batches neural decisions from parallel CPU battle workers. It freezes policy weights while accumulating at least 32,768 decisions per update (configurable with `--rollout-decisions`; the final requested batch may be smaller). Defaults are 10% current-policy self-play, 10% snapshots, and 80% scripted opponents. Sampling shifts toward difficult scripted styles while retaining coverage. The league keeps the imitation anchor, difficult older opponents, and four recent snapshots rather than only the latest 12. These difficulty estimates come from training matches, not an independent strength ranking.
+
+   V7 uses the public value head for PPO advantages by default. The private critic trains separately at learning rate `1e-4` for two passes, using bootstrapped targets. Logs include both heads' pre-update explained variance on completed-game returns. Private training loss alone does not justify switching the baseline. Training-only identity dropout masks 25% of species/move/item/ability identities consistently within each observation; PPO records retain the exact masked input used to sample the action and old probability. Inference uses all available identities.
 
    Current-policy self-play learns from **both players' decisions**, with separate observations, rewards, and advantage calculations for each seat. Waiting phases contribute value targets and rewards but no policy loss. `--steps` counts actual learning-player decisions, not games or waiting phases; the final rollout can round it up. A self-play win rate is not a strength metric and is not included in opponent win-rate summaries.
 
@@ -179,6 +183,20 @@ Tests cover restricted legality and every generated set/team, hidden-information
 
 ## Review-cycle measurements
 
+### V7 representation and generalization experiments
+
+V7 encodes each move with its own PP, reveal probability, and mechanical attributes, then pools the set independently of arbitrary slot order. Conversion retains its meaningful first-slot flag. Opponent switch predictions score each destination Pokemon with battle context and public eligibility masks. The actor and critic now receive public hit counts, cumulative faints, last move, and Stockpile/Perish state; the critic additionally receives the simulator's private state during training.
+
+The fixed 208-position representation audit found zero changed legal choices under equivalent move reorderings, versus 29 for the frozen v6 model. Maximum remapped probability error was below `6e-7`; opponent switch scores followed permuted destinations. Rage Fist and cumulative faint changes now alter critic inputs. These tests establish representation correctness, not stronger play by themselves.
+
+The v7 dropout imitation candidate scored 734/1,280 on broad validation and 144/256 on held-out cores, versus v6's 717/1,280 and 140/256. Paired differences were +1.3 points (95% interval -2.6 to +5.3) and +1.6 (-5.5 to +8.6). The matched no-dropout candidate scored 721/1,280 and 144/256. Neither the migration nor dropout has yet shown a statistically established battle improvement. `benchmarks/2026-10-30-v7-experiment-protocol.json` records the two 262,144-decision mixture pilots and promotion criteria before their results. The prospective `test_v7` schedule, seed 290731, remains unused.
+
+The terminal preview-search experiment samples 16 public-compatible worlds and runs all top-three distinct trio/lead options to completion using the frozen policy on both sides. It uses no value head; a failed/capped continuation cancels the comparison. A paired margin is required to override the base choice. On the initial 32-game core trial it won 16 games, exactly matching the plain policy (paired difference interval -9.4 to +9.4 points), despite five overrides and 1,536 continuation games. It stays off, with no search labels added to training. The separate simulator-verified immediate-endgame diagnostic was solved in all three fixtures; this small result is not a battle-strength benchmark.
+
+`python -m champions_rl.replays --input replay.json --output runtime_data/replays` imports offline `gen9championsbssregmc` protocol logs through the existing public-state parser. Ordinary spectator replays yield public evidence and observed action records, but lack full own sets and trustworthy legal masks for policy imitation. A SHA-bound `--companion` can supply independently captured decision frames and explicit complete teams. Only verified move-phase frames become imitation samples; unseen enemy choices remain unlabeled, and observed replies are targets only. Nothing is added to training automatically. Parser/importer fingerprints prevent reuse of stale imports. This pipeline has simulator-generated regression coverage; no human replay dataset has yet been collected.
+
+### Completed V6 run
+
 The run in `runtime_data/ppo_v6_full` completed **2,001,783 policy decisions in 57 PPO updates**. Every update used 100% of the actor and critic samples for four epochs. The representative KL guard remained enabled; no update triggered it. Frozen paired validation ran every ten updates, and the final checkpoint received the same suite. These are observed outcomes, not an isolated causal ablation of each fix.
 
 | Validation schedule | Starting imitation policy | Final PPO policy |
@@ -238,7 +256,7 @@ Speed is the improvement established here. A separate deterministic validation o
 Run one benchmark suite at a time, with other training/evaluation jobs stopped:
 
 ```powershell
-.\.venv\Scripts\python.exe tools\benchmark_training.py --initial runtime_data\bc_v6_final.pt --output runtime_data\speed_check --steps 32768 --workers 12,16,24 --envs 256 --repeats 2
+.\.venv\Scripts\python.exe tools\benchmark_training.py --initial runtime_data\bc_v7_dropout.pt --output runtime_data\speed_check --steps 32768 --workers 12,16,24 --envs 256 --repeats 2
 ```
 
 Each run starts a fresh process from the same weights. `report.json` records source/checkpoint hashes, seeds, hardware, training throughput, whole-process time, inference batch sizes, and rollout/optimization time. The output folder must be new so previous measurements cannot be mixed into a run. Add `--reference-workers 1` to measure concurrent original-bot work. Use an existing compatible checkpoint for `--initial` if the local experiment checkpoint is unavailable.

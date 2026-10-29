@@ -14,6 +14,7 @@ from .persistence import atomic_json,durable_npz
 from .provenance import feature_signature
 from .rewards import potential
 from .teams import fingerprint
+from .opponent_labels import switch_offset
 
 
 def parse_replay(payload):
@@ -28,15 +29,21 @@ def import_replay(source,output,companion=None):
     source=Path(source);output=Path(output);content=source.read_bytes()
     payload=json.loads(content);parsed=parse_replay(payload)
     sha=hashlib.sha256(content).hexdigest();folder=output/sha[:20]
+    provenance={'feature_signature':feature_signature(),
+                'parser_sha256':hashlib.sha256((ROOT/'simulator/replays.cjs').read_bytes()).hexdigest(),
+                'importer_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                'opponent_labels_sha256':hashlib.sha256((ROOT/'champions_rl/opponent_labels.py').read_bytes()).hexdigest()}
     if (folder/'manifest.json').exists():
         existing=json.loads((folder/'manifest.json').read_text())
         companion_sha=hashlib.sha256(Path(companion).read_bytes()).hexdigest() if companion else None
         if existing['source_sha256']!=sha or existing.get('companion_sha256')!=companion_sha:
             raise ValueError('Existing replay import differs; use a new output folder')
+        if any(existing.get(key)!=value for key,value in provenance.items()):
+            raise ValueError('Existing replay import has incompatible parser/features; use a new output folder')
         return existing
     sidecar=json.loads(Path(companion).read_text()) if companion else {}
     if sidecar and sidecar.get('source_sha256')!=sha:raise ValueError('Companion must bind to the exact replay SHA256')
-    teams=[];samples=[];labels=[];outcomes=[];enemy=[];raw=[]
+    teams=[];samples=[];labels=[];outcomes=[];enemy=[];raw=[];seen_frames=set()
     if sidecar.get('decision_frames') and parsed['warnings']:
         raise ValueError('Identity/Transform replay needs specialized reconstruction before imitation')
     with Engine() as engine:
@@ -59,6 +66,9 @@ def import_replay(source,output,companion=None):
         for frame in sidecar.get('decision_frames',[]):
             obs=frame['observation'];side=obs['side'];action=frame['action']
             if side not in (0,1) or obs.get('format')!=parsed['format']:raise ValueError('Invalid decision-frame side or format')
+            frame_key=(obs['turn'],side)
+            if frame_key in seen_frames:raise ValueError('Duplicate captured decision for the same turn and side')
+            seen_frames.add(frame_key)
             if any(any(k in m for k in ('set','stats','selected','current_hp','max_hp')) for m in obs['opponent']):
                 raise ValueError('Private opponent information in imitation frame')
             if not all(m.get('set') for m in obs['own']):raise ValueError('Own team must be known in captured frames')
@@ -85,8 +95,22 @@ def import_replay(source,output,companion=None):
                 if abs(mon.get('hp',1)-public['hp'])>.011:raise ValueError('Captured opponent HP differs from replay')
             samples.append(encoder.encode(obs));labels.append(action)
             outcome=matching[0]['actor_outcome']
-            outcomes.append(outcome-.15*potential(obs));enemy.append(-100)
-            raw.append({'observation':obs,'expert_action':action,'student_action':None,'outcome':outcome})
+            # A reply is a target, never an input. Use only the other side's
+            # ordinary action from this simultaneous turn, not a later reveal
+            # or a guessed choice when that Pokemon could not act.
+            replies=[r['opponent_action'] for r in parsed['examples']
+                     if r['turn']==obs['turn'] and r['actor_side']==1-side]
+            enemy_label=-100
+            if len(replies)==1:
+                reply=replies[0]
+                if reply['kind']=='move':
+                    token=knowledge().token('moves',reply['move'])
+                    if token>1:enemy_label=token
+                elif reply['kind']=='switch' and 0<=reply.get('slot',-1)<6:
+                    enemy_label=switch_offset()+reply['slot']
+            outcomes.append(outcome-.15*potential(obs));enemy.append(enemy_label)
+            raw.append({'observation':obs,'expert_action':action,'student_action':None,
+                        'outcome':outcome,'enemy_label':enemy_label})
     folder.mkdir(parents=True,exist_ok=True)
     with gzip.open(folder/'public_examples.json.gz','wt',encoding='utf-8') as stream:json.dump(parsed,stream)
     atomic_json(folder/'complete_teams.json',teams)
@@ -103,8 +127,9 @@ def import_replay(source,output,companion=None):
             json.dump({'rows':raw,'outcome':None,'feature_signature':feature_signature()},stream)
     report={'source_sha256':sha,'companion_sha256':hashlib.sha256(Path(companion).read_bytes()).hexdigest() if companion else None,
             'format':parsed['format'],'public_action_examples':len(parsed['examples']),'imitation_samples':len(samples),
+            'opponent_labeled_samples':sum(label!=-100 for label in enemy),
             'complete_teams':len(teams),'ended':parsed['ended'],'output':str(folder.resolve()),
-            'feature_signature':feature_signature(),'parser_sha256':hashlib.sha256((ROOT/'simulator/replays.cjs').read_bytes()).hexdigest(),
+            **provenance,
             'limitations':parsed['limitations'],'automatically_added_to_training':False}
     atomic_json(folder/'manifest.json',report)
     return report

@@ -1,0 +1,35 @@
+{
+  "status": "resumed_after_user_request",
+  "authorization": "User said continue after the restart pause.",
+  "resumed_at_utc": "2026-10-29T23:56:05.481632+00:00",
+  "source_commit_at_launch": "7c8f14f812b0784f98c3b5f131cf7fbeb023237a",
+  "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
+  "stop_marker_removed": true,
+  "resume_preserves": [
+    "actor",
+    "critic",
+    "both optimizers",
+    "RNG state",
+    "league",
+    "worker counters"
+  ],
+  "battle_state_note": "Fresh seeded battles start from saved worker RNG/counters; in-flight rollout was discarded during the user-requested stop.",
+  "runs": {
+    "control": {
+      "starting_steps": 164843,
+      "starting_updates": 5,
+      "requested_additional_decisions": 97301,
+      "launcher_pid": 29764,
+      "log": "runtime_data/ppo_v7_mix_control_resume.log"
+    },
+    "neural": {
+      "starting_steps": 199574,
+      "starting_updates": 6,
+      "requested_additional_decisions": 62570,
+      "launcher_pid": 10896,
+      "log": "runtime_data/ppo_v7_mix_neural_resume.log"
+    }
+  },
+  "settings": "Each run retains settings_000000000.json; resumed settings recorded under starting decision count.",
+  "next": "Complete pilots, compare paired broad/core/saved/cross validation and held-out value prediction. No prospective test or promotion yet."
+}

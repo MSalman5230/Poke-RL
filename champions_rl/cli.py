@@ -104,6 +104,7 @@ def main():
     sub.add_parser("status",help="Show local GPU and training status")
     play=sub.add_parser("play",help="Play and save a complete offline battle")
     play.add_argument("--checkpoint",type=Path,required=True)
+    play.add_argument('--legacy-runtime',type=Path,help='Verified source snapshot required for an older checkpoint')
     play.add_argument("--opponent",choices=["reference","random","damage","balanced","setup","defensive"],default="balanced")
     play.add_argument("--seed",type=int,default=101)
     play.add_argument('--deterministic',action=argparse.BooleanOptionalAction,default=True)
@@ -154,7 +155,8 @@ def main():
                        validation_every=args.validation_every,validation_workers=args.validation_workers,validation_games=args.validation_games)
     elif args.command=="play":
         from .evaluation import evaluate
-        report=evaluate(args.checkpoint,[args.opponent],1,args.output,"validation",args.seed,deterministic=args.deterministic,search=args.search,critic_state=args.critic_state)
+        report=evaluate(args.checkpoint,[args.opponent],1,args.output,"validation",args.seed,deterministic=args.deterministic,
+                        search=args.search,critic_state=args.critic_state,legacy_runtime=args.legacy_runtime)
         print(json.dumps(report["results"],indent=2))
     elif args.command=="evaluate":
         from .evaluation import evaluate,evaluate_parallel
