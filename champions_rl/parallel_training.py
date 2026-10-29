@@ -38,12 +38,13 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=128,e
     enemies=torch.tensor([r["enemy"] for r in records],device=device)
     model.train()
     if critic is not None:critic.train()
-    losses,entropies,kls=[],[],[]
+    losses,entropies,kls,private_errors=[],[],[],[]
+    optimized_samples=0
     early=False
     for _ in range(epochs):
         for index in torch.randperm(len(records),device=device).split(batch_size):
             obs={k:v[index] for k,v in data.items()}
-            logits,value,enemy=model(obs)
+            logits,value,enemy=model(obs,detach_value=critic is not None)
             distribution=Categorical(logits=logits)
             logratio=distribution.log_prob(actions[index])-old_logp[index]
             ratio=logratio.exp()
@@ -56,14 +57,21 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=128,e
             uniform=uniform[learn].mean() if learn.any() else value.sum()*0
             valid=enemies[index]>=0
             auxiliary=nn.functional.cross_entropy(enemy[valid],enemies[index][valid]) if valid.any() else value.sum()*0
-            loss=policy+.5*nn.functional.mse_loss(value,returns[index])-.01*entropy+.001*uniform+.03*auxiliary
+            # The private critic supplies PPO's baseline. Keep a public value
+            # head for experimental search, but its noisy partial-view targets
+            # must not push the policy encoder through a second critic loss.
+            value_weight=.1 if critic is not None else .5
+            loss=policy+value_weight*nn.functional.mse_loss(value,returns[index])-.01*entropy+.001*uniform+.03*auxiliary
             if critic is not None:
-                loss+=.5*nn.functional.mse_loss(critic({k:v[index] for k,v in private.items()}),returns[index])
+                private_error=nn.functional.mse_loss(critic({k:v[index] for k,v in private.items()}),returns[index])
+                private_errors.append(float(private_error.detach()))
+                loss+=.5*private_error
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(),.5)
             if critic is not None:nn.utils.clip_grad_norm_(critic.parameters(),.5)
             optimizer.step()
+            optimized_samples+=len(index)
             kl=((ratio-1)-logratio)[learn].mean().detach() if learn.any() else torch.tensor(0.)
             losses.append(float(loss.detach()))
             entropies.append(float(entropy.detach()))
@@ -73,7 +81,9 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=128,e
                 break
         if early:
             break
-    return {"loss":float(np.mean(losses)),"entropy":float(np.mean(entropies)),"approx_kl":float(np.mean(kls))}
+    return {"loss":float(np.mean(losses)),"entropy":float(np.mean(entropies)),"approx_kl":float(np.mean(kls)),
+            'private_value_mse':float(np.mean(private_errors)) if private_errors else None,
+            'optimized_samples':optimized_samples,'kl_early_stop':early}
 
 
 def train_parallel(output,initial=None,resume=None,steps=200000,workers=4,envs=64,horizon=32,

@@ -3,11 +3,26 @@ import json
 import random
 import subprocess
 import numpy as np
+import pytest
 from champions_rl.arena import play_match,load_teams
 from champions_rl.engine import ROOT,Engine
 from champions_rl.features import Encoder
 from champions_rl.policies import ScriptedBot
 from champions_rl.teams import TeamPool
+
+
+def test_simulator_exit_preserves_failed_query_without_silent_restart(tmp_path):
+    with Engine(failure_directory=tmp_path) as engine:
+        engine.request('ping')
+        process=engine.process
+        process.kill();process.wait()
+        with pytest.raises(RuntimeError,match='diagnostics='):
+            engine.request('ping')
+        assert engine.process is process and process.poll() is not None
+    files=list(tmp_path.glob('*.json'))
+    assert len(files)==1
+    details=json.loads(files[0].read_text())
+    assert details['operation']=='ping' and details['process_exit_code'] is not None
 
 
 def test_preview_bring_six_pick_three_and_legal_actions():

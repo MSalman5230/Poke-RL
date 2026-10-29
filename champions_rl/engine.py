@@ -14,8 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Engine:
-    def __init__(self, timeout=60):
+    def __init__(self, timeout=60,failure_directory=None):
         self.timeout = timeout
+        self.failure_directory=Path(failure_directory) if failure_directory else ROOT/'runtime_data/engine_failures'
         self.queue = queue.Queue()
         self.errors = deque(maxlen=20)
         self.lock = threading.Lock()
@@ -34,21 +35,42 @@ class Engine:
             finally:
                 self.queue.put({"error": "Simulator exited"})
         threading.Thread(target=read, daemon=True).start()
-        threading.Thread(target=lambda: self.errors.extend(line.rstrip() for line in self.process.stderr), daemon=True).start()
+        self.stderr_thread=threading.Thread(target=lambda: self.errors.extend(line.rstrip() for line in self.process.stderr),daemon=True)
+        self.stderr_thread.start()
         atexit.register(self.close)
+
+    def failure(self,message,op,payload):
+        """Keep a reproducible failed query; never silently replace a live game."""
+        from .persistence import atomic_json
+        if message=='Simulator exited' or self.process.poll() is not None:
+            try:self.process.wait(timeout=.25)
+            except subprocess.TimeoutExpired:pass
+            self.stderr_thread.join(timeout=.25)
+        code=self.process.poll()
+        path=self.failure_directory/(uuid.uuid4().hex+'.json')
+        details={'error':message,'operation':op,'payload':payload,'process_exit_code':code,'stderr':list(self.errors)}
+        try:
+            atomic_json(path,details)
+            location=str(path)
+        except OSError as error:
+            location=f'could not save diagnostics: {error}'
+        return RuntimeError(f'{message}; exit={code}; stderr={list(self.errors)}; diagnostics={location}')
 
     def request(self, op, **payload):
         with self.lock:
             key = uuid.uuid4().hex
-            self.process.stdin.write(json.dumps({"id": key, "op": op, **payload}) + "\n")
-            self.process.stdin.flush()
+            try:
+                self.process.stdin.write(json.dumps({"id": key, "op": op, **payload}) + "\n")
+                self.process.stdin.flush()
+            except (BrokenPipeError,OSError) as error:
+                raise self.failure(str(error),op,payload) from error
             try:
                 result = self.queue.get(timeout=self.timeout)
             except queue.Empty as exc:
                 self.close()
                 raise TimeoutError("Local simulator did not respond") from exc
             if result.get("error") or result.get("id") != key:
-                raise RuntimeError(result.get("error") or f"Simulator ID mismatch: {result}; {list(self.errors)}")
+                raise self.failure(result.get('error') or f'Simulator ID mismatch: {result}',op,payload)
             return result["result"]
 
     def batch(self, requests):
@@ -65,7 +87,9 @@ class Engine:
         if process:
             for stream in (process.stdin, process.stdout, process.stderr):
                 if stream and not stream.closed:
-                    stream.close()
+                    try:stream.close()
+                    except OSError:
+                        if process.poll() is None:raise
 
     def __enter__(self):
         return self

@@ -32,6 +32,10 @@ def test_private_teams_change_only_training_critic_inputs():
             assert torch.equal(model(tensor_batch([x]))[0],model(tensor_batch([y]))[0])
             assert not torch.equal(critic(tensor_batch([private_a])),critic(tensor_batch([private_b])))
         assert not ({id(p) for p in model.parameters()} & {id(p) for p in critic.parameters()})
+        model.zero_grad(set_to_none=True)
+        model(tensor_batch([x]),detach_value=True)[1].sum().backward()
+        assert model.value[-1].weight.grad is not None
+        assert model.mon.weight.grad is None and model.species_embedding.weight.grad is None
 
 
 def test_semantic_reply_labels_do_not_depend_on_hidden_move_order():

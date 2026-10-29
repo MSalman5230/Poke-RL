@@ -70,7 +70,7 @@ class BattleModel(nn.Module):
         context = self.norm(self.transformer(tokens + self.segment(self.segments).unsqueeze(0)))
         return context
 
-    def forward(self, obs):
+    def forward(self, obs,detach_value=False):
         context=self.context(obs)
         pooled = context[:,0]
         if self.config["action_context"]:
@@ -93,7 +93,7 @@ class BattleModel(nn.Module):
         # Terminal/no-choice states are evaluated only for value bootstrapping.
         mask[~mask.any(-1),0] = True
         logits = logits.masked_fill(~mask,-1e9)
-        return logits,self.value(pooled).squeeze(-1),self.opponent_action(pooled)
+        return logits,self.value(pooled.detach() if detach_value else pooled).squeeze(-1),self.opponent_action(pooled)
 
     @torch.no_grad()
     def act(self, obs, deterministic=False):
