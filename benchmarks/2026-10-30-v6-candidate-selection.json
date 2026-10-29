@@ -1,0 +1,142 @@
+{
+  "selected_utc": "2026-10-29T19:10:47.470750+00:00",
+  "status": "frozen_for_independent_test",
+  "policy": "runtime_data/candidates/v6_2m_review/policy.pt",
+  "policy_sha256": "8593b13c5c452044fe3e242471baf0cdeb668883436d37d2371ea6a6f9e66e45",
+  "critic_sha256": "1f682ab79f9348a86f4fe6832a21a85abd277e147d026073e0a8ca7788d754ed",
+  "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+  "training_decisions": 2001783,
+  "model_config": {
+    "width": 128,
+    "layers": 2,
+    "heads": 4,
+    "action_context": true,
+    "heuristic_weight": 0.0,
+    "history_position": true
+  },
+  "decision": "Selected using validation only. Final model improves reference, competitive-team aggregate and broad-team aggregate over the 1.41M candidate; core score is 140/256 versus 141/256. Search remains disabled because private-value predictions do not generalize reliably.",
+  "validation": {
+    "reference": {
+      "reference": {
+        "games": 128,
+        "wins": 126,
+        "losses": 2,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.984375,
+        "confidence": [
+          0.9448179261814565,
+          0.9957046402922513
+        ]
+      }
+    },
+    "competitive": {
+      "balanced": {
+        "games": 256,
+        "wins": 186,
+        "losses": 70,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.7265625,
+        "confidence": [
+          0.6689134962060558,
+          0.7775123262950373
+        ]
+      },
+      "hyperoffense": {
+        "games": 256,
+        "wins": 182,
+        "losses": 74,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.7109375,
+        "confidence": [
+          0.6526102453641551,
+          0.7630275893782419
+        ]
+      },
+      "setup_sweeper": {
+        "games": 256,
+        "wins": 189,
+        "losses": 67,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.73828125,
+        "confidence": [
+          0.6811946050676242,
+          0.7883222082524909
+        ]
+      },
+      "attrition": {
+        "games": 256,
+        "wins": 190,
+        "losses": 65,
+        "draws": 1,
+        "errors": 0,
+        "truncations": 1,
+        "fallbacks": 0,
+        "win_rate": 0.7421875,
+        "confidence": [
+          0.6852989013222897,
+          0.7919149089374995
+        ]
+      },
+      "pivot": {
+        "games": 256,
+        "wins": 181,
+        "losses": 75,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.70703125,
+        "confidence": [
+          0.6485467873976802,
+          0.7593940504050427
+        ]
+      }
+    },
+    "cores": {
+      "balanced": {
+        "games": 256,
+        "wins": 140,
+        "losses": 116,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.546875,
+        "confidence": [
+          0.4856502298943122,
+          0.606713733381776
+        ]
+      }
+    }
+  },
+  "independent_test_plan": {
+    "split": "test",
+    "seed": 190731,
+    "games_per_opponent": 256,
+    "opponents": [
+      "reference",
+      "balanced",
+      "hyperoffense",
+      "setup_sweeper",
+      "attrition",
+      "pivot"
+    ],
+    "deterministic": true,
+    "search": false,
+    "reference_teams": "saved",
+    "roster": "manifest"
+  },
+  "test_outcomes_inspected": false
+}

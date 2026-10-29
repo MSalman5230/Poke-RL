@@ -1,0 +1,72 @@
+{
+  "baseline": "runtime_data\\eval_v6_bc_reference",
+  "candidate": "runtime_data\\eval_v6_ppo_final_reference",
+  "baseline_checkpoint_sha256": "c5809348af9e86483ebfdab5127cfa0df381e620f4fdbb9a6bb5773b301b370a",
+  "candidate_checkpoint_sha256": "8593b13c5c452044fe3e242471baf0cdeb668883436d37d2371ea6a6f9e66e45",
+  "feature_signature": "8ea72bcbfeb2e71b489615655919970c40c20c7a1e955bde0549ad08a15f451f",
+  "baseline_implementation_sha256": "65255926c6f1da00ef24768e5f7414b014eabfb9eff8563572e9ba5a4effa49c",
+  "candidate_implementation_sha256": "889c0829aac06bc8a32f37e74f8a1e522eb8f7ab4952ba9665c20e3da87158d9",
+  "code_snapshots_compared": true,
+  "changed_implementation_files": [
+    "champions_rl/cli.py",
+    "champions_rl/evaluation.py",
+    "champions_rl/parallel_training.py",
+    "champions_rl/reference.py",
+    "champions_rl/training.py",
+    "champions_rl/value_audit.py"
+  ],
+  "selected_opponents": [
+    "reference"
+  ],
+  "baseline_deterministic": true,
+  "candidate_deterministic": true,
+  "baseline_search": false,
+  "candidate_search": false,
+  "by_opponent": {
+    "reference": {
+      "baseline": {
+        "games": 128,
+        "wins": 63,
+        "losses": 65,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.4921875,
+        "confidence": [
+          0.4070759798715471,
+          0.5777543013143609
+        ]
+      },
+      "candidate": {
+        "games": 128,
+        "wins": 126,
+        "losses": 2,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.984375,
+        "confidence": [
+          0.9448179261814565,
+          0.9957046402922513
+        ]
+      },
+      "candidate_minus_baseline": 0.4921875,
+      "paired_seed_blocks": 64,
+      "bootstrap_95": [
+        0.4296875,
+        0.5546875
+      ]
+    }
+  },
+  "aggregate": {
+    "candidate_minus_baseline": 0.4921875,
+    "paired_seed_blocks": 64,
+    "bootstrap_95": [
+      0.4296875,
+      0.5546875
+    ]
+  },
+  "interpretation": "Exploratory validation. Bootstrap retains both seats and all opponents within each seed block. Repeated checkpoint selection and per-opponent comparisons are not multiplicity-adjusted. Promotion still requires a separately frozen test benchmark; truncations are reported, not treated as wins."
+}
