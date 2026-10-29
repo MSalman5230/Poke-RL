@@ -1,0 +1,4 @@
+* text=auto eol=lf
+# These snapshots are identified by their exact bytes, including line endings.
+data/** -text
+opponents/autoplay_reference/** -text
