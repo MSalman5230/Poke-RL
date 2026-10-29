@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "month": "2026-09",
+  "format": "gen9championsbssregmc",
+  "default_cutoff": 1500,
+  "fallback_cutoff": 0,
+  "files": {
+    "chaos/gen9championsbssregmc-0.json": "1a4462eb17c026e4ce83580ba9b62cc37ec6626ab4e534c75cc14dd1a4b340fb",
+    "chaos/gen9championsbssregmc-1500.json": "d274cc77924924b00aedbb89b9f2d87d75add6676ddbdaa43b096636f429f26e",
+    "chaos/gen9championsbssregmc-1630.json": "529386bb04a1d1794ac228d197ce6af811a0be5b169e9fd8e7a3c68b19823370",
+    "chaos/gen9championsbssregmc-1760.json": "3d5365201ba72d4d63e9a2f8091857b1fc7a625d85d456dacfc9b25ce3cc42d7",
+    "gen9championsbssregmc-0.txt": "4c4248c8920bc9644c986734773a5ebb09f378e1545d6bbe6b3a683b04cbebc1",
+    "gen9championsbssregmc-1500.txt": "0f4b0eedcfd76f260de1f2511ff44dbd10987effd75cfc50524532d4b8281ebd",
+    "gen9championsbssregmc-1630.txt": "25a231bc18ee468736d9669e74b128adceac7346114f3ec571731a70ddd1ef0e",
+    "gen9championsbssregmc-1760.txt": "6ca494104c30fab957ff9764481f60ba8fe1f0a7668d3e851773758aafac8b97",
+    "leads/gen9championsbssregmc-0.txt": "5a63f847b449b3adc101962cd7d149a5d2ae6e64f12c4877c0d4241aa7bd0d73",
+    "leads/gen9championsbssregmc-1500.txt": "da6e3fab65d8d3049555a00b8a86884c709b9ac74bd550be4b32e9d57d697d2b",
+    "leads/gen9championsbssregmc-1630.txt": "97d73e407c007712901f7f0807816d06d506237a2e1972d337d9001d24949aba",
+    "leads/gen9championsbssregmc-1760.txt": "19fe82d7e6e41dbda218f3664c26f5045fed0716d890f096d64320e240727d0e",
+    "metagame/gen9championsbssregmc-0.txt": "f6cda717c912cbf7a96ef7bd2918fa7dacf22f4c4ec204f496dec125364e0707",
+    "metagame/gen9championsbssregmc-1500.txt": "267865d40aee0e93f5b0269f6c89500e4b4b6c2550889761c15c9f263dd807a5",
+    "metagame/gen9championsbssregmc-1630.txt": "6911babc6f4cb44c85e14ebbf5e1efa032bd7bf2468bf52fcf17569828e002df",
+    "metagame/gen9championsbssregmc-1760.txt": "bb8a91fbfd0d532fbe3b38f2e8fc9a0652bb2fd931ea8b6455cbdd40dd9b4bb1",
+    "moveset/gen9championsbssregmc-0.txt": "b7ab31284a9ca7f7d83cd6d41f9a3cb213c18afb261a3116cfb5601b4e9c522b",
+    "moveset/gen9championsbssregmc-1500.txt": "c9afb69b50f9ccaa0facdb88a8a8dfddae17527c8123c9f24d77e7620363ecd3",
+    "moveset/gen9championsbssregmc-1630.txt": "930f2d71fcddb228a1dabfc9216a94a3e080a4d8e936bbf36f2b6ed1ade89428",
+    "moveset/gen9championsbssregmc-1760.txt": "fbdf6d2476664889b5befee32c279526ae9383766531d351ada6081aae66f5c1"
+  }
+}

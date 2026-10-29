@@ -1,0 +1,260 @@
+{
+  "source": "C:\\MegaSync\\Projects\\Git\\Poke-Champ-AutoPlay",
+  "source_commit": "c3cb5e27e377e79e40f0b02948d6ef7c6d527ea5",
+  "files": {
+    "bot/__init__.py": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "snapshot_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "bot/runtime/__init__.py": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "snapshot_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "bot/runtime/budget.py": {
+      "original_sha256": "d3a4d9b6445aa53a34261af48f7685efa2a73e390d6cdbcf9c2dfae4cb22ba73",
+      "snapshot_sha256": "369486ac9568702e2ad1c37876733f269e095e4a583dc87eba21cadceabd9b46"
+    },
+    "bot/runtime/context.py": {
+      "original_sha256": "19335032b09a3ee95998fe3efdce24c7a3784ccd2c0808c496299033fee100b4",
+      "snapshot_sha256": "49a17cb450f30a79174b71a08fea21bc21c630e1299e853d6bbd4afa53fe30de"
+    },
+    "bot/decision/evaluation.py": {
+      "original_sha256": "aa8b191a7e2e97053385d9484a3fa03243e06282a169417069f8e3b3373211f4",
+      "snapshot_sha256": "a30713c14e1ee5ad6db742dc8e666efe514b0ff36cc745d2f780336a155e05e1"
+    },
+    "bot/decision/experiments.py": {
+      "original_sha256": "54e84691efaf3e9c43777c104ad8ab57efd00c06a46a32bf2f2bdd43aa96ba55",
+      "snapshot_sha256": "e0fb7e63520e18f5e239bcf4432f6bda9003e2cebb20bbf7a9898026ec5bcbe8"
+    },
+    "bot/decision/greedy.py": {
+      "original_sha256": "c9b24c8befc505ee347ee23b4547a2b5816adbecc7e4ea6cf269c578ceb5fe12",
+      "snapshot_sha256": "d32b62d5e4c1b27499461e5bb8ff16b9cad1bc0005909e95bdcedadbaf598053"
+    },
+    "bot/decision/identity.py": {
+      "original_sha256": "23927544ee67678673d94b8545f8ec589498c084cc35c2be2ac71f6b582b01b5",
+      "snapshot_sha256": "cd18ad47f933b3a672e5898c6f3ca7bee52155d152ef958c778532882dd8df11"
+    },
+    "bot/decision/opponent_action.py": {
+      "original_sha256": "62c2e463f6f5588fbb45bec5ce76408119c1088d7f444eb0b8561f21c66b28cb",
+      "snapshot_sha256": "32f261540846c3682cb315f4602e86112ca4cd27b4b19953e25401b74f9142f0"
+    },
+    "bot/decision/recovery.py": {
+      "original_sha256": "f7df9b501cbfdd2b9c536a6a1df605ebfd5a0ae4d1556d5dfb1a8db766d79ae4",
+      "snapshot_sha256": "f8efa4878ec90592df221c14b00a3ff7d0f51ab2fffe5bd43e95f3cd1b057734"
+    },
+    "bot/decision/rollouts.py": {
+      "original_sha256": "bfffa1cf1cf067bb393ca35e31b47965da19cb21ae1470ee4758b7f1134f9410",
+      "snapshot_sha256": "5e76a90531e44b316c970e5c37320651a9de33cb5fcb9eb78afb98630a13715d"
+    },
+    "bot/decision/__init__.py": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "snapshot_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "bot/decision/rules/ability_rules.py": {
+      "original_sha256": "c3f81ca2c542d91028ac4a15c9ce9a8441ba09ae41d5b6e93a12225e45d082ed",
+      "snapshot_sha256": "fc8d036b3132b185c4a32bf42d82734449a198a1370e111c88b82e2736c06c9c"
+    },
+    "bot/decision/rules/mega_rules.py": {
+      "original_sha256": "03585cb82b368e3d343e8172ed7d8ddae2c5e63c3a7db877c29fbf136775f5ce",
+      "snapshot_sha256": "8c8fc6c91638757dad01abf8699f8e0a8d634d7b02d215988b5ac20f8c919d4c"
+    },
+    "bot/decision/rules/move_rules.py": {
+      "original_sha256": "6ac95e416d82072e6ee4f8cbbbf247a4bc33a7ebed0d1de05684c2e235424975",
+      "snapshot_sha256": "62747d88d14af897b2413b9f40849043a3a20359414686895f355f9efb4914fa"
+    },
+    "bot/decision/rules/pokemon_rules.py": {
+      "original_sha256": "42a496cc3a6b96c3091f32fe510ea4f63805ae3ff81d2f308bfb9e3b9842dd43",
+      "snapshot_sha256": "5705b4f9a76c4299425373daca3c9a8290352d903e4318ddeb028e3e66380503"
+    },
+    "bot/decision/rules/__init__.py": {
+      "original_sha256": "0a905d4f52c65c2800a1ea721708c09d8a38ae6c8b158141e7b5212263037c0d",
+      "snapshot_sha256": "200d5eb974b875524144f6581c2a30c0e4ef74292b867fe39edbbe0fe0cb0ae2"
+    },
+    "bot/domain/actions.py": {
+      "original_sha256": "eeca8d094697c9c8e494f33c0be5a67a35e515e00ff7c186f5017d41c1af8d4e",
+      "snapshot_sha256": "4ab33adadd39d654a44e412786ea15b3bd048a510bceac19e871d7fe0ef4f3fc"
+    },
+    "bot/domain/catalog.py": {
+      "original_sha256": "a24b402d9222ff398e0be832a20ca64914e7704c811c494ed5e275386c1ea31c",
+      "snapshot_sha256": "e83455431e14f8983dbc9f13ddbdbf1ae5c62ed7b0e6c6d1d196bd4daf38cf5e"
+    },
+    "bot/domain/forms.py": {
+      "original_sha256": "dc6f75fa3b66f2a659dc3a12c4cc282a2b1aa744aa00c2387d4b8bcb18972f2c",
+      "snapshot_sha256": "2d6eea4f251117ac23695deb4bf0e1bc313ff327975533dfc9a263491becc0b7"
+    },
+    "bot/domain/moves.py": {
+      "original_sha256": "38fcbd5c0b4da272eae65c5e4821e251a2d387bdc8bc4be8021c9df15c53e345",
+      "snapshot_sha256": "62c41fd18166e9bd35d385cd0fd803b44ab10cb23ff99d3fe84506f65b9d33e3"
+    },
+    "bot/domain/roster.py": {
+      "original_sha256": "4b984e60962b197b9bf1e90c24aa8672d58d74e97fa73a68a3e2a8378c5755da",
+      "snapshot_sha256": "a2935883be2aa11bd861d6f219977ff65cf71699d9cd4ea68b03e2af0b1764cf"
+    },
+    "bot/domain/state_contract.py": {
+      "original_sha256": "6f7914edf57445d040cffac922276cebaaf1a4eb260c4a3b95e5b2bfc0632a8b",
+      "snapshot_sha256": "7b38248d58399686aa87987f3f5278a092d3967d40352d516755e4d94e754cd0"
+    },
+    "bot/domain/types.py": {
+      "original_sha256": "d79e4e06477bc8dcddc80a365e533bd1779e1a9b5e6f5aaa0e4872fcce239139",
+      "snapshot_sha256": "f6fd6556b440e22ce638b9d45ac6322376ea416e7c4eea17f66d80725def80a9"
+    },
+    "bot/domain/__init__.py": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "snapshot_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "bot/opponent/data.py": {
+      "original_sha256": "d4cce5698f59d0d8fc85d7aebc5a12249276e3f8523359cdb430672c30023eef",
+      "snapshot_sha256": "17dcdd1cc03d2ddd3a871418a0ca38c41ae59cd9fca8d5df8fe098d257710aec"
+    },
+    "bot/opponent/estimation.py": {
+      "original_sha256": "f7d3cf321c864e512bfd157f5c59003098a0298bf9f4a9ba6d9363110c85b3a3",
+      "snapshot_sha256": "5c4b4f2f7191e771db1bea5b01a3268e5a760d5cb59e96b1e386537336e92142"
+    },
+    "bot/opponent/mega.py": {
+      "original_sha256": "227c7fc2b98d90f4732447cdf122b28ed7360bd153811b32a7464f869f397be1",
+      "snapshot_sha256": "10bb767610e1e15764eff4ebe27a0fff12876bd897dc2d6af64e5f56dfa17a95"
+    },
+    "bot/opponent/prediction.py": {
+      "original_sha256": "3fb51154c4cf4b1b61e172e5f0bcb40e41fd4cdb3d6412e59e315f18af62d017",
+      "snapshot_sha256": "e6cec66e35acece867001e05e7ffcb9e6b43bad98e344729496acd59c4557485"
+    },
+    "bot/opponent/__init__.py": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "snapshot_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "bot/team_selection/cache.py": {
+      "original_sha256": "f74527173ef63a8b585402f8354e785efbcf394dbda714aaf8339c48e42eead0",
+      "snapshot_sha256": "8875617b116be5a775aa99762d57daf84271952a67461169e52c679d7a97dca4"
+    },
+    "bot/team_selection/coverage.py": {
+      "original_sha256": "dc336bc486dc5bd9ee123f5189789aec09e6a918fc88dba95d9932a919ab69a2",
+      "snapshot_sha256": "6219df770a484742ea242db91c48bb3398c5fe0153ff29843f3781aa8b425c29"
+    },
+    "bot/team_selection/duels.py": {
+      "original_sha256": "bed8d3a157e7ebac17be92d8c19868efadf677f15a436534f0feb1d796cb2f7b",
+      "snapshot_sha256": "fcc768ed92c8866b7628b1290b9499cfc23d5007bcb30e31e3ccccb547b5bd66"
+    },
+    "bot/team_selection/matchups.py": {
+      "original_sha256": "e986770e38cafe9d765f2eb747ab447d81ddcc1b897ab2be1b3988dfd296ba7a",
+      "snapshot_sha256": "70b3fb3568d2fd1acfcbc1ef53335798901016b768dab533498ab34d915d21c8"
+    },
+    "bot/team_selection/prepare.py": {
+      "original_sha256": "5e89d454bbfdfbf7da02ce2e6971f97235e1aa995e58db68cf79c7b24a972c49",
+      "snapshot_sha256": "56344007ff5a1ebfd6a5ff626f04ce1e385c294bbf197c3abea7a169e6552438"
+    },
+    "bot/team_selection/preview.py": {
+      "original_sha256": "3f68659aeb96469f724867d359b5bc3e10b1048cecaec6236861b471d3fbedc1",
+      "snapshot_sha256": "35fa47685c8b877a38d54133f8f273f247cc7db61de677d76bf1ad309d5cf835"
+    },
+    "bot/team_selection/replacements.py": {
+      "original_sha256": "c31421e0b43ec3dab1ed0494588ed62716d0c3a6bd7133b5507611b0a0bec347",
+      "snapshot_sha256": "ea88c67a58dd3fd1acd808aeb10f5e2803905bcdf389a26fecca1ed0e55be7bd"
+    },
+    "bot/team_selection/__init__.py": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "snapshot_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "bot/simulator/actions.py": {
+      "original_sha256": "5962c56d34f52b976cb14c212d4711df5372c696321f1ba7e9d9d38873d4e567",
+      "snapshot_sha256": "8195521bb5aaeda3e6144703cedacd5d3dae53def98a6dd4d3a9a8aac2912d84"
+    },
+    "bot/simulator/bridge.py": {
+      "original_sha256": "77f9ee36c67abc4da02830cf06f6858b31af2a63fe88e20560255d2b4cedc29f",
+      "snapshot_sha256": "40f3dca568b68eac949a8da45abc2b0b033ab3d5a4586c1616ea66e94fa31810"
+    },
+    "bot/simulator/state.py": {
+      "original_sha256": "9366ec7b3ced59bf4282039d2f635011974496e33231706d9a0b386692f63594",
+      "snapshot_sha256": "3d175c530cceeb9ff7570e09783a867d1e40d14f576cb485f5fc992b537207b3"
+    },
+    "bot/simulator/__init__.py": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "snapshot_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "bot/simulator/node/worker.cjs": {
+      "original_sha256": "f76774148de3e626d750b1959de0ad37653742908f92f6fcd913d48cee68662c",
+      "snapshot_sha256": "f76774148de3e626d750b1959de0ad37653742908f92f6fcd913d48cee68662c"
+    },
+    "bot/simulator/node/preview.cjs": {
+      "original_sha256": "d2a5b7fdb6ef7ead84a70577c96cd81f769d1b2386cf9f0dc92eff95c5c0de4b",
+      "snapshot_sha256": "d2a5b7fdb6ef7ead84a70577c96cd81f769d1b2386cf9f0dc92eff95c5c0de4b"
+    },
+    "bot/simulator/node/export_catalog.cjs": {
+      "original_sha256": "cf24676355c7e96ef7ced1ae522f32e70b11a1dcb85c463473979e93c831a8d1",
+      "snapshot_sha256": "cf24676355c7e96ef7ced1ae522f32e70b11a1dcb85c463473979e93c831a8d1"
+    },
+    "bot/simulator/node/package.json": {
+      "original_sha256": "6a90963d372010a30ad2bf6265e95a4734977b8945c8a3f262660257e8f2bde4",
+      "snapshot_sha256": "6a90963d372010a30ad2bf6265e95a4734977b8945c8a3f262660257e8f2bde4"
+    },
+    "bot/simulator/node/package-lock.json": {
+      "original_sha256": "30c1accd5d6437ed539902f3f9d92382ed2795b9a479f865bc1a7d8f29be4cb6",
+      "snapshot_sha256": "30c1accd5d6437ed539902f3f9d92382ed2795b9a479f865bc1a7d8f29be4cb6"
+    },
+    "data/catalog.json": {
+      "original_sha256": "0f7c6fa22a8a16a1e08fa009f1a7bf12bf725dad07702bfac1aa0946c4be3a44",
+      "snapshot_sha256": "0f7c6fa22a8a16a1e08fa009f1a7bf12bf725dad07702bfac1aa0946c4be3a44"
+    },
+    "data/display_names.json": {
+      "original_sha256": "743d8340a403a73d5aa0e2cd8c5cac9d53bab0c093e80ffc6d508166a2d418d8",
+      "snapshot_sha256": "743d8340a403a73d5aa0e2cd8c5cac9d53bab0c093e80ffc6d508166a2d418d8"
+    },
+    "data/team.json": {
+      "original_sha256": "bfd060528b870bd2a878567483d66dcac81d471a09aeb04fa16380ddf01b058a",
+      "snapshot_sha256": "bfd060528b870bd2a878567483d66dcac81d471a09aeb04fa16380ddf01b058a"
+    },
+    "data/smogon_manifest.json": {
+      "original_sha256": "c91f34fec052d3f9ae2a943037862561b8f3a1022654d1f95a59e86f4059aca0",
+      "snapshot_sha256": "c91f34fec052d3f9ae2a943037862561b8f3a1022654d1f95a59e86f4059aca0"
+    },
+    "data/champions_moves.json": {
+      "original_sha256": "9241aa8eefde9f5eb76128880cc988747755a48cbf31ce692c67af5e195e1f62",
+      "snapshot_sha256": "9241aa8eefde9f5eb76128880cc988747755a48cbf31ce692c67af5e195e1f62"
+    },
+    "data/smogon/2026-09/chaos/gen9championsbssregmc-0.json": {
+      "original_sha256": "1a4462eb17c026e4ce83580ba9b62cc37ec6626ab4e534c75cc14dd1a4b340fb",
+      "snapshot_sha256": "1a4462eb17c026e4ce83580ba9b62cc37ec6626ab4e534c75cc14dd1a4b340fb"
+    },
+    "data/smogon/2026-09/leads/gen9championsbssregmc-0.txt": {
+      "original_sha256": "5a63f847b449b3adc101962cd7d149a5d2ae6e64f12c4877c0d4241aa7bd0d73",
+      "snapshot_sha256": "5a63f847b449b3adc101962cd7d149a5d2ae6e64f12c4877c0d4241aa7bd0d73"
+    },
+    "data/smogon/2026-09/chaos/gen9championsbssregmc-1500.json": {
+      "original_sha256": "d274cc77924924b00aedbb89b9f2d87d75add6676ddbdaa43b096636f429f26e",
+      "snapshot_sha256": "d274cc77924924b00aedbb89b9f2d87d75add6676ddbdaa43b096636f429f26e"
+    },
+    "data/smogon/2026-09/leads/gen9championsbssregmc-1500.txt": {
+      "original_sha256": "da6e3fab65d8d3049555a00b8a86884c709b9ac74bd550be4b32e9d57d697d2b",
+      "snapshot_sha256": "da6e3fab65d8d3049555a00b8a86884c709b9ac74bd550be4b32e9d57d697d2b"
+    },
+    "docs/rules/battle-evaluation.md": {
+      "original_sha256": "a5d4c2cda5850dd263a04d8d8a601fe0a206daadfb28ce9daf44796a475cdb79",
+      "snapshot_sha256": "a5d4c2cda5850dd263a04d8d8a601fe0a206daadfb28ce9daf44796a475cdb79"
+    },
+    "docs/rules/build-prediction.md": {
+      "original_sha256": "48a7e4d1930973c4f4ce413ebcdacea89a69a15d8751588ad8b7dddf014af0ff",
+      "snapshot_sha256": "48a7e4d1930973c4f4ce413ebcdacea89a69a15d8751588ad8b7dddf014af0ff"
+    },
+    "docs/rules/opponent-actions.md": {
+      "original_sha256": "0c0d453b7530942768d4e52d90a26ff8f8343b8c315d96caade24414191d630e",
+      "snapshot_sha256": "0c0d453b7530942768d4e52d90a26ff8f8343b8c315d96caade24414191d630e"
+    },
+    "docs/rules/team-selection.md": {
+      "original_sha256": "b4262c3309498fc64ac0e588943a925da47ee489ca85fd19fe08965636361efc",
+      "snapshot_sha256": "b4262c3309498fc64ac0e588943a925da47ee489ca85fd19fe08965636361efc"
+    }
+  },
+  "adaptations": [
+    "Python imports namespaced",
+    "Offline paths",
+    "Source-identity scope",
+    "Only remaining_pp/volatiles and Field constructor/duration helpers extracted; parsing removed"
+  ],
+  "generated_files": {
+    "__init__.py": "501834324827c36735fbe89125f5e3b579981799d2863ebe0eabc43f4bf8586f",
+    "bot/runtime/config.py": "718467804627134fd5117087cdf5efbf0c447dfe99575c122c53ca563b4633e8",
+    "bot/state_support/field.py": "6c0e689feb164ee22c7ab35ead1ac6c26c6cc792c5fa9e1a493c95c43d6b2cec",
+    "bot/state_support/mechanics.py": "d34fcfdc2b8db4e80c74a7d853cb80ad8e4120fd51ae2093e1ff77efac3783eb",
+    "bot/state_support/tracker.py": "396e62fcd05dcd9db0b8e7ff8fd689ac0e2cf23926208bcc048f90e32f5d19ed",
+    "bot/state_support/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

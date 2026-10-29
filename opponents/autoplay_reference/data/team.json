@@ -1,0 +1,324 @@
+{
+  "_note": "Read from the Box by bot.box on 2026-10-24 05:58",
+  "team": [
+    {
+      "species": "Gholdengo",
+      "nature": "Modest",
+      "ability": "Good as Gold",
+      "item": "Air Balloon",
+      "sp": {
+        "hp": 29,
+        "atk": 0,
+        "def": 0,
+        "spa": 18,
+        "spd": 11,
+        "spe": 8
+      },
+      "stats": {
+        "hp": 191,
+        "atk": 72,
+        "def": 115,
+        "spa": 188,
+        "spd": 122,
+        "spe": 112
+      },
+      "sp_inferred": [
+        "def",
+        "spd"
+      ],
+      "shown": [
+        191,
+        72,
+        115,
+        188,
+        122,
+        112
+      ],
+      "moves": [
+        {
+          "name": "Make It Rain",
+          "pp": 8
+        },
+        {
+          "name": "Nasty Plot",
+          "pp": 20
+        },
+        {
+          "name": "Shadow Ball",
+          "pp": 16
+        },
+        {
+          "name": "Recover",
+          "pp": 8
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "species": "Volcarona",
+      "nature": "Timid",
+      "ability": "Flame Body",
+      "item": "Rocky Helmet",
+      "sp": {
+        "hp": 2,
+        "atk": 0,
+        "def": 0,
+        "spa": 32,
+        "spd": 0,
+        "spe": 32
+      },
+      "stats": {
+        "hp": 162,
+        "atk": 72,
+        "def": 85,
+        "spa": 187,
+        "spd": 125,
+        "spe": 167
+      },
+      "sp_inferred": [
+        "def",
+        "spd"
+      ],
+      "shown": [
+        162,
+        72,
+        85,
+        187,
+        125,
+        167
+      ],
+      "moves": [
+        {
+          "name": "Fiery Dance",
+          "pp": 12
+        },
+        {
+          "name": "Psychic",
+          "pp": 12
+        },
+        {
+          "name": "Bug Buzz",
+          "pp": 12
+        },
+        {
+          "name": "Quiver Dance",
+          "pp": 20
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "species": "Archaludon",
+      "nature": "Calm",
+      "ability": "Stamina",
+      "item": "Leftovers",
+      "sp": {
+        "hp": 32,
+        "atk": 0,
+        "def": 2,
+        "spa": 0,
+        "spd": 32,
+        "spe": 0
+      },
+      "stats": {
+        "hp": 197,
+        "atk": 112,
+        "def": 152,
+        "spa": 145,
+        "spd": 128,
+        "spe": 105
+      },
+      "sp_inferred": [
+        "spe"
+      ],
+      "shown": [
+        197,
+        112,
+        152,
+        145,
+        128,
+        105
+      ],
+      "moves": [
+        {
+          "name": "Thunderbolt",
+          "pp": 16
+        },
+        {
+          "name": "Flash Cannon",
+          "pp": 12
+        },
+        {
+          "name": "Aura Sphere",
+          "pp": 20
+        },
+        {
+          "name": "Dragon Pulse",
+          "pp": 12
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "species": "Lucario",
+      "nature": "Timid",
+      "ability": "Inner Focus",
+      "item": "Lucarionite Z",
+      "sp": {
+        "hp": 2,
+        "atk": 0,
+        "def": 0,
+        "spa": 32,
+        "spd": 0,
+        "spe": 32
+      },
+      "stats": {
+        "hp": 147,
+        "atk": 117,
+        "def": 90,
+        "spa": 167,
+        "spd": 90,
+        "spe": 156
+      },
+      "sp_inferred": [
+        "def",
+        "spd"
+      ],
+      "shown": [
+        147,
+        117,
+        90,
+        167,
+        90,
+        156
+      ],
+      "moves": [
+        {
+          "name": "Aura Sphere",
+          "pp": 20
+        },
+        {
+          "name": "Flash Cannon",
+          "pp": 12
+        },
+        {
+          "name": "Dark Pulse",
+          "pp": 16
+        },
+        {
+          "name": "Nasty Plot",
+          "pp": 20
+        }
+      ],
+      "notes": "",
+      "battle_form": "Lucario-Mega-Z"
+    },
+    {
+      "species": "Sylveon",
+      "nature": "Modest",
+      "ability": "Pixilate",
+      "item": "Fairy Feather",
+      "sp": {
+        "hp": 32,
+        "atk": 0,
+        "def": 2,
+        "spa": 32,
+        "spd": 0,
+        "spe": 0
+      },
+      "stats": {
+        "hp": 202,
+        "atk": 76,
+        "def": 87,
+        "spa": 178,
+        "spd": 150,
+        "spe": 80
+      },
+      "sp_inferred": [
+        "spd",
+        "spe"
+      ],
+      "shown": [
+        202,
+        76,
+        87,
+        178,
+        150,
+        80
+      ],
+      "moves": [
+        {
+          "name": "Hyper Voice",
+          "pp": 12
+        },
+        {
+          "name": "Shadow Ball",
+          "pp": 16
+        },
+        {
+          "name": "Mystical Fire",
+          "pp": 12
+        },
+        {
+          "name": "Quick Attack",
+          "pp": 20
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "species": "Garchomp",
+      "item": "Choice Scarf",
+      "ability": "Rough Skin",
+      "nature": "Adamant",
+      "sp": {
+        "hp": 2,
+        "atk": 32,
+        "def": 0,
+        "spa": 0,
+        "spd": 0,
+        "spe": 32
+      },
+      "shown": [
+        185,
+        200,
+        115,
+        90,
+        105,
+        154
+      ],
+      "moves": [
+        {
+          "name": "Earthquake",
+          "pp": 12
+        },
+        {
+          "name": "Outrage",
+          "pp": 12
+        },
+        {
+          "name": "Poison Jab",
+          "pp": 20
+        },
+        {
+          "name": "Stone Edge",
+          "pp": 8
+        }
+      ],
+      "notes": "",
+      "stats": {
+        "hp": 185,
+        "atk": 200,
+        "def": 115,
+        "spa": 90,
+        "spd": 105,
+        "spe": 154
+      },
+      "sp_inferred": [
+        "def",
+        "spd"
+      ]
+    }
+  ],
+  "last_box_read_at": "2026-10-28T21:35:07+05:30"
+}
