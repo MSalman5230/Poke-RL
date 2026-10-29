@@ -1,5 +1,6 @@
 """Retry only invalid scheduled reference games, retaining every failed attempt."""
 import argparse
+from concurrent.futures import ThreadPoolExecutor,as_completed
 import hashlib
 import json
 from pathlib import Path
@@ -11,9 +12,12 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from champions_rl.evaluation import acceptance,wilson
 from champions_rl.persistence import atomic_json
+from champions_rl.power import keep_awake
 
 
-def recover(source,output):
+@keep_awake()
+def recover(source,output,workers=1):
+    if not 1<=workers<=8:raise ValueError('Use 1 to 8 isolated recovery workers')
     source=Path(source).resolve();output=Path(output).resolve()
     if source==output:raise ValueError('Recovery must preserve the original output folder')
     report=json.loads((source/'report.json').read_text())
@@ -27,8 +31,7 @@ def recover(source,output):
                                'interrupted_before_completion':True}) for game in range(games)]
     output.mkdir(parents=True,exist_ok=True)
     repairs=[];source_hashes={report['implementation_sha256']}
-    for index,record in enumerate(records):
-        if not record.get('error'):continue  # never rerun a valid loss
+    def repair(index,record):
         retried=None
         for attempt in range(3):
             folder=output/(f"retry_{record['game']:06d}"+(f'_attempt{attempt+1}' if attempt else ''))
@@ -52,17 +55,24 @@ def recover(source,output):
         for key in ('checkpoint_sha256','feature_signature','knowledge_sha256','team_manifest_sha256',
                     'reference_manifest_sha256','seed','split','roster','reference_teams','deterministic'):
             if report.get(key)!=retry_report.get(key):raise ValueError(f'Recovery changed {key}')
-        repairs.append({'game':record['game'],'original_invalid_attempt':record,'retry':str(folder),
-                        'retry_implementation_sha256':retry_report['implementation_sha256']})
-        source_hashes.add(retry_report['implementation_sha256']);records[index]=retried[0]
-        atomic_json(output/'recovery_progress.json',repairs)
-        print(json.dumps({'event':'reference_recovered','game':record['game'],'won':retried[0]['won']}),flush=True)
+        provenance={'game':record['game'],'original_invalid_attempt':record,'retry':str(folder),
+                    'retry_implementation_sha256':retry_report['implementation_sha256']}
+        return index,retried[0],provenance
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        pending=[pool.submit(repair,index,record) for index,record in enumerate(records) if record.get('error')]
+        for completed in as_completed(pending):
+            index,record,provenance=completed.result()
+            repairs.append(provenance);repairs.sort(key=lambda row:row['game'])
+            source_hashes.add(provenance['retry_implementation_sha256']);records[index]=record
+            atomic_json(output/'recovery_progress.json',repairs)
+            print(json.dumps({'event':'reference_recovered','game':record['game'],'won':record['won']}),flush=True)
     wins=sum(r['won'] for r in records);draws=sum(r['winner'] is None for r in records)
     row={'games':games,'wins':wins,'losses':games-wins-draws,'draws':draws,'errors':0,
          'fallbacks':0,'truncations':sum(r['truncated'] for r in records),'win_rate':wins/games,'confidence':wilson(wins,games)}
     if any(a.get('errors') or a.get('deadline_passed') for r in records for a in r.get('reference_decisions',[])):
         raise ValueError('An allegedly valid reference game contains a failed decision audit')
-    report.update(results={'reference':row},complete=True,recovered=True,original_report=str(source/'report.json'),
+    report.update(results={'reference':row},complete=True,recovered=True,recovery_workers=workers,original_report=str(source/'report.json'),
                   invalid_attempts_preserved=repairs,implementation_sources=sorted(source_hashes),
                   recovery_policy='Only interrupted or runtime-invalid scheduled games retried in separate processes; valid losses never rerun. Original failure evidence retained. This validation recovery is not a clean test certification.')
     report['implementation_sha256']=hashlib.sha256(json.dumps(sorted(source_hashes)).encode()).hexdigest()
@@ -76,4 +86,5 @@ def recover(source,output):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--workers',type=int,default=1,help='Concurrent isolated game processes; completed valid games are never replayed')
     recover(**vars(parser.parse_args()))
