@@ -64,6 +64,30 @@ def paired_outcomes(records):
             'interpretation':'Conditional share of 2-0 versus 0-2 pairs. The overall win-rate interval is a normal approximation over complete valid pair scores, including draws as non-wins; very small schedules need more games. Keep split/drawn counts; a 1-1 split does not prove team luck.'}
 
 
+def decisive_pair_aggregate(opponent_records):
+    """Pool sweep counts but keep correlated opponents inside each seed block."""
+    import numpy as np
+    blocks={};counts=Counter()
+    for records in opponent_records.values():
+        pairs={}
+        for row in records:pairs.setdefault(row['game']//2,[]).append(row)
+        for seed,rows in pairs.items():
+            result=paired_outcomes(rows)
+            for key in ('swept_wins','swept_losses','split_pairs','drawn_or_truncated_pairs','invalid_pairs'):
+                counts[key]+=result[key]
+            block=blocks.setdefault(seed,[0,0])
+            block[0]+=result['swept_wins'];block[1]+=result['decisive_pairs']
+    decided=counts['swept_wins']+counts['swept_losses'];interval=None
+    if len(blocks)>1 and decided:
+        values=np.array([v for _,v in sorted(blocks.items())],dtype=float)
+        totals=values[np.random.default_rng(240011).integers(len(values),size=(10000,len(values)))].sum(1)
+        usable=totals[:,1]>0
+        if usable.sum()>=9500:interval=np.quantile(totals[usable,0]/totals[usable,1],[.025,.975]).tolist()
+    return {**counts,'decisive_pairs':decided,'decisive_pair_win_rate':counts['swept_wins']/decided if decided else None,
+            'paired_seed_blocks':len(blocks),'decisive_pair_bootstrap95':interval,
+            'interpretation':'All opponents and both seats stay together when resampling each seed block. Conditional sweep share, not a decomposition of team luck.'}
+
+
 def acceptance(rows, split,roster='manifest'):
     reference=rows.get("reference",{})
     other=[r for n,r in rows.items() if n!="reference"]
@@ -157,6 +181,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
             "shard_index":shard_index,"shard_count":shard_count,"requested_games_per_opponent":games,
             "reference_policy":"Frozen 32-trial original scoring/prediction; public-state adapter",
             "results":{}}
+    all_records={}
     with Engine() as engine:
         for style in opponents:
             frozen_model=None;frozen_encoder=encoder
@@ -239,6 +264,12 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                 if counts["errors"]>=3:
                     emit("evaluation_aborted",opponent=style,reason="Three invalid games; fix adapter before benchmarking")
                     break
+            all_records[style]=records
+    if shard_count==1:
+        report['complete']=all(report['results'].get(style,{}).get('games')==games for style in opponents)
+        report['decisive_pair_aggregate']=decisive_pair_aggregate(all_records)
+        if not report['complete']:report['acceptance']['passed']=False
+        atomic_json(output/'report.json',report)
     return report
 
 
@@ -339,6 +370,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                          completed_games={s:r["games"] for s,r in merged["results"].items()})
                     last_progress=time.monotonic()
                 if finished:
+                    all_records={}
                     for style in opponents:
                         records=[]
                         for _,_,folder in jobs:
@@ -350,6 +382,8 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                             raise ValueError("Duplicate game IDs across evaluation shards")
                         atomic_json(output/f'{style}_games.json',records)
                         merged['results'][style]['paired_outcomes']=paired_outcomes(records)
+                        all_records[style]=records
+                    merged['decisive_pair_aggregate']=decisive_pair_aggregate(all_records)
                     atomic_json(output/'report.json',merged)
                     return merged
             if all(p.poll()==0 for p,_,_ in jobs) and len(reports)!=workers:

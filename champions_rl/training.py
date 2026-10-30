@@ -40,6 +40,15 @@ def collect_demonstrations(output, games=100, teacher="balanced", seed=41):
                    teams='saved' if teacher=='reference' else 'train')['samples']
 
 
+def demonstration_heldout(path,meta):
+    """A recorded whole-game partition, or the historical stable hash split."""
+    if 'heldout' in meta:
+        if not isinstance(meta['heldout'],bool):raise ValueError('heldout must be a whole-game boolean')
+        return meta['heldout']
+    import hashlib
+    return int(hashlib.sha256(Path(path).stem.encode()).hexdigest()[:8],16)%10==0
+
+
 def load_demonstrations(folder,with_manifest=False):
     buckets=defaultdict(list)
     manifest=[]
@@ -60,9 +69,8 @@ def load_demonstrations(folder,with_manifest=False):
             buckets['expert'].append(np.full(len(data['labels']),meta['teacher']=='reference'))
             buckets['teacher'].append(np.full(len(data['labels']),meta['teacher']))
             buckets['correction'].append(np.full(len(data['labels']),bool(meta.get('student_sha256'))))
-            import hashlib
             # Hold out entire games, not correlated turns from the same game.
-            heldout=int(hashlib.sha256(path.stem.encode()).hexdigest()[:8],16)%10==0
+            heldout=demonstration_heldout(path,meta)
             buckets['validation'].append(np.full(len(data['labels']),heldout))
     if not buckets:
         raise ValueError(f"No demonstration shards in {folder}")
@@ -137,7 +145,7 @@ def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43
     data,manifest=load_demonstrations(folder,with_manifest=True)
     from .persistence import atomic_json
     atomic_json(Path(output).with_suffix('.data.json'),{'shards':manifest,'feature_signature':feature_signature(),
-                'validation':'10% of whole games by SHA256 shard name','correction_mass':correction_mass,
+                'validation':'Recorded whole-game partition when present; otherwise 10% by SHA256 shard name','correction_mass':correction_mass,
                 'sampling':'Requested correction mass, then equal reference/other mass among original demonstrations; zero uses the original 50/50 teacher mixture'})
     n=len(data["labels"])
     rng=np.random.default_rng(seed)

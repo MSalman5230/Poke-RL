@@ -1,0 +1,160 @@
+{
+  "status": "prepared_not_started_training_explicitly_paused",
+  "purpose": "Two confirmed representation fixes, a bounded public-teacher correction corpus, and one controlled retention experiment.",
+  "feature_version": 8,
+  "feature_signature": "0555e9eb474b8dbb8624a376e0a42ed8df39f87c5ed8747f709fc9574a34c91b",
+  "actor_parameters": 629949,
+  "private_critic_parameters": 435369,
+  "regression_fixes": [
+    "Track per-entry active identity uncertainty separately from prior ability reveals; Corviknight Pressure then Zoroark disguise regression passes.",
+    "Represent initial Illusion disguise targets and keep mechanically distinct preview reserve orders.",
+    "Reject unrepresentable auxiliary targets and report policy, public-value, private-value, and opponent losses separately.",
+    "Update Gym observation space for preview-disguise inputs."
+  ],
+  "migration": {
+    "checkpoint": "runtime_data/v8_pilot_warm_start.pt",
+    "sha256": "e9a218dc0c4a4cd63046764133247a7ccf2c43a06cd4325fc827d7a527f7a3a8",
+    "new_inputs": "Zero-initialized during explicit migration; no optimizer transferred. Representation fixes alone do not establish improved play."
+  },
+  "agreed_targets": {
+    "broad_decisive_pair_share": 0.6,
+    "core_decisive_pair_share": 0.6,
+    "head_to_head_win_rate": 0.6,
+    "saved_team": "No regression; report paired uncertainty and retain the frozen baseline if unclear."
+  },
+  "metrics": "Conditional 2-0 versus 0-2 share on broad/core schedules; saved versus varied; head-to-head against strong frozen opponents. Retain overall wins, splits, draws, and uncertainty. Aggregate confidence resamples all opponents together within each seed.",
+  "rejected_inference": "A 1-1 split does not establish that team luck caused the result; plateau observations do not prove tuning can never help.",
+  "corpus": {
+    "path": "runtime_data\\mistakes_v8_reference",
+    "report_sha256": "7ca72319667abc97491d0bd0fe8fa181defc9b95937cc2f7901697a2c9829198",
+    "games": 128,
+    "loss_games": 19,
+    "investigated_positions": 160,
+    "teacher_disagreements": 15,
+    "training_corrections": 9,
+    "heldout_corrections": 6,
+    "validation_partition": "Every fifth correction game in chronological order; no turns from a held-out game train the policy.",
+    "earlier_data_samples": 19147,
+    "categories": {
+      "attack_or_status_choice": 11,
+      "switch_or_preserve_teammate": 2,
+      "preserve_active_or_switch": 2
+    },
+    "verification": {
+      "teacher": {
+        "games": 128,
+        "wins": 126,
+        "losses": 2,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.984375,
+        "confidence": [
+          0.9448179261814565,
+          0.9957046402922513
+        ]
+      },
+      "student": {
+        "games": 128,
+        "wins": 110,
+        "losses": 18,
+        "draws": 0,
+        "errors": 0,
+        "truncations": 0,
+        "fallbacks": 0,
+        "win_rate": 0.859375,
+        "confidence": [
+          0.7886460265596023,
+          0.9091610388886326
+        ]
+      },
+      "scope": "Saved-roster mirror against frozen reference only. This does not establish a better teacher on broad teams.",
+      "label_meaning": "Public-state preferences of a separately validated teacher, not proofs that every alternative wins."
+    },
+    "teacher_minus_student_paired_validation": {
+      "candidate_minus_baseline": 0.125,
+      "paired_seed_blocks": 64,
+      "bootstrap_95": [
+        0.0625,
+        0.1875
+      ]
+    },
+    "limits": "Only saved-roster mirror losses against the reference bot. Teacher preferences, not individual counterfactual proofs; ten of fifteen disagreements concern Earthquake versus Outrage. This is not broad tactical coverage.",
+    "recovery": "One earlier strict reference deadline was rejected; 26 completed games preserved. Resumed collection completed all 128 games with zero invalid games. See interrupted_attempt.json."
+  },
+  "reference_regression": {
+    "preview": "Frozen v6, v7 imitation, pilot 262244, and paused later v7 all choose Gholdengo / Volcarona / Garchomp in the same order.",
+    "recurring_difference": "In ten inspected positions the learner chose Earthquake with Garchomp against Volcarona while v6 preferred Outrage.",
+    "conclusion": "Changed preview choice does not explain the saved-mirror regression. Tactical disagreement is a lead, not a demonstrated complete cause."
+  },
+  "experiment": {
+    "plan": "runtime_data\\correction_experiment_v8\\plan.json",
+    "plan_sha256": "50be31e67a8765ec11e75cbd84c564b4fdc17c4122e8e06d9c002784716713d7",
+    "variable": "Add 5% sampling mass of public-teacher corrections from fresh learner losses; retain earlier data.",
+    "fixed": "Same v8 start, 400 updates, seed 942811, LR 1e-5, batch 128, ID dropout 25%; evaluate fixed last weights, not per-arm best-BC selections.",
+    "primary": "2048 head-to-head games (1024 complete seed pairs), treatment versus control. About 80%+ normal-approximation power for a five-point improvement under the conservative maximum pair-score variance; actual power depends on outcome correlation.",
+    "secondary": "Broad/core/saved/saved-versus-varied and reference checks, plus 2048 games per arm against the best prior broad-validation checkpoint. Frozen v6 anchors all saved-team checks. Small secondary schedules do not promise five-point precision.",
+    "resources": "Sequential jobs; at most two battle/evaluation workers; no overnight PPO or model-size change.",
+    "jobs": 18,
+    "evaluation_games": 11520,
+    "data_counts": {
+      "runtime_data/demos_v8": {
+        "samples": 13337,
+        "training": 12189,
+        "heldout": 1148
+      },
+      "runtime_data/distill_v6_to_v8": {
+        "samples": 5810,
+        "training": 5255,
+        "heldout": 555
+      },
+      "runtime_data/mistakes_v8_reference/corrections": {
+        "samples": 15,
+        "training": 9,
+        "heldout": 6
+      }
+    },
+    "promotion": "No automatic promotion. Best prior broad-validation checkpoint is a comparison opponent, not a proven universal champion. Frozen v6 anchors saved-team retention."
+  },
+  "deferred_experiments": {
+    "terminal_search": "Reasonable next strength experiment after the correction comparison: full terminal preview/in-battle rollouts, sampled opposing preview, 64 worlds. Must beat plain policy on a powered paired schedule before becoming a teacher or league opponent.",
+    "human_replays": "Team compositions and public-action targets can be useful now. Approximate imitation masks must be explicitly marked; the existing three-replay probe supplied no BC samples. Scale collection and train a human-like opponent as a separate measured experiment.",
+    "scaling": "Do not combine 10M decisions, a wider four-layer model, or worker-count profiling with this correction ablation. Training remains explicitly paused.",
+    "public_evidence_beliefs": "Speed constraints then uncertain damage likelihoods are reasonable experiments. Require prediction calibration and paired battle gains; do not assume top-three hypotheses cover all damaging moves.",
+    "public_value_gradients_and_dropout": "Public-value detachment is intentional and confirmed by tests. Compare trainable public representation and 0% versus 25% PPO identity dropout separately at equal budgets.",
+    "independent_policy_and_exploiter": "Reasonable bounded population experiment; retain by cross-play diversity at matched budgets after the current comparison."
+  },
+  "preserved": {
+    "v6_checkpoint_sha256": "8593b13c5c452044fe3e242471baf0cdeb668883436d37d2371ea6a6f9e66e45",
+    "v6_runtime_manifest_sha256": "1328f3d1291905993b95a5bb441c9dc1eaf14ff0c139b071e8e8c81819e38cc0",
+    "v7_runtime_manifest_sha256": "0661f8d79973c3f3cdea1ae84f58a984f5c98e24b00605623aa3e9ef8d365966",
+    "prospective_test_sha256": "8e872c2e73666c55ebd6c7355bb131555d6d361c6d6466dcfcfe2294a898c70a",
+    "prospective_test_seed": 290731,
+    "prospective_test_used": false,
+    "pause_record": "runtime_data/PAUSED_BY_USER.json",
+    "stop_marker_present": true,
+    "stop_marker_sha256": "81e3f9f03c33fcbed3ba33c592ddb0f474ffb922f9071ab7ee95823b1077de03"
+  },
+  "validation": {
+    "full_suite": {
+      "tests": 81,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 37.775
+    },
+    "all_demonstration_labels_legal_and_representable": true,
+    "optimizer_training_started": false,
+    "serial_evaluation_smoke": "runtime_data/v8_serial_metrics_smoke",
+    "parallel_legacy_smoke": {
+      "path": "runtime_data/v8_parallel_metrics_smoke",
+      "games": 4,
+      "errors": 0,
+      "interpretation": "Integration check only, no strength conclusion."
+    },
+    "merged_demonstration_samples": 19162,
+    "correction_inference_samples": 15,
+    "all_correction_auxiliary_losses_finite": true,
+    "optimizer_steps": 0
+  }
+}

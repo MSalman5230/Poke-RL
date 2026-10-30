@@ -36,3 +36,13 @@ def test_decisive_pair_metrics_keep_splits_and_draws_visible():
     assert result['swept_wins']==result['swept_losses']==result['split_pairs']==result['drawn_or_truncated_pairs']==1
     assert result['decisive_pair_win_rate']==.5 and result['decisive_pairs']==2 and result['total_pairs']==4
 
+
+def test_duplicate_correlated_opponents_do_not_narrow_sweep_uncertainty():
+    from champions_rl.evaluation import decisive_pair_aggregate
+    rows=[{'game':i,'seat':i%2,'won':i<12,'winner':i%2 if i<12 else 1-i%2} for i in range(20)]
+    single=decisive_pair_aggregate({'one':rows})
+    double=decisive_pair_aggregate({'one':rows,'copy':rows})
+    assert double['decisive_pairs']==2*single['decisive_pairs']
+    assert single['decisive_pair_win_rate']==double['decisive_pair_win_rate']==.6
+    assert single['decisive_pair_bootstrap95']==double['decisive_pair_bootstrap95']
+

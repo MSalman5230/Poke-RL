@@ -59,3 +59,9 @@ def test_step_zero_is_a_checkpoint_candidate(tmp_path):
     assert len(load_demonstrations([data])['labels'])==2
     with pytest.raises(ValueError,match='Duplicate demonstration'):
         load_demonstrations([data,data])
+    # Explicit correction partitions apply to every turn of their game, even
+    # if a tiny corpus would receive no validation games from the default hash.
+    import json
+    for path in data.glob('*.json'):
+        meta=json.loads(path.read_text());meta['heldout']=True;atomic_json(path,meta)
+    assert load_demonstrations(data)['validation'].all()

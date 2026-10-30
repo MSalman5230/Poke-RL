@@ -10,7 +10,7 @@ sys.path.insert(0,str(ROOT))
 from champions_rl.persistence import atomic_json
 
 
-from champions_rl.evaluation import paired_outcomes
+from champions_rl.evaluation import paired_outcomes,decisive_pair_aggregate
 
 
 def interval(blocks,seed=240011):
@@ -47,10 +47,11 @@ def compare(baseline,candidate,opponents=None,allow_feature_change=False):
             raise ValueError('Frozen opponent weights differ')
         if a.get('frozen_opponent_runtime_manifests',{}).get(style)!=b.get('frozen_opponent_runtime_manifests',{}).get(style):
             raise ValueError('Frozen opponent implementations differ')
-    all_blocks={};styles={}
+    all_blocks={};styles={};baseline_records={};candidate_records={}
     for style in sorted(opponents):
         left={r['game']:r for r in json.loads((baseline/f'{style}_games.json').read_text())}
         right={r['game']:r for r in json.loads((candidate/f'{style}_games.json').read_text())}
+        baseline_records[style]=list(left.values());candidate_records[style]=list(right.values())
         expected=set(range(a['requested_games_per_opponent']))
         if set(left)!=expected or set(right)!=expected:raise ValueError('Incomplete paired game records')
         if len(expected)%2:raise ValueError('Paired comparisons require complete two-seat blocks')
@@ -82,6 +83,8 @@ def compare(baseline,candidate,opponents=None,allow_feature_change=False):
             'baseline_deterministic':a['deterministic'],'candidate_deterministic':b['deterministic'],
             'baseline_search':a.get('search',False),'candidate_search':b.get('search',False),
             'by_opponent':styles,'aggregate':interval(all_blocks),
+            'baseline_decisive_pairs':decisive_pair_aggregate(baseline_records),
+            'candidate_decisive_pairs':decisive_pair_aggregate(candidate_records),
             'interpretation':'Exploratory validation. Bootstrap retains both seats and all opponents within each seed block. '
                              'Repeated checkpoint selection and per-opponent comparisons are not multiplicity-adjusted. '
                              'Promotion still requires a separately frozen test benchmark; truncations are reported, not treated as wins.'}
