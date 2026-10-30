@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "knowledge_sha256": "12e11f7485fb8e1d188c084fd3f9e594da08e28c2890c83c35b0118bf107a471",
   "pokemon": [
     "hp",
@@ -99,7 +99,8 @@
     "hits_known",
     "stockpile_layers",
     "perish_active",
-    "perish_remaining"
+    "perish_remaining",
+    "identity_uncertain"
   ],
   "actions": [
     "move",
@@ -290,6 +291,7 @@
     "8-13": "switch to original roster slot",
     "14-133": "ordered 3-of-6 team preview permutations"
   },
+  "preview_disguise": "134 x 6: potential initial disguise-target counts for selected own Illusion users",
   "unknown_id": 0,
   "known_none_id": 1,
   "estimates": "Public-compatible set hypotheses. native_tactics=1 means supported conditional damage on a successful hit, excluding random criticals and inability to act; 0 includes unsupported/approximate mechanics (e.g. correlated multi-hit rolls or unknown volatile state). No actual hidden sets are supplied to the actor."

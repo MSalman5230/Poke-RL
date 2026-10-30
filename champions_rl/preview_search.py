@@ -11,6 +11,7 @@ from .features import Encoder
 from .knowledge import canonical
 from .model import NeuralBot,encode_for_model,tensor_batch
 from .search import paired_search_margin
+from .preview import preview_key
 
 
 class TerminalPreviewBot(NeuralBot):
@@ -31,8 +32,8 @@ class TerminalPreviewBot(NeuralBot):
     def options(self,obs,probabilities):
         choices=[];seen=set()
         for action in sorted(obs['legal'],key=lambda a:-probabilities[a['id']]):
-            picks=action['picks'];key=(picks[0],*sorted(picks[1:]))
-            if key in seen:continue # exchanging reserve order is not another trio/lead
+            picks=action['picks'];key=preview_key(obs,picks)
+            if key in seen:continue # merge only mechanically equivalent choices
             choices.append(action['id']);seen.add(key)
             if len(choices)==self.candidates:break
         return choices

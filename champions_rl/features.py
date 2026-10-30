@@ -10,7 +10,7 @@ CONDITIONS = ("stealthrock", "spikes", "toxicspikes", "stickyweb", "reflect", "l
 WEATHER = ("", "sunnyday", "raindance", "sandstorm", "snow", "desolateland", "primordialsea")
 TERRAIN = ("", "electricterrain", "grassyterrain", "psychicterrain", "mistyterrain")
 N_ACTIONS = 134
-FEATURE_VERSION = 7
+FEATURE_VERSION = 8
 ACTION_NAMES = ["move", "switch", "preview", "mega", "power", "accuracy", "priority", "pp",
                 "physical", "special", "status", "estimated_damage", "ko_margin", "effectiveness", "stab",
                 "actor_hp", "target_hp", "speed_ratio", "heal", "recoil", "drain", "setup", "protect",
@@ -56,7 +56,7 @@ class Encoder:
         self.mon_names += [f"volatile_{v}" for v in VOLATILES]
         self.mon_names += ['sleep_elapsed','rest_sleep','toxic_stage','freeze_elapsed','status_age','entry_age','effective_speed']
         self.mon_names += [f'volatile_age_{v}' for v in VOLATILES]
-        self.mon_names += ['hits_received','hits_known','stockpile_layers','perish_active','perish_remaining']
+        self.mon_names += ['hits_received','hits_known','stockpile_layers','perish_active','perish_remaining','identity_uncertain']
         # All slot-dependent attributes travel with their move, never in the
         # entity vector. A masked set encoder can then ignore arbitrary order.
         self.move_names=['pp_fraction','pp_known','pp_used','confirmed','probability','disabled',
@@ -99,7 +99,8 @@ class Encoder:
         stockpile=max((i for i in range(1,4) if f'stockpile{i}' in volatiles),default=0)
         perish=[i for i in range(4) if f'perish{i}' in volatiles]
         values += [min(6,mon.get('times_attacked',0))/6,'times_attacked' in mon,
-                   stockpile/3,bool(perish),min(perish,default=0)/3]
+                   stockpile/3,bool(perish),min(perish,default=0)/3,
+                   self.identity_uncertain(mon,obs) if not ours and obs else False]
         return values
 
     def move_features(self,mon):
@@ -123,6 +124,15 @@ class Encoder:
                          move.get('category')=='Status',*[move.get('type')==t for t in self.k.type_names]])
         return rows
 
+    def identity_uncertain(self,mon,obs):
+        if not mon.get('active') or mon.get('set'):return False
+        if 'identity_uncertain' in mon:return bool(mon['identity_uncertain'])
+        # Old saved public frames lack entry-specific evidence. Keep possible
+        # destinations, even if the apparent Pokemon revealed an ability earlier.
+        return any(m is not mon and not m.get('fainted') and
+                   'illusion' in [canonical(a) for a in self.k.species_info(m['species']).get('abilities',{}).values()]
+                   for m in obs['opponent'])
+
     def opponent_switch_mask(self,obs):
         # Only remove destinations disproved by PUBLIC evidence. Unseen roster
         # members may still be in the selected trio; a known active reviver can
@@ -134,10 +144,7 @@ class Encoder:
             known=move_ids(active)
             can_revive=('revivalblessing' in known or len(known)<4 and
                         'revivalblessing' in self.k.species_info(active['species']).get('learnset',[]))
-            illusion_unresolved=active.get('ability') is None and any(
-                not m.get('fainted') and not m.get('active') and
-                'illusion' in [canonical(a) for a in self.k.species_info(m['species']).get('abilities',{}).values()]
-                for m in obs['opponent'])
+            illusion_unresolved=self.identity_uncertain(active,obs)
         return [(not m.get('active') or illusion_unresolved) and (not m.get('fainted') or can_revive) and
                 not (m.get('set') and m.get('selected') is False) for m in obs['opponent']]
 
@@ -292,6 +299,7 @@ class Encoder:
         result["actions"] = np.zeros((N_ACTIONS,len(self.action_names)),dtype=np.float32)
         result["action_moves"] = np.zeros(N_ACTIONS,dtype=np.int64)
         result["mask"] = np.zeros(N_ACTIONS,dtype=bool)
+        result['preview_disguise']=np.zeros((N_ACTIONS,6),dtype=np.float32)
         matchup = None
         if obs["phase"] == "preview":
             matchup = np.array([[np.clip(self.best_damage(a,b)-self.best_damage(b,a),-2,2) for b in obs["opponent"]] for a in obs["own"]])
@@ -300,6 +308,10 @@ class Encoder:
             legal=obs["legal"]
             indices=np.asarray([a["id"] for a in legal])
             picks=np.asarray([a["picks"] for a in legal])
+            from .preview import disguise_targets
+            for action in legal:
+                for _,target in disguise_targets(obs,action['picks']):
+                    result['preview_disguise'][action['id'],target]+=1.
             result["mask"][indices]=True
             shared=np.asarray(self.action_features(obs,legal[0],matchup),dtype=np.float32)
             result["actions"][indices]=shared
@@ -328,5 +340,6 @@ class Encoder:
                 "history": self.history_names,"move_features":self.move_names,
                 "action_ids": {"0-3": "move slots", "4-7": "Mega + move", "8-13": "switch to original roster slot",
                                "14-133": "ordered 3-of-6 team preview permutations"},
+                "preview_disguise":"134 x 6: potential initial disguise-target counts for selected own Illusion users",
                 "unknown_id": 0, "known_none_id": 1,
                 "estimates": "Public-compatible set hypotheses. native_tactics=1 means supported conditional damage on a successful hit, excluding random criticals and inability to act; 0 includes unsupported/approximate mechanics (e.g. correlated multi-hit rolls or unknown volatile state). No actual hidden sets are supplied to the actor."}

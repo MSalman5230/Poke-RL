@@ -41,6 +41,7 @@ class BattleModel(nn.Module):
         # particular roster member, even if the transformer understands it.
         self.action = nn.Sequential(nn.Linear(len(encoder.action_names)+24+width*(4 if action_context else 2),width),nn.GELU(),nn.Linear(width,1))
         self.value = nn.Sequential(nn.Linear(width,width),nn.GELU(),nn.Linear(width,1))
+        self.preview_disguise = nn.Linear(width,width,bias=False)
         from .opponent_labels import switch_offset
         self.opponent_action = nn.Linear(width,switch_offset())
         self.opponent_switch = nn.Sequential(nn.Linear(width*2,width),nn.GELU(),nn.Linear(width,1))
@@ -86,6 +87,7 @@ class BattleModel(nn.Module):
             actors = torch.cat([active.unsqueeze(1).expand(-1,8,-1),own,own[:,self.preview_picks[:,0]]],1)
             reserve = own[:,self.preview_picks[:,1:]].mean(2)
             reserve = torch.cat([torch.zeros_like(actors[:,:14]),reserve],1)
+            reserve = reserve+self.preview_disguise(obs['preview_disguise']@own)
             opposition = context[:,7:13].mean(1)
             global_state = torch.cat([pooled.unsqueeze(1).expand(-1,N_ACTIONS,-1),actors,reserve,
                                       opposition.unsqueeze(1).expand(-1,N_ACTIONS,-1)],-1)
@@ -139,7 +141,7 @@ class PrivilegedCritic(BattleModel):
     """Separate training-only parameters; the deployed actor has no private path."""
     def __init__(self,width=128,layers=2,heads=4):
         super().__init__(width,layers,heads,action_context=False,history_position=True)
-        del self.action,self.opponent_action,self.opponent_switch,self.species_type,self.move_properties
+        del self.action,self.opponent_action,self.opponent_switch,self.species_type,self.move_properties,self.preview_disguise
 
     def forward(self,obs):
         return self.value(self.context(obs)[:,0]).squeeze(-1)

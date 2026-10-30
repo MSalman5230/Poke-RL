@@ -175,8 +175,8 @@ def behavior_clone(folder,output,steps=1500,batch_size=128,device="cuda",seed=43
         loss=nn.functional.cross_entropy(logits,label)+.1*nn.functional.mse_loss(value,target)
         if 'enemy_labels' in data:
             enemies=torch.as_tensor(data['enemy_labels'][index],device=device)
-            mask=enemies>=0
-            if mask.any():loss+=.05*nn.functional.cross_entropy(enemy[mask],enemies[mask])
+            from .opponent_labels import opponent_loss
+            loss+=.05*opponent_loss(enemy,enemies)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(),1.)
@@ -325,9 +325,9 @@ def train_ppo(output,initial=None,steps=200_000,n_envs=16,horizon=64,epochs=4,ba
                     # disappearing permanently; illegal logits never contribute.
                     explore=-(log_probs.masked_fill(~mask,0).sum(-1)/mask.sum(-1).clamp(min=1)).mean()
                     target=enemies[index]
-                    valid=target>=0
-                    opponent_loss=nn.functional.cross_entropy(opponent[valid],target[valid]) if valid.any() else value.sum()*0
-                    loss=policy+value_loss-.01*entropy+.001*explore+.03*opponent_loss
+                    from .opponent_labels import opponent_loss
+                    auxiliary=opponent_loss(opponent,target)
+                    loss=policy+value_loss-.01*entropy+.001*explore+.03*auxiliary
                     optimizer.zero_grad(set_to_none=True)
                     loss.backward()
                     nn.utils.clip_grad_norm_(model.parameters(),.5)

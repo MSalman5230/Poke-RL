@@ -14,7 +14,7 @@ function freshMon(species) {
   return {base_species:species,species,hp:1,status:'',boosts:{},moves:[],item:null,ability:null,
     seen:false,active:false,fainted:false,types:[...dex.species.get(species).types],
     volatiles:{},last_move:null,times_attacked:0,entry_turn:0,
-    moves_this_stint:[],pp_used:{},first_native_move:null,status_progress:{}};
+    moves_this_stint:[],pp_used:{},first_native_move:null,status_progress:{},identity_uncertain:false};
 }
 class PublicState {
   constructor(viewer) {this.viewer=viewer;this.turn=0;this.teams=[[],[]];this.active=[null,null];
@@ -69,6 +69,11 @@ class PublicState {
         if(stint?.previous)Object.assign(old,stint.previous,{active:false});
       }
       if(event!=='replace')this.stints[side]={previous:clone(target),moves:[],revealed:{},pp_used:{}};
+      // Identity is evidence about THIS entry, not the apparent roster member's
+      // previously revealed ability. An old Pressure reveal cannot identify a
+      // later Zoroark disguised as the same Corviknight.
+      target.identity_uncertain=event!=='replace'&&this.teams[side].some(other=>other!==target&&!other.fainted&&
+        Object.values(dex.species.get(other.base_species).abilities).some(a=>id(a)==='illusion'));
       target.nickname=p[2].slice(p[2].indexOf(':')+2);
       target.active=true;target.seen=true;target.species=name;
       target.types=[...dex.species.get(name).types];target.entry_turn=this.turn;
@@ -118,6 +123,11 @@ class PublicState {
     } else if(event==='-item'&&m){m.item=id(p[3]);if(this.stints[side])this.stints[side].revealed.item=true;
     } else if(event==='-enditem'&&m){m.item='';if(this.stints[side])this.stints[side].revealed.item=true;
     } else if(event==='-ability'&&m){m.ability=id(p[3]);if(this.stints[side])this.stints[side].revealed.ability=true;
+      // A native entry-ability announcement is fresh evidence. Do not use a
+      // stored ability or an ability changed by a later move as such evidence.
+      if(m.entry_turn===this.turn&&!this.stints[side]?.moves.length&&
+          !p.some(x=>x.startsWith('[from]'))&&m.ability!=='illusion'&&
+          Object.values(dex.species.get(m.species).abilities).some(a=>id(a)===m.ability))m.identity_uncertain=false;
     } else if(event==='-mega'&&m){this.mega[side]=true;m.item=id(p[4]);
     } else if(['detailschange','-formechange'].includes(event)&&m){m.species=p[3].split(',')[0];m.types=[...dex.species.get(m.species).types];
     } else if(event==='-transform'&&m){const other=this.mon(p[3]);if(other){m.species=other.species;m.types=[...other.types];m.boosts={...other.boosts};m.volatiles.transform={turn:this.turn};}
@@ -194,7 +204,7 @@ class Game {
         current_hp:actual.hp,max_hp:actual.maxhp,stats:clone(actual.storedStats),status:actual.status,
         boosts:clone(actual.boosts),types:actual.getTypes(),item:actual.item,ability:actual.ability,
         moves:actual.moveSlots.map(m=>({id:m.id,pp:m.pp,maxpp:m.maxpp,disabled:!!m.disabled})),
-        active:side.active.includes(actual),fainted:actual.fainted,times_attacked:actual.timesAttacked||0,
+        active:side.active.includes(actual),fainted:actual.fainted,identity_uncertain:false,times_attacked:actual.timesAttacked||0,
         volatile_ids:Object.keys(actual.volatiles)}:{};
       return {...visible,item:id(set.item),ability:id(set.ability),
         moves:set.moves.map(mid=>{const m=dex.moves.get(mid);const pp=m.noPPBoosts?m.pp:(m.pp/5+1)*4;return {id:m.id,pp,maxpp:pp,disabled:false};}),

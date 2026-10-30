@@ -20,6 +20,7 @@ from .provenance import feature_signature
 from .persistence import durable_torch_save,atomic_json,append_json
 from .curriculum import style_weights,retain_league
 from .power import keep_awake,awake_seconds
+from .opponent_labels import opponent_loss
 
 
 def cpu_weights(model):
@@ -42,6 +43,7 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=512,e
     model.train()
     if critic is not None:critic.train()
     losses,entropies,kls,private_errors=[],[],[],[]
+    components={'policy_loss':[],'public_value_mse':[],'opponent_loss':[],'uniform_loss':[]}
     actor_ids=active.nonzero().squeeze(-1)
     probe=actor_ids[torch.randperm(len(actor_ids),device=device)[:kl_sample_size]]
     actor_seen=torch.zeros(len(records),dtype=torch.bool,device=device)
@@ -73,13 +75,15 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=512,e
             mask=obs["mask"]
             uniform=-(logits.log_softmax(-1).masked_fill(~mask,0).sum(-1)/mask.sum(-1).clamp(min=1))
             uniform=uniform[learn].mean() if learn.any() else value.sum()*0
-            valid=enemies[index]>=0
-            auxiliary=nn.functional.cross_entropy(enemy[valid],enemies[index][valid]) if valid.any() else value.sum()*0
+            auxiliary=opponent_loss(enemy,enemies[index])
             # Keep the public value head usable as a baseline, without a second
             # value gradient competing with the policy encoder when the
             # independent private critic is trained alongside it.
             value_weight=.1 if critic is not None else .5
-            loss=policy+value_weight*nn.functional.mse_loss(value,returns[index])-.01*entropy+.001*uniform+.03*auxiliary
+            public_error=nn.functional.mse_loss(value,returns[index])
+            loss=policy+value_weight*public_error-.01*entropy+.001*uniform+.03*auxiliary
+            for name,term in [('policy_loss',policy),('public_value_mse',public_error),('opponent_loss',auxiliary),('uniform_loss',uniform)]:
+                components[name].append(float(term.detach()))
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(),.5)
@@ -115,6 +119,8 @@ def ppo_update(model,optimizer,records,advantage,returns,device,batch_size=512,e
                 private_errors.append(float(private_error.detach()))
             critic_epochs+=1
     return {"loss":float(np.mean(losses)),"entropy":float(np.mean(entropies)),"approx_kl":float(np.mean(kls)),
+            **{name:float(np.mean(values)) for name,values in components.items()},
+            'public_value_encoder_detached':critic is not None,
             'private_value_mse':float(np.mean(private_errors)) if private_errors else None,
             'optimized_samples':optimized_samples,'kl_early_stop':early,'kl_trigger':trigger_kl,
             'kl_probe_samples':len(probe),'actor_unique_samples':int(actor_seen.sum()),

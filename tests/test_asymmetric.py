@@ -95,4 +95,6 @@ def test_actor_kl_stop_does_not_discard_critic_samples():
     assert result['kl_early_stop'] and result['kl_trigger']>1e-9 and result['kl_probe_samples']==64
     assert result['critic_unique_samples']==64 and result['critic_sample_coverage']==1
     assert result['critic_completed_epochs']==2 and result['critic_optimized_samples']==128
+    assert all(np.isfinite(result[name]) for name in ('policy_loss','public_value_mse','opponent_loss','uniform_loss'))
+    assert result['opponent_loss']==0 and result['public_value_encoder_detached']
     assert any(not torch.equal(before[k],v) for k,v in critic.state_dict().items())
