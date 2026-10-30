@@ -1,5 +1,5 @@
 {
-  "status": "running",
+  "status": "paused_by_user_explicit_training_resume_required",
   "run": "runtime_data/ppo_v7_generalization",
   "resume": "runtime_data/ppo_v7_mix_neural/trainer_state.pt",
   "starting_steps": 262244,
@@ -11,7 +11,7 @@
   "seed": 921103,
   "resume_note": "Actor, critic, optimizers, league and learner RNG retained. Worker count changes from 8 to 16; simulator workers start fresh with a new explicit seed, avoiding replay of their initial seed streams.",
   "settings_retained": {
-    "actor_lr": 6e-05,
+    "actor_lr": 6E-05,
     "critic_lr": 0.0001,
     "actor_epochs": 4,
     "critic_epochs": 2,
@@ -37,6 +37,7 @@
   "source_commit_at_launch": "0d3d1c5",
   "source_archive": "runtime_data/ppo_v7_generalization/source.zip",
   "source_archive_sha256": "3174b367997eb325af488d488820f3819c9ff63821fde37fc48acc990a74d81f",
-  "launch_recorded_at_utc": "2026-10-30T00:14:13.447142+00:00",
-  "verification": "Full regression suite: 72 passed. V6 baseline and prospective-test manifest hashes unchanged."
+  "launch_recorded_at_utc": "2026-10-30T05:44:13.447142+05:30",
+  "verification": "Full regression suite: 72 passed. V6 baseline and prospective-test manifest hashes unchanged.",
+  "pause_record": "runtime_data/PAUSED_BY_USER.json"
 }
