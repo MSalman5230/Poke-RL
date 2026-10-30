@@ -26,6 +26,16 @@ const {prepareAssets,localHTML}=require('./simulator/showdown_http.cjs');
 const root=process.argv[1];
 prepareAssets(root);
 const html=localHTML(root,8765);
+// The browser on another PC must connect to the page's server, not itself.
+const configScript=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+  .find(match=>match[1].startsWith('window.Config='));
+assert(configScript,'Missing local client configuration');
+for(const hostname of ['127.0.0.1','192.0.2.10','battle-pc']){
+  const browser={window:{location:{hostname}}};
+  vm.runInNewContext(configScript[1],browser);
+  assert.equal(browser.window.Config.defaultserver.host,hostname);
+  assert.equal(browser.window.Config.defaultserver.port,8765);
+}
 const context={Dex:{resourcePrefix:'',loadTextData:()=>{},text:{getLanguage:()=> 'en'}},
   $:{easing:{},extend:Object.assign},toID:x=>String(x).toLowerCase().replace(/[^a-z0-9]/g,'')};
 context.window=context;context.exports=context;

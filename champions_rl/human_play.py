@@ -27,7 +27,7 @@ def stop_process(process):
     process.wait(timeout=15)
 
 
-def prepare_server(port,bot_name):
+def prepare_server(port,bot_name,host='0.0.0.0'):
     source=ROOT/'simulator/node_modules/pokemon-showdown'
     target=ROOT/'runtime_data/human_showdown'
     if not (source/'dist/server/index.js').exists():raise RuntimeError('Install the pinned simulator first')
@@ -49,7 +49,7 @@ def prepare_server(port,bot_name):
         cwd=ROOT,check=True,capture_output=True,text=True,
         creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
     config="""'use strict';
-exports.bindaddress = '127.0.0.1';
+exports.bindaddress = BIND_HOST;
 exports.port = PORT;
 exports.noguestsecurity = true;
 exports.noipchecks = true;
@@ -63,7 +63,7 @@ exports.reportjoins = false;
 exports.subprocesses = {network:1, simulator:1, validator:1, verifier:0,
   localartemis:0, remoteartemis:0, battlesearch:0, datasearch:0,
   friends:0, chatdb:0, pm:0, modlog:0};
-""".replace('PORT',str(port))
+""".replace('PORT',str(port)).replace('BIND_HOST',json.dumps(host))
     config+='\nexports.customhttpresponse = require('+json.dumps((ROOT/'simulator/showdown_http.cjs').as_posix())+').handler('+json.dumps(client_root.as_posix())+','+str(port)+');\n'
     (target/'config/config.js').write_text(config,encoding='utf-8')
     env=dict(os.environ,NODE_PATH=str(ROOT/'simulator/node_modules'),CHAMPIONS_PS_DIR=str(target),
@@ -85,8 +85,9 @@ def load_policy(checkpoint,legacy_runtime,engine,sampled=False):
     return NeuralBot(model,encoder,deterministic=not sampled),metadata,legacy_runtime
 
 
-def run(checkpoint=None,legacy_runtime=None,port=8765,name='RLChampion',sampled=False):
+def run(checkpoint=None,legacy_runtime=None,port=8765,name='RLChampion',sampled=False,host='0.0.0.0'):
     if not 1024<=port<=65535:raise ValueError('Choose an unprivileged local port')
+    if host not in ('0.0.0.0','127.0.0.1'):raise ValueError('Use 0.0.0.0 for LAN play or 127.0.0.1 for this PC only')
     if not re.fullmatch(r'[A-Za-z][A-Za-z0-9 ]{2,17}',name):raise ValueError('Use a 3-18 character local nickname')
     with socket.socket() as probe:
         if probe.connect_ex(('127.0.0.1',port))==0:raise RuntimeError(f'Port {port} is already in use; choose --port')
@@ -105,7 +106,7 @@ def run(checkpoint=None,legacy_runtime=None,port=8765,name='RLChampion',sampled=
     with Engine() as engine,(output/'server.log').open('w',encoding='utf-8') as log:
         try:
             bot,metadata,runtime=load_policy(checkpoint,legacy_runtime,engine,sampled)
-            target,env=prepare_server(port,name)
+            target,env=prepare_server(port,name,host)
             server=subprocess.Popen([node,str(target/'dist/server/index.js')],cwd=target,env=env,
                 stdout=log,stderr=subprocess.STDOUT,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
             started=time.monotonic()
@@ -120,7 +121,7 @@ def run(checkpoint=None,legacy_runtime=None,port=8765,name='RLChampion',sampled=
                 cwd=ROOT,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=log,text=True,encoding='utf-8',bufsize=1,
                 creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
             session={'checkpoint':str(checkpoint),'checkpoint_sha256':hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
-                     'metadata':metadata,'legacy_runtime':str(runtime) if runtime else None,'port':port,'bot':name,
+                     'metadata':metadata,'legacy_runtime':str(runtime) if runtime else None,'port':port,'bot':name,'bind_host':host,
                      'url':f'http://127.0.0.1:{port}','pid':os.getpid(),'server_pid':server.pid,'training':False}
             atomic_json(output/'session.json',session)
             for line in client.stdout:
@@ -135,7 +136,10 @@ def run(checkpoint=None,legacy_runtime=None,port=8765,name='RLChampion',sampled=
                 else:
                     print(json.dumps(row),flush=True)
                     if row['event']=='ready':
+                        print(f"Listening on {host}:{port}.",flush=True)
                         print(f"Open {session['url']}, choose a nickname, and challenge {name} in [Gen 9 Champions] BSS Reg M-C.",flush=True)
+                        if host=='0.0.0.0':
+                            print(f"Other computers on your LAN: open http://<this-PC-LAN-IP>:{port}/.",flush=True)
                         print(f"Checkpoint: {metadata.get('steps','unknown')} decisions. Example team: {output/'example_team.txt'}. Ctrl+C stops local play.",flush=True)
             if client.wait():raise RuntimeError('Showdown connection failed; see server.log')
         except KeyboardInterrupt:print('Stopping local play.',flush=True)
@@ -149,5 +153,7 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--checkpoint',type=Path);parser.add_argument('--legacy-runtime',type=Path)
     parser.add_argument('--port',type=int,default=8765);parser.add_argument('--name',default='RLChampion')
+    parser.add_argument('--host',choices=['0.0.0.0','127.0.0.1'],default='0.0.0.0',
+                        help='Bind all IPv4 interfaces for LAN play (default), or only this PC')
     parser.add_argument('--sampled',action='store_true',help='Sample actions instead of using the evaluated deterministic mode')
     run(**vars(parser.parse_args()))

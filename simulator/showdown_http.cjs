@@ -1,5 +1,5 @@
 'use strict';
-// Serve the official client on the same loopback origin as the battle server.
+// Serve the official client on the same local or LAN origin as the battle server.
 // No public Showdown account or login-server credential is used for local play.
 const fs=require('fs'),path=require('path');
 function prepareAssets(root){
@@ -30,10 +30,10 @@ function localHTML(root,port){
   const config={version:'local',bannedHosts:[],whitelist:[],customcolors:{},
     routes:{root:'pokemonshowdown.com',client:'play.pokemonshowdown.com',dex:'dex.pokemonshowdown.com',
       replays:'replay.pokemonshowdown.com',users:'pokemonshowdown.com/users'},
-    defaultserver:{id:'localchampions',host:'127.0.0.1',port}};
+    defaultserver:{id:'localchampions',port}};
   html=html.replace('<title>Showdown!</title>','<title>Champions RL — Local Showdown</title>')
     .replace('<script src="https://play.pokemonshowdown.com/config/config.js"></script>',
-      '<script>window.Config='+JSON.stringify(config)+'</script>')
+      '<script>window.Config='+JSON.stringify(config)+';window.Config.defaultserver.host=window.location.hostname;</script>')
     .replace('<script src="../config/testclient-key.js"></script>','')
     .replace('<script src="js/client-connection.js"></script>',`<script src="js/client-connection.js"></script>
 <script>
