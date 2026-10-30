@@ -27,3 +27,12 @@ def test_comparison_preserves_seed_blocks_and_rejects_missing_seats(tmp_path):
     changed['feature_signature']='same';(paths[1]/'report.json').write_text(json.dumps(changed))
     (paths[1]/'balanced_games.json').write_text(json.dumps(records[:-1]))
     with pytest.raises(ValueError,match='Incomplete paired'):compare(*paths)
+def test_decisive_pair_metrics_keep_splits_and_draws_visible():
+    from tools.compare_evaluations import paired_outcomes
+    outcomes=[True,True,False,False,True,False,True,False]
+    rows=[{'game':i,'seat':i%2,'won':won,'winner':i%2 if won else 1-i%2,'truncated':False} for i,won in enumerate(outcomes)]
+    rows[-1]['winner']=None
+    result=paired_outcomes(rows)
+    assert result['swept_wins']==result['swept_losses']==result['split_pairs']==result['drawn_or_truncated_pairs']==1
+    assert result['decisive_pair_win_rate']==.5 and result['decisive_pairs']==2 and result['total_pairs']==4
+

@@ -47,6 +47,7 @@ class ChampionsEnv(gym.Env):
             "history_species": spaces.Box(0,len(k.vocab['species'])+1,(12,),np.int64),
             "actions": spaces.Box(-np.inf,np.inf,(N_ACTIONS,len(self.encoder.action_names)),np.float32),
             "action_moves": spaces.Box(0,len(k.vocab["moves"])+1,(N_ACTIONS,),np.int64),
+            "preview_disguise": spaces.Box(0,3,(N_ACTIONS,6),np.float32),
             "mask": spaces.MultiBinary(N_ACTIONS),
         })
         for kind in ('items','abilities'):

@@ -10,6 +10,9 @@ sys.path.insert(0,str(ROOT))
 from champions_rl.persistence import atomic_json
 
 
+from champions_rl.evaluation import paired_outcomes
+
+
 def interval(blocks,seed=240011):
     values=np.asarray([np.mean(v) for _,v in sorted(blocks.items())],dtype=float)
     if len(values)<2:raise ValueError('At least two independent seed blocks are required')
@@ -42,6 +45,8 @@ def compare(baseline,candidate,opponents=None,allow_feature_change=False):
     for style in opponents:
         if a.get('frozen_opponents',{}).get(style)!=b.get('frozen_opponents',{}).get(style):
             raise ValueError('Frozen opponent weights differ')
+        if a.get('frozen_opponent_runtime_manifests',{}).get(style)!=b.get('frozen_opponent_runtime_manifests',{}).get(style):
+            raise ValueError('Frozen opponent implementations differ')
     all_blocks={};styles={}
     for style in sorted(opponents):
         left={r['game']:r for r in json.loads((baseline/f'{style}_games.json').read_text())}
@@ -58,7 +63,8 @@ def compare(baseline,candidate,opponents=None,allow_feature_change=False):
             difference=float(other['won'])-float(row['won'])
             blocks.setdefault(game//2,[]).append(difference)
             all_blocks.setdefault(game//2,[]).append(difference)
-        styles[style]={'baseline':a['results'][style],'candidate':b['results'][style],**interval(blocks)}
+        styles[style]={'baseline':a['results'][style],'candidate':b['results'][style],
+                       'baseline_pairs':paired_outcomes(left.values()),'candidate_pairs':paired_outcomes(right.values()),**interval(blocks)}
     snapshots_compared=(baseline/'worker_0'/'code_snapshot').is_dir() and (candidate/'worker_0'/'code_snapshot').is_dir()
     changed=[]
     for path in (baseline/'worker_0'/'code_snapshot').rglob('*'):

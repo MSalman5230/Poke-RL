@@ -97,6 +97,7 @@ def main():
     evaluate.add_argument('--critic-state',type=Path)
     evaluate.add_argument('--roster',choices=['manifest','saved','saved_vs_varied'],default='manifest')
     evaluate.add_argument('--frozen-opponent',action='append',default=[],metavar='frozen_NAME=PATH')
+    evaluate.add_argument('--frozen-opponent-runtime',action='append',default=[],metavar='frozen_NAME=RUNTIME',help='Verified legacy implementation for a frozen opponent')
     evaluate.add_argument("--reference-teams",choices=["saved","varied"],default="saved")
     evaluate.add_argument("--workers",type=int,default=1,help="Independent local evaluation processes (up to 8)")
     evaluate.add_argument("--shard-index",type=int,default=0,help=argparse.SUPPRESS)
@@ -164,7 +165,8 @@ def main():
         runner=evaluate_parallel if args.workers>1 else evaluate
         report=runner(args.checkpoint,args.opponents.split(","),args.games,args.output,args.split,args.seed,
                       args.device,args.learner_style,args.reference_teams,args.deterministic,search=args.search,
-                      roster=args.roster,critic_state=args.critic_state,frozen_opponents=dict(x.split('=',1) for x in args.frozen_opponent),legacy_runtime=args.legacy_runtime,preview_rollout_search=args.preview_rollout_search,**options)
+                      roster=args.roster,critic_state=args.critic_state,frozen_opponents=dict(x.split('=',1) for x in args.frozen_opponent),legacy_runtime=args.legacy_runtime,preview_rollout_search=args.preview_rollout_search,
+                      frozen_opponent_runtimes=dict(x.split('=',1) for x in args.frozen_opponent_runtime),**options)
         print(json.dumps(report,indent=2))
     elif args.command=="status":
         import torch

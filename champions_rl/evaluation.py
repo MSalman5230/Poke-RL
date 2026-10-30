@@ -37,6 +37,33 @@ def wilson(wins, total, z=1.96):
     return [max(0.,center-margin),min(1.,center+margin)]
 
 
+def paired_outcomes(records):
+    """Report complete two-seat pairs; splits do not identify the cause of luck."""
+    pairs={}
+    for row in records:pairs.setdefault(row['game']//2,[]).append(row)
+    counts=dict(swept_wins=0,swept_losses=0,split_pairs=0,drawn_or_truncated_pairs=0,invalid_pairs=0)
+    scores=[]
+    for rows in pairs.values():
+        if len(rows)!=2 or {r.get('seat') for r in rows}!={0,1} or any(r.get('error') for r in rows):
+            counts['invalid_pairs']+=1;continue
+        scores.append(sum(bool(r['won']) for r in rows)/2)
+        if any(r.get('truncated') or r.get('winner') is None for r in rows):
+            counts['drawn_or_truncated_pairs']+=1;continue
+        wins=sum(bool(r['won']) for r in rows)
+        counts['swept_wins' if wins==2 else 'swept_losses' if wins==0 else 'split_pairs']+=1
+    decided=counts['swept_wins']+counts['swept_losses']
+    mean=sum(scores)/len(scores) if scores else None
+    interval=None
+    if len(scores)>1:
+        margin=1.96*math.sqrt(sum((s-mean)**2 for s in scores)/(len(scores)*(len(scores)-1)))
+        interval=[max(0.,mean-margin),min(1.,mean+margin)]
+    return {**counts,'decisive_pairs':decided,'total_pairs':len(pairs),
+            'valid_pair_win_rate':mean,'win_rate_pair_normal95':interval,
+            'decisive_pair_win_rate':counts['swept_wins']/decided if decided else None,
+            'decisive_pair_wilson95':wilson(counts['swept_wins'],decided) if decided else None,
+            'interpretation':'Conditional share of 2-0 versus 0-2 pairs. The overall win-rate interval is a normal approximation over complete valid pair scores, including draws as non-wins; very small schedules need more games. Keep split/drawn counts; a 1-1 split does not prove team luck.'}
+
+
 def acceptance(rows, split,roster='manifest'):
     reference=rows.get("reference",{})
     other=[r for n,r in rows.items() if n!="reference"]
@@ -59,7 +86,7 @@ def acceptance(rows, split,roster='manifest'):
 @keep_awake()
 def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"),games=100,
              output=None, split="validation",seed=None,device="cpu",learner_style=None,reference_teams="saved",deterministic=False,
-             shard_index=0,shard_count=1,search=False,roster='manifest',critic_state=None,frozen_opponents=None,legacy_runtime=None,preview_rollout_search=False):
+             shard_index=0,shard_count=1,search=False,roster='manifest',critic_state=None,frozen_opponents=None,legacy_runtime=None,preview_rollout_search=False,frozen_opponent_runtimes=None):
     if games<1 or not 0<=shard_index<shard_count:
         raise ValueError("Invalid game count or shard range")
     if len(set(opponents))!=len(opponents):
@@ -71,6 +98,8 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
     uses_search=search or preview_rollout_search
     if roster not in ('manifest','saved','saved_vs_varied'):raise ValueError('Unknown roster schedule')
     frozen_opponents=frozen_opponents or {}
+    frozen_opponent_runtimes=frozen_opponent_runtimes or {}
+    if not set(frozen_opponent_runtimes)<=set(frozen_opponents):raise ValueError('A frozen opponent runtime needs matching opponent weights')
     seed=evaluation_seed(split,seed)
     seed_all(seed)
     import torch
@@ -123,13 +152,19 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
             "split":split,"seed":seed,"reference_teams":reference_teams,"deterministic":deterministic,
             'roster':roster,'critic_sha256':hashlib.sha256(Path(critic_state).read_bytes()).hexdigest() if critic_state else None,
             'frozen_opponents':{name:hashlib.sha256(Path(path).read_bytes()).hexdigest() for name,path in frozen_opponents.items()},
+            'frozen_opponent_runtime_manifests':{name:hashlib.sha256((Path(path)/'BASELINE_MANIFEST.json').read_bytes()).hexdigest() for name,path in frozen_opponent_runtimes.items()},
             'search':uses_search,'search_method':'terminal_preview' if preview_rollout_search else 'private_one_turn' if search else None,
             "shard_index":shard_index,"shard_count":shard_count,"requested_games_per_opponent":games,
             "reference_policy":"Frozen 32-trial original scoring/prediction; public-state adapter",
             "results":{}}
     with Engine() as engine:
         for style in opponents:
-            frozen_model=BattleModel.load(frozen_opponents[style],device)[0] if style in frozen_opponents else None
+            frozen_model=None;frozen_encoder=encoder
+            if style in frozen_opponents:
+                if style in frozen_opponent_runtimes:
+                    from .legacy import load_frozen_policy
+                    frozen_model,_,frozen_encoder,_=load_frozen_policy(frozen_opponents[style],frozen_opponent_runtimes[style],device,engine)
+                else:frozen_model=BattleModel.load(frozen_opponents[style],device)[0]
             rng=random.Random(seed)  # identical composition pairs across styles
             counts=Counter()
             records=[]
@@ -154,7 +189,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                 party=pair
                 if roster=='saved_vs_varied':
                     party=[pair[1],pair[1]];party[seat]=reference_team
-                opponent=(NeuralBot(frozen_model,encoder,deterministic=True,name=style) if frozen_model is not None else
+                opponent=(NeuralBot(frozen_model,frozen_encoder,deterministic=True,name=style) if frozen_model is not None else
                           ReferenceBot(seed+game,strict=True) if style=="reference" else ScriptedBot(style,seed+game,encoder))
                 bots=[opponent,opponent]
                 bots[seat]=learner
@@ -191,6 +226,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
                 summary={"games":n,"wins":counts["wins"],"losses":counts["losses"],"draws":counts["draws"],
                          "errors":counts["errors"],"truncations":counts["truncations"],"fallbacks":counts["fallbacks"],
                          "win_rate":counts["wins"]/n,"confidence":wilson(counts["wins"],n)}
+                if shard_count==1:summary['paired_outcomes']=paired_outcomes(records)
                 if uses_search:
                     combined=Counter()
                     for record in records:combined.update(record.get('search',{}))
@@ -209,7 +245,7 @@ def evaluate(checkpoint=None, opponents=("damage","balanced","setup","defensive"
 @keep_awake()
 def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced","setup","defensive","stochastic"),
                       games=200, output=None,split="validation",seed=None,device="cpu",learner_style=None,
-                      reference_teams="saved",deterministic=False,workers=4,search=False,roster='manifest',critic_state=None,frozen_opponents=None,legacy_runtime=None,preview_rollout_search=False):
+                      reference_teams="saved",deterministic=False,workers=4,search=False,roster='manifest',critic_state=None,frozen_opponents=None,legacy_runtime=None,preview_rollout_search=False,frozen_opponent_runtimes=None):
     """Separate processes preserve reference-policy isolation and exact trials.
 
     Each worker takes a disjoint subset of the same paired schedule. Reports
@@ -219,6 +255,8 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
     import subprocess
     import sys
     seed=evaluation_seed(split,seed)
+    frozen_opponent_runtimes=frozen_opponent_runtimes or {}
+    if not set(frozen_opponent_runtimes)<=set(frozen_opponents or {}):raise ValueError('A frozen opponent runtime needs matching opponent weights')
     if workers<1 or workers>min(8,games):
         raise ValueError("Use 1 to min(8, games) evaluation workers")
     output=Path(output or ROOT/"runtime_data/evaluation"/time.strftime("%Y%m%d_%H%M%S"))
@@ -254,6 +292,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
             if critic_state:command.extend(['--critic-state',str(critic_state)])
             if legacy_runtime:command.extend(['--legacy-runtime',str(Path(legacy_runtime).resolve())])
             for name,path in frozen_paths.items():command.extend(['--frozen-opponent',name+'='+str(path)])
+            for name,path in frozen_opponent_runtimes.items():command.extend(['--frozen-opponent-runtime',name+'='+str(Path(path).resolve())])
             log=(output/f"worker_{index}.log").open("w",encoding="utf-8")
             process=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,
                                      creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
@@ -272,7 +311,7 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                     raise RuntimeError(f"Evaluation worker failed; see {folder.parent/(folder.name+'.log')}")
             if reports:
                 merged=dict(reports[0])
-                for key in ("checkpoint_sha256","implementation_sha256","knowledge_sha256","feature_signature","opponent_feature_signature","legacy_manifest_sha256","team_manifest_sha256","reference_manifest_sha256","roster","critic_sha256","frozen_opponents"):
+                for key in ("checkpoint_sha256","implementation_sha256","knowledge_sha256","feature_signature","opponent_feature_signature","legacy_manifest_sha256","team_manifest_sha256","reference_manifest_sha256","roster","critic_sha256","frozen_opponents","frozen_opponent_runtime_manifests"):
                     if len({json.dumps(r.get(key),sort_keys=True) for r in reports})!=1:
                         raise ValueError(f"Incompatible evaluation shards: {key}")
                 merged.update(checkpoint=str(checkpoint) if checkpoint else None,workers=workers,
@@ -310,6 +349,8 @@ def evaluate_parallel(checkpoint=None, opponents=("reference","damage","balanced
                         if len({r["game"] for r in records})!=len(records):
                             raise ValueError("Duplicate game IDs across evaluation shards")
                         atomic_json(output/f'{style}_games.json',records)
+                        merged['results'][style]['paired_outcomes']=paired_outcomes(records)
+                    atomic_json(output/'report.json',merged)
                     return merged
             if all(p.poll()==0 for p,_,_ in jobs) and len(reports)!=workers:
                 raise RuntimeError("Evaluation worker exited without a readable report")
