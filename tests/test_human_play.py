@@ -6,6 +6,12 @@ import pytest
 from champions_rl.engine import ROOT
 
 
+def test_waiting_challenges_are_accepted_after_a_busy_game():
+    result = subprocess.run(['node', 'tests/showdown_challenges.cjs'], cwd=ROOT,
+                            capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr[:5000]
+
+
 def test_quick_build_has_local_battle_renderer_and_text_before_panel_load(tmp_path):
     client = ROOT / 'runtime_data/showdown_client/play.pokemonshowdown.com'
     if not (client / 'js/battle-animations.js').exists():

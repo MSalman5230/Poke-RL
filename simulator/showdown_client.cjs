@@ -8,14 +8,22 @@ if(!/^\d+$/.test(port)||Number(port)<1024||Number(port)>65535)throw Error('Inval
 if(!/^[A-Za-z][A-Za-z0-9 ]{2,17}$/.test(name))throw Error('Use a short local nickname');
 const team=JSON.parse(fs.readFileSync(teamFile,'utf8'));
 const socket=new WebSocket(`ws://127.0.0.1:${port}/showdown/websocket`);
-const requests=new Map(),pending=new Map();
-let accepted=false,playing=false;
+const requests=new Map(),pending=new Map(),challenges=new Map();
+let accepted=null,playing=false;
 const output=row=>process.stdout.write(JSON.stringify(row)+'\n');
 const send=(text,room='')=>socket.send(`${room}|${text}`);
-function accept(challenger,format){
-  if(format!=='gen9championsbssregmc'||accepted||playing)return;
-  accepted=true;send('/utm '+Teams.pack(team));send('/accept '+challenger);
+function acceptNext(){
+  if(accepted||playing||!challenges.size)return;
+  const [challenger,format]=challenges.entries().next().value;
+  challenges.delete(challenger);
+  accepted=challenger;send('/utm '+Teams.pack(team));send('/accept '+challenger);
   output({event:'challenge_accepted',challenger,format});
+}
+function rememberChallenge(challenger,format){
+  if(format!=='gen9championsbssregmc'||challenger===accepted)return;
+  if(!challenges.has(challenger)&& (accepted||playing))
+    output({event:'challenge_queued',challenger,format});
+  challenges.set(challenger,format);
 }
 socket.addEventListener('message',event=>{
   const lines=String(event.data).split('\n');
@@ -29,14 +37,22 @@ socket.addEventListener('message',event=>{
       }
     }else if(line.startsWith('|updatechallenges|')){
       const incoming=JSON.parse(line.slice('|updatechallenges|'.length)).challengesFrom||{};
+      challenges.clear();
       for(const [challenger,format] of Object.entries(incoming)){
-        accept(challenger,format);
+        rememberChallenge(Dex.toID(challenger),format);
       }
+      acceptNext();
     }else if(line.startsWith('|pm|')){
       // Current Showdown sends challenge controls as PM protocol messages.
       const fields=line.split('|');
-      if(Dex.toID(fields[3])===Dex.toID(name)&&fields[4]?.startsWith('/challenge '))
-        accept(Dex.toID(fields[2]),fields[4].slice('/challenge '.length));
+      const from=Dex.toID(fields[2]),to=Dex.toID(fields[3]),self=Dex.toID(name);
+      if(fields[4]==='/challenge'&&(from===self||to===self)){
+        // Cancellation controls may use either participant as the sender.
+        challenges.delete(from===self?to:from);
+      }else if(to===self&&fields[4]?.startsWith('/challenge ')){
+        rememberChallenge(from,fields[4].slice('/challenge '.length));
+        acceptNext();
+      }
     }else if(line.startsWith('|request|')){
       const request=JSON.parse(line.slice(9));
       if(request)requests.set(room,request);
@@ -48,11 +64,13 @@ socket.addEventListener('message',event=>{
       playing=true;pending.set(room,{rqid:request.rqid,obs});
       output({event:'decision',room,rqid:request.rqid,observation:obs});
     }else if(line.startsWith('|win|')||line==='|tie'){
-      playing=false;accepted=false;pending.delete(room);requests.delete(room);
+      playing=false;accepted=null;pending.delete(room);requests.delete(room);
       output({event:'battle_finished',room,result:line});
+      acceptNext();
     }else if(line.startsWith('|error|')||line.startsWith('|nametaken|')||line.startsWith('|popup|')){
-      if(!playing)accepted=false;
+      if(!playing)accepted=null;
       output({event:'server_notice',room,message:line});
+      acceptNext();
     }
   }
 });
