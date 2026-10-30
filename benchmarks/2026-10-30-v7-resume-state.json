@@ -1,5 +1,5 @@
 {
-  "status": "resumed_after_user_request",
+  "status": "paused_pilots_completed_stage_two_running",
   "authorization": "User said continue after the restart pause.",
   "resumed_at_utc": "2026-10-29T23:56:05.481632+00:00",
   "source_commit_at_launch": "7c8f14f812b0784f98c3b5f131cf7fbeb023237a",
@@ -31,5 +31,15 @@
     }
   },
   "settings": "Each run retains settings_000000000.json; resumed settings recorded under starting decision count.",
-  "next": "Complete pilots, compare paired broad/core/saved/cross validation and held-out value prediction. No prospective test or promotion yet."
+  "next": "Complete pilots, compare paired broad/core/saved/cross validation and held-out value prediction. No prospective test or promotion yet.",
+  "completed_pilot_steps": {
+    "control": 262322,
+    "neural": 262244
+  },
+  "stage_two": {
+    "folder": "runtime_data/ppo_v7_generalization",
+    "launcher_pid": 33388,
+    "target_cumulative_steps": 2000000
+  },
+  "last_updated_utc": "2026-10-30T00:20:02.085142+00:00"
 }

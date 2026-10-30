@@ -1,5 +1,5 @@
 {
-  "status": "pilots_complete_reference_retention_running",
+  "status": "complete_no_promotion",
   "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
   "design": "Two pilots, same initial model and training seed, different opponent mixtures. Approximately matched policy-decision budgets; one training seed only. Runs shared hardware, so elapsed compute is not an isolated benchmark.",
   "evaluations": "256 games per opponent/schedule; deterministic policy; seed 92341; paired seed-block comparisons.",
@@ -476,5 +476,49 @@
   "decision": "Continue the 50% scripted / 25% self-play / 25% historical mixture as an experiment to two million cumulative v7 decisions. It improved broad validation and frozen-imitation matchups versus the control, but did not improve held-out cores conclusively. No promotion over v6.",
   "private_critic_decision": "Keep public PPO advantages. Both deterministic and sampled private-head EV estimates are higher, but seed-block confidence intervals for the advantage include zero. No search promotion.",
   "prospective_test_v7_used": false,
-  "reference_retention": "128-game neural-pilot validation still running; excluded from mixture-selection claims until complete."
+  "reference_retention": {
+    "report": "runtime_data\\review_v7_mix_neural\\reference\\report.json",
+    "report_sha256": "fdeb21fa2c36d265534d7b7835619118742e02de131a0edb8a9be2869bf44760",
+    "checkpoint_sha256": "85c8cd5720f19bbe0b10d1ef0848446045675239648f4d137c5211dfbbe8d32f",
+    "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
+    "reference_manifest_sha256": "ed3dcaec70748a5a71906824e5323f3064094106c1c7ab494c3494c955696ab7",
+    "seed": 92341,
+    "split": "validation",
+    "roster": "saved six on both sides",
+    "deterministic": true,
+    "result": {
+      "games": 128,
+      "wins": 110,
+      "losses": 18,
+      "draws": 0,
+      "errors": 0,
+      "truncations": 0,
+      "fallbacks": 0,
+      "win_rate": 0.859375,
+      "confidence": [
+        0.7886460265596023,
+        0.9091610388886326
+      ]
+    },
+    "reference_audit": {
+      "decisions": 1809,
+      "sources": {
+        "greedy_showdown": 1809
+      },
+      "trial_counts": {
+        "32": 1809
+      },
+      "errors": 0,
+      "deadline_passed": 0
+    },
+    "historical_v6_validation": {
+      "report": "runtime_data/eval_v6_ppo_final_reference/report.json",
+      "wins": 126,
+      "games": 128,
+      "note": "Historical v6 benchmark; no new paired reference certificate across the feature migration is claimed."
+    },
+    "decision": "Above 60% in this validation, but below established v6 reference performance; no promotion. Continue generalization training and reevaluate later."
+  },
+  "regression_tests": "72 passed; legacy CLI offline smoke completed; README encoding checked.",
+  "stage_two": "Running in runtime_data/ppo_v7_generalization. Protocol is benchmarks/2026-10-30-v7-stage2-protocol.json."
 }

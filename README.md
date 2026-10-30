@@ -17,7 +17,7 @@ From this directory in PowerShell:
 
 `play` writes a complete public Showdown protocol log and a JSON result to `runtime_data/play/`. A neural policy receives only its own player-visible state. An opponent's actual moveset, items, selected trio, and pending action are not inputs.
 
-The source now uses feature version 7. The tested v6 policy requires the explicit, hash-verified frozen runtime shown above; it is never silently loaded into a different encoder. A v7 checkpoint, such as the experimental `runtime_data/bc_v7_dropout.pt`, runs without `--legacy-runtime`. Neither the v7 imitation policy nor the ongoing PPO pilots has been promoted over v6.
+The source now uses feature version 7. The tested v6 policy requires the explicit, hash-verified frozen runtime shown above; it is never silently loaded into a different encoder. A v7 checkpoint, such as the experimental `runtime_data/bc_v7_dropout.pt`, runs without `--legacy-runtime`. Neither the v7 imitation policy nor the completed PPO pilots has been promoted over v6. The longer generalization experiment runs in `runtime_data/ppo_v7_generalization/`.
 
 The completed run is `runtime_data/ppo_v6_full/`. `latest.pt` is an inference checkpoint; `trainer_state.pt` also includes both optimizers, RNG streams, and the frozen opponent league. The candidate folder preserves the tested policy and its result separately. Training logs contain **training** win rates, which are not benchmark results.
 
@@ -202,6 +202,8 @@ Both pilots completed eight updates: 262,322 decisions for the 75% scripted / 10
 | Frozen v7 imitation opponent, broad teams | Not measured | 113/256 | 131/256 |
 
 All games in this table completed without errors, fallbacks, or truncations. Relative to the control, the neural-heavy mixture gained 3.8 points on broad teams (paired 95% interval +0.3 to +7.3) and 7.0 against the frozen imitation policy (+1.6 to +12.5), while cores changed by -2.3 points (-8.2 to +3.5). These are exploratory, single-training-seed results; the runs shared hardware and are not an isolated equal-compute comparison. Neither candidate established gains over v6 on both primary schedules, so neither was promoted. The next bounded experiment continues the neural-heavy mixture to two million cumulative v7 decisions with validation every ten updates, as recorded in `benchmarks/2026-10-30-v7-stage2-protocol.json`.
+
+The neural-heavy pilot subsequently won **110/128 reference validation games (85.9%)**, with a Wilson interval of 78.9% to 90.9% and no errors, fallbacks, or truncations. Every audited original-bot decision used 32 trials. This exceeds 60% on the validation schedule but trails v6's historical 126/128 result; it does not pass the full independent-test gate or establish preserved reference strength. V6 remains the default frozen baseline. Details are in `benchmarks/2026-10-30-v7-neural-reference-validation.json`.
 
 On 256 held-out games, the neural-heavy pilot's public/private value explained variance was +0.181/+0.228; sampled play gave +0.172/+0.223 on a separate 256-game trajectory audit. The private head's paired advantage intervals still included zero in both modes. PPO therefore keeps public advantages, and search remains experimental. `tools/audit_value_calibration.py` resamples entire seed blocks when comparing heads. `tools/summarize_validation_families.py` reports descriptive weaknesses by opponent and learner/enemy team family without treating repeated turns or seeds as independent evidence.
 

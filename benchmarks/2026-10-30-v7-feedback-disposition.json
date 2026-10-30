@@ -1,0 +1,78 @@
+{
+  "scope": "Assessment of the latest two agent reviews; concrete representation defects fixed before large training, proposed playing-strength gains treated as experiments.",
+  "confirmed_fixes": [
+    {
+      "feedback": "Move-slot permutation robustness",
+      "status": "implemented_v7",
+      "evidence": "Per-move PP/attributes pooled as a set; Conversion first-slot flag. Zero changed choices in 208-position audit."
+    },
+    {
+      "feedback": "Bind opponent switches to destinations",
+      "status": "implemented_v7",
+      "evidence": "Shared destination scorer with public eligibility masks, including Revival Blessing and unresolved Illusion exceptions; permutation regression tests."
+    },
+    {
+      "feedback": "Critic missing hit/faint counters",
+      "status": "implemented_v7",
+      "evidence": "Hits received, cumulative faint counts, last move, Stockpile and Perish state; data rebuilt under feature version 7."
+    }
+  ],
+  "experiments": [
+    {
+      "feedback": "Identity dropout",
+      "status": "implemented_not_proven_stronger",
+      "decision": "25% consistent training-only ID dropout; exact augmented PPO inputs retained. Matched imitation ablation did not establish battle-strength improvement."
+    },
+    {
+      "feedback": "Usage-teammate diversity",
+      "status": "implemented",
+      "decision": "Intact sets with teammate affinity, weather dependencies, item/species constraints, physical/special coverage. Held-out cores excluded; synthetic teams are not claimed human joint sets."
+    },
+    {
+      "feedback": "Use public baseline until private generalizes",
+      "status": "public_retained",
+      "decision": "Private LR 1e-4, two passes, bootstrapped targets. Held-out private EV now positive, but advantage over public remains uncertain under game-block bootstrap."
+    },
+    {
+      "feedback": "Higher actor LR and 10M+ decisions",
+      "status": "bounded_extension",
+      "decision": "Actor LR doubled to 6e-5, observed pilot KL about .008 with .02 guard. Continue to 2M cumulative v7 decisions first; no automatic 10M commitment or blind KL chasing."
+    },
+    {
+      "feedback": "More neural opponents and independent policies",
+      "status": "pilot_completed",
+      "decision": "50/25/25 mixture beat 75/10/15 control on broad teams and frozen imitation; core difference inconclusive. Continue this mixture experimentally. Includes an independently initialized BC policy, but not a separately trained PPO/exploiter population."
+    },
+    {
+      "feedback": "Terminal policy rollout search, preview first",
+      "status": "prototype_not_promoted",
+      "decision": "Top three distinct preview choices, 16 sampled worlds, terminal policy continuations. Initial 32-game trial tied plain policy. No search distillation or in-battle expansion."
+    },
+    {
+      "feedback": "Replay import for imitation, prediction and teams",
+      "status": "pipeline_verified_limited_data",
+      "decision": "Observed-action records plus optional verified own decision frames and explicit complete-team sidecars. Three public replays imported; 45 action records, no full sets or imitation samples. No invented masks/sets; not used in training."
+    },
+    {
+      "feedback": "Saved team versus varied opponents",
+      "status": "implemented_and_evaluated",
+      "decision": "15% saved-versus-varied training component plus 10% mirrors. Pilot evaluation 256 games each; neural-heavy policy 234 wins, v6/control 220."
+    },
+    {
+      "feedback": "Public damage/speed evidence, learned hidden-set heads, adaptive hypothesis coverage",
+      "status": "deferred_separate_experiment",
+      "decision": "Current priors still condition on moves/items/abilities only; top-three tactical hypotheses can omit real moves. A posterior must model confounded damage/order evidence and be separately calibrated. Do not claim this defect is solved or change v7 features mid-run."
+    },
+    {
+      "feedback": "More expert corrections and tactical exercises",
+      "status": "partial_diagnostics",
+      "decision": "Existing DAgger collector remains available; no new weak-search labels. Three simulator-verified terminal exercises were all solved, so no repetitive curriculum training added. Hazard entry, safe setup and win-condition preservation exercises remain future work."
+    },
+    {
+      "feedback": "Track weaknesses by opponent and team family",
+      "status": "implemented",
+      "decision": "Training metrics and frozen validation records retain family/opponent breakdowns; new descriptive summary tool avoids treating correlated games as independent evidence."
+    }
+  ],
+  "promotion": "Frozen v6 remains baseline. V7 pilots have no conclusive gains over it on both broad and held-out-core schedules. Fresh test_v7 remains unused."
+}

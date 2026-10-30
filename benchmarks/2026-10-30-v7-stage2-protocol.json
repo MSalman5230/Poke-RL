@@ -1,5 +1,5 @@
 {
-  "status": "planned_before_launch",
+  "status": "running",
   "run": "runtime_data/ppo_v7_generalization",
   "resume": "runtime_data/ppo_v7_mix_neural/trainer_state.pt",
   "starting_steps": 262244,
@@ -32,5 +32,11 @@
   "promotion_criteria": "Retain the v7 experiment protocol: paired gains over frozen v6 on broad and held-out core schedules, preserve saved-roster strength, then freeze a candidate before prospective test_v7. Do not select on training win rate or consume the test during training.",
   "critic_and_search": "Public advantages retained while private advantage is uncertain; search off, no search distillation.",
   "replay_probe_data_used_for_training": false,
-  "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef"
+  "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
+  "launcher_pid": 33388,
+  "source_commit_at_launch": "0d3d1c5",
+  "source_archive": "runtime_data/ppo_v7_generalization/source.zip",
+  "source_archive_sha256": "3174b367997eb325af488d488820f3819c9ff63821fde37fc48acc990a74d81f",
+  "launch_recorded_at_utc": "2026-10-30T00:14:13.447142+00:00",
+  "verification": "Full regression suite: 72 passed. V6 baseline and prospective-test manifest hashes unchanged."
 }
