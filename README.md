@@ -15,7 +15,7 @@ From this directory in PowerShell:
 .\.venv\Scripts\python.exe -m champions_rl play --checkpoint runtime_data\candidates\v6_2m_review\policy.pt --legacy-runtime runtime_data\baselines\v6_3cc5468 --opponent balanced
 ```
 
-`play` writes a complete public Showdown protocol log and a JSON result to `runtime_data/play/`. A neural policy receives only its own player-visible state. An opponent's actual moveset, items, selected trio, and pending action are not inputs.
+`play` writes a complete public Showdown protocol log and a JSON result to `runtime_data/play/`. Generated files under `runtime_data/` are ignored by Git. A neural policy receives only its own player-visible state. An opponent's actual moveset, items, selected trio, and pending action are not inputs.
 
 The source now uses **feature version 8**. The tested v6 policy requires the hash-verified frozen runtime shown above; v7 weights require `--legacy-runtime runtime_data/baselines/v7_e3e2d8a`. Neither version is silently loaded into a different encoder. `runtime_data/v8_pilot_warm_start.pt` is a compatible migration for experiments, not a promoted policy. Its new disguise-order weights start at zero and need training.
 
