@@ -1,6 +1,6 @@
 # Champions RL
 
-An offline battle bot for **Pokémon Champions, Regulation M-C, Battle Stadium Singles**. It plays complete battles programmatically: six-Pokémon preview, select three and a lead, moves, switches, forced replacements, and Mega Evolution. No account, battle server, OCR, tablet, or controller is involved.
+An offline battle bot for **Pokémon Champions, Regulation M-C, Battle Stadium Singles**. It plays complete battles programmatically: six-Pokémon preview, select three and a lead, moves, switches, forced replacements, and Mega Evolution. Training is headless; an optional local Showdown server lets you play against a checkpoint. No account, OCR, tablet, or controller is needed.
 
 The method is **knowledge-guided reinforcement learning with imitation pretraining**. Game facts become structured inputs and pretrained embeddings; demonstrations teach an initial policy; masked PPO improves the policy through battles against a mixture of opponents and frozen versions of itself.
 
@@ -22,6 +22,25 @@ The source now uses **feature version 8**. The tested v6 policy requires the has
 **Training is paused.** The saved user instruction in `runtime_data/PAUSED_BY_USER.json` requires explicit permission to resume training; a general continuation does not suffice. `runtime_data/STOP` remains in place. The longer v7 run stopped at 1,259,684 cumulative decisions, update 36. Its checkpoint and optimizer state are preserved; do not resume that state into the v8 encoder.
 
 The completed run is `runtime_data/ppo_v6_full/`. `latest.pt` is an inference checkpoint; `trainer_state.pt` also includes both optimizers, RNG streams, and the frozen opponent league. The candidate folder preserves the tested policy and its result separately. Training logs contain **training** win rates, which are not benchmark results.
+
+## Play a human match against the latest checkpoint
+
+The human-play client is installed on this PC. Start it from the project directory:
+
+```powershell
+.\.venv\Scripts\python.exe -m champions_rl.human_play
+```
+
+Keep that terminal open. Visit **http://127.0.0.1:8765/** in a browser, click **Choose name**, and enter any local guest nickname. This launches the official Showdown client on your PC; the public Showdown server will not have this bot.
+
+1. Open **Teambuilder → New team → Import/Export**. Paste `runtime_data/human_play/example_team.txt`, then click **Form**. You can use a different legal six-Pokemon team instead.
+2. Set its format to **[Gen 9 Champions] BSS Reg M-C**. The example's `EVs:` numbers represent Champions stat points (maximum 32 per stat, 66 total); keep those values when importing.
+3. Return **Home → Find a user**, enter **RLChampion**, and click **Challenge**. Set **[Gen 9 Champions] BSS Reg M-C**, select your team, and click **Challenge** again.
+4. Choose three Pokemon at preview, with your lead first, and play normally. The bot accepts rematches after the game finishes. Press **Ctrl+C** in the launcher terminal to stop it.
+
+By default this loads `runtime_data/ppo_v7_generalization/latest.pt`: **1,259,684 decisions, update 36**, using its hash-verified frozen v7 encoder. It is the latest trained policy, not a newly promoted champion. The bot uses the saved reference six, deterministic actions, and only its player-visible observation. Human play performs inference only and does not clear the training pause. `--sampled` enables stochastic actions; `--checkpoint PATH` selects a different checkpoint, with `--legacy-runtime PATH` when needed. `--port 8766` selects another loopback port if the default is occupied.
+
+For a fresh checkout, first run `tools/setup_human_play.ps1`. This downloads and builds the [official Showdown client](https://github.com/smogon/pokemon-showdown-client) at the pinned revision into `runtime_data/showdown_client`. The launcher copies the installed pinned simulator into `runtime_data/human_showdown`; it leaves the installed simulator and other Showdown checkouts unchanged. Battles and inference run locally; the client still loads some graphics and reference assets from Showdown's website. `runtime_data/human_play/server.log` contains connection diagnostics.
 
 ## Reproduce installation
 
