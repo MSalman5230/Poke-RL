@@ -1,0 +1,1684 @@
+{
+  "evaluations": [
+    {
+      "source": "runtime_data\\review_v7_mix_control\\manifest",
+      "source_sha256": {
+        "report.json": "ec678205666b2ca52a5713edcc314e84a595415b103e44a53a928160052a54fe",
+        "balanced_games.json": "5601cce77b3bef4e1efc9587ce7093825470d7076435a39f87e4b7c09c6ef30c",
+        "hyperoffense_games.json": "cdde595e6d459a58124e3f126d6cb8f5f2c05bda4ae9be702e5d5859b3978e34",
+        "setup_sweeper_games.json": "ef350853a1006ab1dafb649cb1e49ec56a7c844794e74845f4d0a20713d528d3",
+        "attrition_games.json": "0eb4d56e9b5bed09644160e7673a3de8bfe057fd4807305d7ba7fd9b60bec7f1",
+        "pivot_games.json": "47df5842c9ebf0092749da022cb56165b307eea78026236427b18253dd9d00ba",
+        "frozen_initial_games.json": "38ef2607486f46b08e6b31b8f15c12e650c51290d7b28251ab274ed9d19fb749"
+      },
+      "checkpoint_sha256": "bbf3786ec1cfcb7fbf009fef4694797bd12e17092e6234bc6ba7609cdfc6415c",
+      "split": "validation",
+      "roster": "manifest",
+      "deterministic": true,
+      "groups": {
+        "enemy_family": {
+          "bulky": {
+            "games": 72,
+            "wins": 37,
+            "win_rate": 0.5138888888888888,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "mixed": {
+            "games": 894,
+            "wins": 461,
+            "win_rate": 0.5156599552572707,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "rain": {
+            "games": 30,
+            "wins": 13,
+            "win_rate": 0.43333333333333335,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "sand": {
+            "games": 66,
+            "wins": 49,
+            "win_rate": 0.7424242424242424,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "setup_offense": {
+            "games": 18,
+            "wins": 7,
+            "win_rate": 0.3888888888888889,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "snow": {
+            "games": 90,
+            "wins": 50,
+            "win_rate": 0.5555555555555556,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sun": {
+            "games": 36,
+            "wins": 17,
+            "win_rate": 0.4722222222222222,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "trick_room": {
+            "games": 330,
+            "wins": 176,
+            "win_rate": 0.5333333333333333,
+            "seed_blocks": 51,
+            "truncations": 0
+          }
+        },
+        "opponent": {
+          "attrition": {
+            "games": 256,
+            "wins": 150,
+            "win_rate": 0.5859375,
+            "seed_blocks": 128,
+            "truncations": 0
+          },
+          "balanced": {
+            "games": 256,
+            "wins": 130,
+            "win_rate": 0.5078125,
+            "seed_blocks": 128,
+            "truncations": 0
+          },
+          "frozen_initial": {
+            "games": 256,
+            "wins": 113,
+            "win_rate": 0.44140625,
+            "seed_blocks": 128,
+            "truncations": 0
+          },
+          "hyperoffense": {
+            "games": 256,
+            "wins": 134,
+            "win_rate": 0.5234375,
+            "seed_blocks": 128,
+            "truncations": 0
+          },
+          "pivot": {
+            "games": 256,
+            "wins": 144,
+            "win_rate": 0.5625,
+            "seed_blocks": 128,
+            "truncations": 0
+          },
+          "setup_sweeper": {
+            "games": 256,
+            "wins": 139,
+            "win_rate": 0.54296875,
+            "seed_blocks": 128,
+            "truncations": 0
+          }
+        },
+        "opponent_and_own_family": {
+          "attrition/bulky": {
+            "games": 12,
+            "wins": 6,
+            "win_rate": 0.5,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "attrition/mixed": {
+            "games": 149,
+            "wins": 87,
+            "win_rate": 0.5838926174496645,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "attrition/rain": {
+            "games": 5,
+            "wins": 3,
+            "win_rate": 0.6,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "attrition/sand": {
+            "games": 11,
+            "wins": 5,
+            "win_rate": 0.45454545454545453,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "attrition/setup_offense": {
+            "games": 3,
+            "wins": 2,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "attrition/snow": {
+            "games": 15,
+            "wins": 10,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "attrition/sun": {
+            "games": 6,
+            "wins": 6,
+            "win_rate": 1.0,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "attrition/trick_room": {
+            "games": 55,
+            "wins": 31,
+            "win_rate": 0.5636363636363636,
+            "seed_blocks": 51,
+            "truncations": 0
+          },
+          "balanced/bulky": {
+            "games": 12,
+            "wins": 7,
+            "win_rate": 0.5833333333333334,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "balanced/mixed": {
+            "games": 149,
+            "wins": 74,
+            "win_rate": 0.4966442953020134,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "balanced/rain": {
+            "games": 5,
+            "wins": 2,
+            "win_rate": 0.4,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "balanced/sand": {
+            "games": 11,
+            "wins": 3,
+            "win_rate": 0.2727272727272727,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "balanced/setup_offense": {
+            "games": 3,
+            "wins": 3,
+            "win_rate": 1.0,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "balanced/snow": {
+            "games": 15,
+            "wins": 6,
+            "win_rate": 0.4,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "balanced/sun": {
+            "games": 6,
+            "wins": 4,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "balanced/trick_room": {
+            "games": 55,
+            "wins": 31,
+            "win_rate": 0.5636363636363636,
+            "seed_blocks": 51,
+            "truncations": 0
+          },
+          "frozen_initial/bulky": {
+            "games": 12,
+            "wins": 7,
+            "win_rate": 0.5833333333333334,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "frozen_initial/mixed": {
+            "games": 149,
+            "wins": 68,
+            "win_rate": 0.4563758389261745,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "frozen_initial/rain": {
+            "games": 5,
+            "wins": 2,
+            "win_rate": 0.4,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "frozen_initial/sand": {
+            "games": 11,
+            "wins": 2,
+            "win_rate": 0.18181818181818182,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "frozen_initial/setup_offense": {
+            "games": 3,
+            "wins": 1,
+            "win_rate": 0.3333333333333333,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "frozen_initial/snow": {
+            "games": 15,
+            "wins": 6,
+            "win_rate": 0.4,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "frozen_initial/sun": {
+            "games": 6,
+            "wins": 2,
+            "win_rate": 0.3333333333333333,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "frozen_initial/trick_room": {
+            "games": 55,
+            "wins": 25,
+            "win_rate": 0.45454545454545453,
+            "seed_blocks": 51,
+            "truncations": 0
+          },
+          "hyperoffense/bulky": {
+            "games": 12,
+            "wins": 7,
+            "win_rate": 0.5833333333333334,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "hyperoffense/mixed": {
+            "games": 149,
+            "wins": 77,
+            "win_rate": 0.5167785234899329,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "hyperoffense/rain": {
+            "games": 5,
+            "wins": 2,
+            "win_rate": 0.4,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "hyperoffense/sand": {
+            "games": 11,
+            "wins": 3,
+            "win_rate": 0.2727272727272727,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "hyperoffense/setup_offense": {
+            "games": 3,
+            "wins": 3,
+            "win_rate": 1.0,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "hyperoffense/snow": {
+            "games": 15,
+            "wins": 7,
+            "win_rate": 0.4666666666666667,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "hyperoffense/sun": {
+            "games": 6,
+            "wins": 3,
+            "win_rate": 0.5,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "hyperoffense/trick_room": {
+            "games": 55,
+            "wins": 32,
+            "win_rate": 0.5818181818181818,
+            "seed_blocks": 51,
+            "truncations": 0
+          },
+          "pivot/bulky": {
+            "games": 12,
+            "wins": 8,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "pivot/mixed": {
+            "games": 149,
+            "wins": 86,
+            "win_rate": 0.5771812080536913,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "pivot/rain": {
+            "games": 5,
+            "wins": 3,
+            "win_rate": 0.6,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "pivot/sand": {
+            "games": 11,
+            "wins": 3,
+            "win_rate": 0.2727272727272727,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "pivot/setup_offense": {
+            "games": 3,
+            "wins": 2,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "pivot/snow": {
+            "games": 15,
+            "wins": 7,
+            "win_rate": 0.4666666666666667,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "pivot/sun": {
+            "games": 6,
+            "wins": 4,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "pivot/trick_room": {
+            "games": 55,
+            "wins": 31,
+            "win_rate": 0.5636363636363636,
+            "seed_blocks": 51,
+            "truncations": 0
+          },
+          "setup_sweeper/bulky": {
+            "games": 12,
+            "wins": 7,
+            "win_rate": 0.5833333333333334,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "setup_sweeper/mixed": {
+            "games": 149,
+            "wins": 78,
+            "win_rate": 0.5234899328859061,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "setup_sweeper/rain": {
+            "games": 5,
+            "wins": 2,
+            "win_rate": 0.4,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "setup_sweeper/sand": {
+            "games": 11,
+            "wins": 7,
+            "win_rate": 0.6363636363636364,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "setup_sweeper/setup_offense": {
+            "games": 3,
+            "wins": 2,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "setup_sweeper/snow": {
+            "games": 15,
+            "wins": 9,
+            "win_rate": 0.6,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "setup_sweeper/sun": {
+            "games": 6,
+            "wins": 3,
+            "win_rate": 0.5,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "setup_sweeper/trick_room": {
+            "games": 55,
+            "wins": 31,
+            "win_rate": 0.5636363636363636,
+            "seed_blocks": 51,
+            "truncations": 0
+          }
+        },
+        "own_family": {
+          "bulky": {
+            "games": 72,
+            "wins": 42,
+            "win_rate": 0.5833333333333334,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "mixed": {
+            "games": 894,
+            "wins": 470,
+            "win_rate": 0.5257270693512305,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "rain": {
+            "games": 30,
+            "wins": 14,
+            "win_rate": 0.4666666666666667,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "sand": {
+            "games": 66,
+            "wins": 23,
+            "win_rate": 0.3484848484848485,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "setup_offense": {
+            "games": 18,
+            "wins": 13,
+            "win_rate": 0.7222222222222222,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "snow": {
+            "games": 90,
+            "wins": 45,
+            "win_rate": 0.5,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sun": {
+            "games": 36,
+            "wins": 22,
+            "win_rate": 0.6111111111111112,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "trick_room": {
+            "games": 330,
+            "wins": 181,
+            "win_rate": 0.5484848484848485,
+            "seed_blocks": 51,
+            "truncations": 0
+          }
+        }
+      },
+      "limits": "Descriptive validation only. Repeated seeds, teams and opponent styles are correlated. Small family cells do not establish a ranking or causal explanation of failures."
+    },
+    {
+      "source": "runtime_data\\review_v7_mix_neural\\manifest",
+      "source_sha256": {
+        "report.json": "b03c28f3a4adfbb0d845b083a12b738112345e2216faca9ad60db0f80e72208c",
+        "balanced_games.json": "b6c23056920cb341bfec7e5fd6559e70db9c7e35f0e05efa4061cf2c68e8160d",
+        "hyperoffense_games.json": "18ad85f9899856db61e506a315b85e5efc223bc1066b907440191d5e2d648041",
+        "setup_sweeper_games.json": "04bf4e0dac9002d9693c8a4b8f1802c5004d55dbf489515090253871884ed838",
+        "attrition_games.json": "89cc95cb4d43727af8a90e5866158a36e54ca2439157a32bbbad90f0f4f7c90e",
+        "pivot_games.json": "e3781133367b72f4b7bf5a67242432944067b26f6c90bb8a688e964c41ea973b",
+        "frozen_initial_games.json": "668bae76225cada1d3c0bed42fed1ea96505939314bfd52d791c2b62b982e264"
+      },
+      "checkpoint_sha256": "85c8cd5720f19bbe0b10d1ef0848446045675239648f4d137c5211dfbbe8d32f",
+      "split": "validation",
+      "roster": "manifest",
+      "deterministic": true,
+      "groups": {
+        "enemy_family": {
+          "bulky": {
+            "games": 72,
+            "wins": 38,
+            "win_rate": 0.5277777777777778,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "mixed": {
+            "games": 894,
+            "wins": 509,
+            "win_rate": 0.569351230425056,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "rain": {
+            "games": 30,
+            "wins": 12,
+            "win_rate": 0.4,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "sand": {
+            "games": 66,
+            "wins": 46,
+            "win_rate": 0.696969696969697,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "setup_offense": {
+            "games": 18,
+            "wins": 7,
+            "win_rate": 0.3888888888888889,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "snow": {
+            "games": 90,
+            "wins": 55,
+            "win_rate": 0.6111111111111112,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sun": {
+            "games": 36,
+            "wins": 26,
+            "win_rate": 0.7222222222222222,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "trick_room": {
+            "games": 330,
+            "wins": 184,
+            "win_rate": 0.5575757575757576,
+            "seed_blocks": 51,
+            "truncations": 0
+          }
+        },
+        "opponent": {
+          "attrition": {
+            "games": 256,
+            "wins": 141,
+            "win_rate": 0.55078125,
+            "seed_blocks": 128,
+            "truncations": 0
+          },
+          "balanced": {
+            "games": 256,
+            "wins": 150,
+            "win_rate": 0.5859375,
+            "seed_blocks": 128,
+            "truncations": 0
+          },
+          "frozen_initial": {
+            "games": 256,
+            "wins": 131,
+            "win_rate": 0.51171875,
+            "seed_blocks": 128,
+            "truncations": 0
+          },
+          "hyperoffense": {
+            "games": 256,
+            "wins": 145,
+            "win_rate": 0.56640625,
+            "seed_blocks": 128,
+            "truncations": 0
+          },
+          "pivot": {
+            "games": 256,
+            "wins": 153,
+            "win_rate": 0.59765625,
+            "seed_blocks": 128,
+            "truncations": 0
+          },
+          "setup_sweeper": {
+            "games": 256,
+            "wins": 157,
+            "win_rate": 0.61328125,
+            "seed_blocks": 128,
+            "truncations": 0
+          }
+        },
+        "opponent_and_own_family": {
+          "attrition/bulky": {
+            "games": 12,
+            "wins": 8,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "attrition/mixed": {
+            "games": 149,
+            "wins": 76,
+            "win_rate": 0.5100671140939598,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "attrition/rain": {
+            "games": 5,
+            "wins": 3,
+            "win_rate": 0.6,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "attrition/sand": {
+            "games": 11,
+            "wins": 6,
+            "win_rate": 0.5454545454545454,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "attrition/setup_offense": {
+            "games": 3,
+            "wins": 1,
+            "win_rate": 0.3333333333333333,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "attrition/snow": {
+            "games": 15,
+            "wins": 6,
+            "win_rate": 0.4,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "attrition/sun": {
+            "games": 6,
+            "wins": 4,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "attrition/trick_room": {
+            "games": 55,
+            "wins": 37,
+            "win_rate": 0.6727272727272727,
+            "seed_blocks": 51,
+            "truncations": 0
+          },
+          "balanced/bulky": {
+            "games": 12,
+            "wins": 7,
+            "win_rate": 0.5833333333333334,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "balanced/mixed": {
+            "games": 149,
+            "wins": 87,
+            "win_rate": 0.5838926174496645,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "balanced/rain": {
+            "games": 5,
+            "wins": 3,
+            "win_rate": 0.6,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "balanced/sand": {
+            "games": 11,
+            "wins": 3,
+            "win_rate": 0.2727272727272727,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "balanced/setup_offense": {
+            "games": 3,
+            "wins": 3,
+            "win_rate": 1.0,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "balanced/snow": {
+            "games": 15,
+            "wins": 6,
+            "win_rate": 0.4,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "balanced/sun": {
+            "games": 6,
+            "wins": 4,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "balanced/trick_room": {
+            "games": 55,
+            "wins": 37,
+            "win_rate": 0.6727272727272727,
+            "seed_blocks": 51,
+            "truncations": 0
+          },
+          "frozen_initial/bulky": {
+            "games": 12,
+            "wins": 6,
+            "win_rate": 0.5,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "frozen_initial/mixed": {
+            "games": 149,
+            "wins": 79,
+            "win_rate": 0.5302013422818792,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "frozen_initial/rain": {
+            "games": 5,
+            "wins": 3,
+            "win_rate": 0.6,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "frozen_initial/sand": {
+            "games": 11,
+            "wins": 4,
+            "win_rate": 0.36363636363636365,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "frozen_initial/setup_offense": {
+            "games": 3,
+            "wins": 2,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "frozen_initial/snow": {
+            "games": 15,
+            "wins": 7,
+            "win_rate": 0.4666666666666667,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "frozen_initial/sun": {
+            "games": 6,
+            "wins": 2,
+            "win_rate": 0.3333333333333333,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "frozen_initial/trick_room": {
+            "games": 55,
+            "wins": 28,
+            "win_rate": 0.509090909090909,
+            "seed_blocks": 51,
+            "truncations": 0
+          },
+          "hyperoffense/bulky": {
+            "games": 12,
+            "wins": 6,
+            "win_rate": 0.5,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "hyperoffense/mixed": {
+            "games": 149,
+            "wins": 85,
+            "win_rate": 0.5704697986577181,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "hyperoffense/rain": {
+            "games": 5,
+            "wins": 3,
+            "win_rate": 0.6,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "hyperoffense/sand": {
+            "games": 11,
+            "wins": 2,
+            "win_rate": 0.18181818181818182,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "hyperoffense/setup_offense": {
+            "games": 3,
+            "wins": 3,
+            "win_rate": 1.0,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "hyperoffense/snow": {
+            "games": 15,
+            "wins": 7,
+            "win_rate": 0.4666666666666667,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "hyperoffense/sun": {
+            "games": 6,
+            "wins": 3,
+            "win_rate": 0.5,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "hyperoffense/trick_room": {
+            "games": 55,
+            "wins": 36,
+            "win_rate": 0.6545454545454545,
+            "seed_blocks": 51,
+            "truncations": 0
+          },
+          "pivot/bulky": {
+            "games": 12,
+            "wins": 6,
+            "win_rate": 0.5,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "pivot/mixed": {
+            "games": 149,
+            "wins": 90,
+            "win_rate": 0.6040268456375839,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "pivot/rain": {
+            "games": 5,
+            "wins": 4,
+            "win_rate": 0.8,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "pivot/sand": {
+            "games": 11,
+            "wins": 4,
+            "win_rate": 0.36363636363636365,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "pivot/setup_offense": {
+            "games": 3,
+            "wins": 3,
+            "win_rate": 1.0,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "pivot/snow": {
+            "games": 15,
+            "wins": 9,
+            "win_rate": 0.6,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "pivot/sun": {
+            "games": 6,
+            "wins": 3,
+            "win_rate": 0.5,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "pivot/trick_room": {
+            "games": 55,
+            "wins": 34,
+            "win_rate": 0.6181818181818182,
+            "seed_blocks": 51,
+            "truncations": 0
+          },
+          "setup_sweeper/bulky": {
+            "games": 12,
+            "wins": 7,
+            "win_rate": 0.5833333333333334,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "setup_sweeper/mixed": {
+            "games": 149,
+            "wins": 87,
+            "win_rate": 0.5838926174496645,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "setup_sweeper/rain": {
+            "games": 5,
+            "wins": 3,
+            "win_rate": 0.6,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "setup_sweeper/sand": {
+            "games": 11,
+            "wins": 6,
+            "win_rate": 0.5454545454545454,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "setup_sweeper/setup_offense": {
+            "games": 3,
+            "wins": 3,
+            "win_rate": 1.0,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "setup_sweeper/snow": {
+            "games": 15,
+            "wins": 8,
+            "win_rate": 0.5333333333333333,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "setup_sweeper/sun": {
+            "games": 6,
+            "wins": 4,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "setup_sweeper/trick_room": {
+            "games": 55,
+            "wins": 39,
+            "win_rate": 0.7090909090909091,
+            "seed_blocks": 51,
+            "truncations": 0
+          }
+        },
+        "own_family": {
+          "bulky": {
+            "games": 72,
+            "wins": 40,
+            "win_rate": 0.5555555555555556,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "mixed": {
+            "games": 894,
+            "wins": 504,
+            "win_rate": 0.5637583892617449,
+            "seed_blocks": 108,
+            "truncations": 0
+          },
+          "rain": {
+            "games": 30,
+            "wins": 19,
+            "win_rate": 0.6333333333333333,
+            "seed_blocks": 5,
+            "truncations": 0
+          },
+          "sand": {
+            "games": 66,
+            "wins": 25,
+            "win_rate": 0.3787878787878788,
+            "seed_blocks": 11,
+            "truncations": 0
+          },
+          "setup_offense": {
+            "games": 18,
+            "wins": 15,
+            "win_rate": 0.8333333333333334,
+            "seed_blocks": 3,
+            "truncations": 0
+          },
+          "snow": {
+            "games": 90,
+            "wins": 43,
+            "win_rate": 0.4777777777777778,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sun": {
+            "games": 36,
+            "wins": 20,
+            "win_rate": 0.5555555555555556,
+            "seed_blocks": 6,
+            "truncations": 0
+          },
+          "trick_room": {
+            "games": 330,
+            "wins": 211,
+            "win_rate": 0.6393939393939394,
+            "seed_blocks": 51,
+            "truncations": 0
+          }
+        }
+      },
+      "limits": "Descriptive validation only. Repeated seeds, teams and opponent styles are correlated. Small family cells do not establish a ranking or causal explanation of failures."
+    },
+    {
+      "source": "runtime_data\\review_v7_mix_control\\cores",
+      "source_sha256": {
+        "report.json": "c077218f414d1f307d930d0f5a8a60c9d83c767b3b5c4fc73d914a525acf5e60",
+        "balanced_games.json": "22a2977351577f65f462c642c8c9e7b8fc65e2354bfbe27e7a01ca2422101d12"
+      },
+      "checkpoint_sha256": "bbf3786ec1cfcb7fbf009fef4694797bd12e17092e6234bc6ba7609cdfc6415c",
+      "split": "validation_cores",
+      "roster": "manifest",
+      "deterministic": true,
+      "groups": {
+        "enemy_family": {
+          "bulky": {
+            "games": 10,
+            "wins": 7,
+            "win_rate": 0.7,
+            "seed_blocks": 10,
+            "truncations": 0
+          },
+          "mixed": {
+            "games": 4,
+            "wins": 2,
+            "win_rate": 0.5,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "rain": {
+            "games": 44,
+            "wins": 21,
+            "win_rate": 0.4772727272727273,
+            "seed_blocks": 42,
+            "truncations": 0
+          },
+          "rain+sand": {
+            "games": 25,
+            "wins": 12,
+            "win_rate": 0.48,
+            "seed_blocks": 23,
+            "truncations": 0
+          },
+          "rain+sand+snow": {
+            "games": 9,
+            "wins": 2,
+            "win_rate": 0.2222222222222222,
+            "seed_blocks": 9,
+            "truncations": 0
+          },
+          "rain+snow": {
+            "games": 16,
+            "wins": 9,
+            "win_rate": 0.5625,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "rain+snow+sun": {
+            "games": 4,
+            "wins": 3,
+            "win_rate": 0.75,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "rain+sun": {
+            "games": 15,
+            "wins": 8,
+            "win_rate": 0.5333333333333333,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sand": {
+            "games": 15,
+            "wins": 9,
+            "win_rate": 0.6,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sand+snow+sun": {
+            "games": 1,
+            "wins": 1,
+            "win_rate": 1.0,
+            "seed_blocks": 1,
+            "truncations": 0
+          },
+          "sand+sun": {
+            "games": 34,
+            "wins": 23,
+            "win_rate": 0.6764705882352942,
+            "seed_blocks": 34,
+            "truncations": 0
+          },
+          "setup_offense": {
+            "games": 20,
+            "wins": 12,
+            "win_rate": 0.6,
+            "seed_blocks": 20,
+            "truncations": 0
+          },
+          "snow+sun": {
+            "games": 7,
+            "wins": 4,
+            "win_rate": 0.5714285714285714,
+            "seed_blocks": 7,
+            "truncations": 0
+          },
+          "sun": {
+            "games": 52,
+            "wins": 34,
+            "win_rate": 0.6538461538461539,
+            "seed_blocks": 43,
+            "truncations": 0
+          }
+        },
+        "opponent": {
+          "balanced": {
+            "games": 256,
+            "wins": 147,
+            "win_rate": 0.57421875,
+            "seed_blocks": 128,
+            "truncations": 0
+          }
+        },
+        "opponent_and_own_family": {
+          "balanced/bulky": {
+            "games": 10,
+            "wins": 5,
+            "win_rate": 0.5,
+            "seed_blocks": 10,
+            "truncations": 0
+          },
+          "balanced/mixed": {
+            "games": 4,
+            "wins": 4,
+            "win_rate": 1.0,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "balanced/rain": {
+            "games": 44,
+            "wins": 29,
+            "win_rate": 0.6590909090909091,
+            "seed_blocks": 42,
+            "truncations": 0
+          },
+          "balanced/rain+sand": {
+            "games": 25,
+            "wins": 10,
+            "win_rate": 0.4,
+            "seed_blocks": 23,
+            "truncations": 0
+          },
+          "balanced/rain+sand+snow": {
+            "games": 9,
+            "wins": 6,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 9,
+            "truncations": 0
+          },
+          "balanced/rain+snow": {
+            "games": 16,
+            "wins": 11,
+            "win_rate": 0.6875,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "balanced/rain+snow+sun": {
+            "games": 4,
+            "wins": 2,
+            "win_rate": 0.5,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "balanced/rain+sun": {
+            "games": 15,
+            "wins": 9,
+            "win_rate": 0.6,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "balanced/sand": {
+            "games": 15,
+            "wins": 12,
+            "win_rate": 0.8,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "balanced/sand+snow+sun": {
+            "games": 1,
+            "wins": 0,
+            "win_rate": 0.0,
+            "seed_blocks": 1,
+            "truncations": 0
+          },
+          "balanced/sand+sun": {
+            "games": 34,
+            "wins": 14,
+            "win_rate": 0.4117647058823529,
+            "seed_blocks": 34,
+            "truncations": 0
+          },
+          "balanced/setup_offense": {
+            "games": 20,
+            "wins": 12,
+            "win_rate": 0.6,
+            "seed_blocks": 20,
+            "truncations": 0
+          },
+          "balanced/snow+sun": {
+            "games": 7,
+            "wins": 3,
+            "win_rate": 0.42857142857142855,
+            "seed_blocks": 7,
+            "truncations": 0
+          },
+          "balanced/sun": {
+            "games": 52,
+            "wins": 30,
+            "win_rate": 0.5769230769230769,
+            "seed_blocks": 43,
+            "truncations": 0
+          }
+        },
+        "own_family": {
+          "bulky": {
+            "games": 10,
+            "wins": 5,
+            "win_rate": 0.5,
+            "seed_blocks": 10,
+            "truncations": 0
+          },
+          "mixed": {
+            "games": 4,
+            "wins": 4,
+            "win_rate": 1.0,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "rain": {
+            "games": 44,
+            "wins": 29,
+            "win_rate": 0.6590909090909091,
+            "seed_blocks": 42,
+            "truncations": 0
+          },
+          "rain+sand": {
+            "games": 25,
+            "wins": 10,
+            "win_rate": 0.4,
+            "seed_blocks": 23,
+            "truncations": 0
+          },
+          "rain+sand+snow": {
+            "games": 9,
+            "wins": 6,
+            "win_rate": 0.6666666666666666,
+            "seed_blocks": 9,
+            "truncations": 0
+          },
+          "rain+snow": {
+            "games": 16,
+            "wins": 11,
+            "win_rate": 0.6875,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "rain+snow+sun": {
+            "games": 4,
+            "wins": 2,
+            "win_rate": 0.5,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "rain+sun": {
+            "games": 15,
+            "wins": 9,
+            "win_rate": 0.6,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sand": {
+            "games": 15,
+            "wins": 12,
+            "win_rate": 0.8,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sand+snow+sun": {
+            "games": 1,
+            "wins": 0,
+            "win_rate": 0.0,
+            "seed_blocks": 1,
+            "truncations": 0
+          },
+          "sand+sun": {
+            "games": 34,
+            "wins": 14,
+            "win_rate": 0.4117647058823529,
+            "seed_blocks": 34,
+            "truncations": 0
+          },
+          "setup_offense": {
+            "games": 20,
+            "wins": 12,
+            "win_rate": 0.6,
+            "seed_blocks": 20,
+            "truncations": 0
+          },
+          "snow+sun": {
+            "games": 7,
+            "wins": 3,
+            "win_rate": 0.42857142857142855,
+            "seed_blocks": 7,
+            "truncations": 0
+          },
+          "sun": {
+            "games": 52,
+            "wins": 30,
+            "win_rate": 0.5769230769230769,
+            "seed_blocks": 43,
+            "truncations": 0
+          }
+        }
+      },
+      "limits": "Descriptive validation only. Repeated seeds, teams and opponent styles are correlated. Small family cells do not establish a ranking or causal explanation of failures."
+    },
+    {
+      "source": "runtime_data\\review_v7_mix_neural\\cores",
+      "source_sha256": {
+        "report.json": "4e47a6397f08deccceb47c32fe350d586ad949828e8a96d447b4f891eeed285c",
+        "balanced_games.json": "feebd08df78549d6c01c1d0424c3a267e2daeb30e086b2c22506e1bc23f4b7dc"
+      },
+      "checkpoint_sha256": "85c8cd5720f19bbe0b10d1ef0848446045675239648f4d137c5211dfbbe8d32f",
+      "split": "validation_cores",
+      "roster": "manifest",
+      "deterministic": true,
+      "groups": {
+        "enemy_family": {
+          "bulky": {
+            "games": 10,
+            "wins": 7,
+            "win_rate": 0.7,
+            "seed_blocks": 10,
+            "truncations": 0
+          },
+          "mixed": {
+            "games": 4,
+            "wins": 2,
+            "win_rate": 0.5,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "rain": {
+            "games": 44,
+            "wins": 19,
+            "win_rate": 0.4318181818181818,
+            "seed_blocks": 42,
+            "truncations": 0
+          },
+          "rain+sand": {
+            "games": 25,
+            "wins": 14,
+            "win_rate": 0.56,
+            "seed_blocks": 23,
+            "truncations": 0
+          },
+          "rain+sand+snow": {
+            "games": 9,
+            "wins": 3,
+            "win_rate": 0.3333333333333333,
+            "seed_blocks": 9,
+            "truncations": 0
+          },
+          "rain+snow": {
+            "games": 16,
+            "wins": 10,
+            "win_rate": 0.625,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "rain+snow+sun": {
+            "games": 4,
+            "wins": 3,
+            "win_rate": 0.75,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "rain+sun": {
+            "games": 15,
+            "wins": 11,
+            "win_rate": 0.7333333333333333,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sand": {
+            "games": 15,
+            "wins": 8,
+            "win_rate": 0.5333333333333333,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sand+snow+sun": {
+            "games": 1,
+            "wins": 1,
+            "win_rate": 1.0,
+            "seed_blocks": 1,
+            "truncations": 0
+          },
+          "sand+sun": {
+            "games": 34,
+            "wins": 16,
+            "win_rate": 0.47058823529411764,
+            "seed_blocks": 34,
+            "truncations": 0
+          },
+          "setup_offense": {
+            "games": 20,
+            "wins": 10,
+            "win_rate": 0.5,
+            "seed_blocks": 20,
+            "truncations": 0
+          },
+          "snow+sun": {
+            "games": 7,
+            "wins": 5,
+            "win_rate": 0.7142857142857143,
+            "seed_blocks": 7,
+            "truncations": 0
+          },
+          "sun": {
+            "games": 52,
+            "wins": 32,
+            "win_rate": 0.6153846153846154,
+            "seed_blocks": 43,
+            "truncations": 0
+          }
+        },
+        "opponent": {
+          "balanced": {
+            "games": 256,
+            "wins": 141,
+            "win_rate": 0.55078125,
+            "seed_blocks": 128,
+            "truncations": 0
+          }
+        },
+        "opponent_and_own_family": {
+          "balanced/bulky": {
+            "games": 10,
+            "wins": 3,
+            "win_rate": 0.3,
+            "seed_blocks": 10,
+            "truncations": 0
+          },
+          "balanced/mixed": {
+            "games": 4,
+            "wins": 2,
+            "win_rate": 0.5,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "balanced/rain": {
+            "games": 44,
+            "wins": 33,
+            "win_rate": 0.75,
+            "seed_blocks": 42,
+            "truncations": 0
+          },
+          "balanced/rain+sand": {
+            "games": 25,
+            "wins": 10,
+            "win_rate": 0.4,
+            "seed_blocks": 23,
+            "truncations": 0
+          },
+          "balanced/rain+sand+snow": {
+            "games": 9,
+            "wins": 7,
+            "win_rate": 0.7777777777777778,
+            "seed_blocks": 9,
+            "truncations": 0
+          },
+          "balanced/rain+snow": {
+            "games": 16,
+            "wins": 9,
+            "win_rate": 0.5625,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "balanced/rain+snow+sun": {
+            "games": 4,
+            "wins": 1,
+            "win_rate": 0.25,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "balanced/rain+sun": {
+            "games": 15,
+            "wins": 7,
+            "win_rate": 0.4666666666666667,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "balanced/sand": {
+            "games": 15,
+            "wins": 12,
+            "win_rate": 0.8,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "balanced/sand+snow+sun": {
+            "games": 1,
+            "wins": 0,
+            "win_rate": 0.0,
+            "seed_blocks": 1,
+            "truncations": 0
+          },
+          "balanced/sand+sun": {
+            "games": 34,
+            "wins": 11,
+            "win_rate": 0.3235294117647059,
+            "seed_blocks": 34,
+            "truncations": 0
+          },
+          "balanced/setup_offense": {
+            "games": 20,
+            "wins": 13,
+            "win_rate": 0.65,
+            "seed_blocks": 20,
+            "truncations": 0
+          },
+          "balanced/snow+sun": {
+            "games": 7,
+            "wins": 3,
+            "win_rate": 0.42857142857142855,
+            "seed_blocks": 7,
+            "truncations": 0
+          },
+          "balanced/sun": {
+            "games": 52,
+            "wins": 30,
+            "win_rate": 0.5769230769230769,
+            "seed_blocks": 43,
+            "truncations": 0
+          }
+        },
+        "own_family": {
+          "bulky": {
+            "games": 10,
+            "wins": 3,
+            "win_rate": 0.3,
+            "seed_blocks": 10,
+            "truncations": 0
+          },
+          "mixed": {
+            "games": 4,
+            "wins": 2,
+            "win_rate": 0.5,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "rain": {
+            "games": 44,
+            "wins": 33,
+            "win_rate": 0.75,
+            "seed_blocks": 42,
+            "truncations": 0
+          },
+          "rain+sand": {
+            "games": 25,
+            "wins": 10,
+            "win_rate": 0.4,
+            "seed_blocks": 23,
+            "truncations": 0
+          },
+          "rain+sand+snow": {
+            "games": 9,
+            "wins": 7,
+            "win_rate": 0.7777777777777778,
+            "seed_blocks": 9,
+            "truncations": 0
+          },
+          "rain+snow": {
+            "games": 16,
+            "wins": 9,
+            "win_rate": 0.5625,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "rain+snow+sun": {
+            "games": 4,
+            "wins": 1,
+            "win_rate": 0.25,
+            "seed_blocks": 4,
+            "truncations": 0
+          },
+          "rain+sun": {
+            "games": 15,
+            "wins": 7,
+            "win_rate": 0.4666666666666667,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sand": {
+            "games": 15,
+            "wins": 12,
+            "win_rate": 0.8,
+            "seed_blocks": 15,
+            "truncations": 0
+          },
+          "sand+snow+sun": {
+            "games": 1,
+            "wins": 0,
+            "win_rate": 0.0,
+            "seed_blocks": 1,
+            "truncations": 0
+          },
+          "sand+sun": {
+            "games": 34,
+            "wins": 11,
+            "win_rate": 0.3235294117647059,
+            "seed_blocks": 34,
+            "truncations": 0
+          },
+          "setup_offense": {
+            "games": 20,
+            "wins": 13,
+            "win_rate": 0.65,
+            "seed_blocks": 20,
+            "truncations": 0
+          },
+          "snow+sun": {
+            "games": 7,
+            "wins": 3,
+            "win_rate": 0.42857142857142855,
+            "seed_blocks": 7,
+            "truncations": 0
+          },
+          "sun": {
+            "games": 52,
+            "wins": 30,
+            "win_rate": 0.5769230769230769,
+            "seed_blocks": 43,
+            "truncations": 0
+          }
+        }
+      },
+      "limits": "Descriptive validation only. Repeated seeds, teams and opponent styles are correlated. Small family cells do not establish a ranking or causal explanation of failures."
+    }
+  ]
+}

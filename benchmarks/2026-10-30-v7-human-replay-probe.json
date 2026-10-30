@@ -1,0 +1,71 @@
+{
+  "retrieved_at_utc": "2026-10-29T23:58:23.363132+00:00",
+  "listing_source": "https://replay.pokemonshowdown.com/search.json?format=gen9championsbssregmc",
+  "selection": "First three public results from the successful format search, no battle-result filtering.",
+  "training_performed": false,
+  "results": [
+    {
+      "source_url": "https://replay.pokemonshowdown.com/gen9championsbssregmc-2706483851.json",
+      "source_sha256": "9ffc82719091a5e2c44d2147abfb49047166af29a33ce9d0a61c586d182cac97",
+      "companion_sha256": null,
+      "format": "gen9championsbssregmc",
+      "public_action_examples": 10,
+      "imitation_samples": 0,
+      "opponent_labeled_samples": 0,
+      "complete_teams": 0,
+      "ended": true,
+      "output": "C:\\MegaSync\\Projects\\Git\\Poke-RL\\runtime_data\\replay_import_probe\\imported\\9ffc82719091a5e2c44d",
+      "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
+      "parser_sha256": "3a9ad99e3082b0e9321b1fac7afda2ce40d4c4560e51e945f0518b5b7c9648f4",
+      "importer_sha256": "d7b64ed359596743f75c6d84ee92c716dc594a5b112d19bad308e969b0468aab",
+      "opponent_labels_sha256": "c3fdcbb3305020e1b3682ebf0144a0dcc52976377e1ea8d4d3ae8b563412343a",
+      "limitations": [
+        "Public logs do not reveal unselected trio members, full hidden sets, investments, or private legal-action requests.",
+        "Examples are public-evidence/opponent-action records. Policy imitation requires independently captured own observations and legal masks."
+      ],
+      "automatically_added_to_training": false
+    },
+    {
+      "source_url": "https://replay.pokemonshowdown.com/smogtours-gen9championsbssregmc-985941.json",
+      "source_sha256": "4820be332a6de3214ab5c1db239b1bf77b4f33a657d6993398efa56fefbcc89e",
+      "companion_sha256": null,
+      "format": "gen9championsbssregmc",
+      "public_action_examples": 20,
+      "imitation_samples": 0,
+      "opponent_labeled_samples": 0,
+      "complete_teams": 0,
+      "ended": true,
+      "output": "C:\\MegaSync\\Projects\\Git\\Poke-RL\\runtime_data\\replay_import_probe\\imported\\4820be332a6de3214ab5",
+      "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
+      "parser_sha256": "3a9ad99e3082b0e9321b1fac7afda2ce40d4c4560e51e945f0518b5b7c9648f4",
+      "importer_sha256": "d7b64ed359596743f75c6d84ee92c716dc594a5b112d19bad308e969b0468aab",
+      "opponent_labels_sha256": "c3fdcbb3305020e1b3682ebf0144a0dcc52976377e1ea8d4d3ae8b563412343a",
+      "limitations": [
+        "Public logs do not reveal unselected trio members, full hidden sets, investments, or private legal-action requests.",
+        "Examples are public-evidence/opponent-action records. Policy imitation requires independently captured own observations and legal masks."
+      ],
+      "automatically_added_to_training": false
+    },
+    {
+      "source_url": "https://replay.pokemonshowdown.com/smogtours-gen9championsbssregmc-985938.json",
+      "source_sha256": "af29b1943aaadbef07fd1f29a352d6bd0d471df84d16911032e2ef56a04f158d",
+      "companion_sha256": null,
+      "format": "gen9championsbssregmc",
+      "public_action_examples": 15,
+      "imitation_samples": 0,
+      "opponent_labeled_samples": 0,
+      "complete_teams": 0,
+      "ended": true,
+      "output": "C:\\MegaSync\\Projects\\Git\\Poke-RL\\runtime_data\\replay_import_probe\\imported\\af29b1943aaadbef07fd",
+      "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
+      "parser_sha256": "3a9ad99e3082b0e9321b1fac7afda2ce40d4c4560e51e945f0518b5b7c9648f4",
+      "importer_sha256": "d7b64ed359596743f75c6d84ee92c716dc594a5b112d19bad308e969b0468aab",
+      "opponent_labels_sha256": "c3fdcbb3305020e1b3682ebf0144a0dcc52976377e1ea8d4d3ae8b563412343a",
+      "limitations": [
+        "Public logs do not reveal unselected trio members, full hidden sets, investments, or private legal-action requests.",
+        "Examples are public-evidence/opponent-action records. Policy imitation requires independently captured own observations and legal masks."
+      ],
+      "automatically_added_to_training": false
+    }
+  ]
+}

@@ -37,6 +37,39 @@ def crossfit(rows,name):
     return {'raw':metrics(prediction,target),'out_of_fold_shrinkage':metrics(calibrated,target),'fits':fits}
 
 
+def paired_head_comparison(rows,repeats=10000,seed=137):
+    """Resample complete seed blocks, keeping correlated turns and both heads together."""
+    blocks={}
+    for row in rows:
+        target=row['outcome']-.15*row['potential']
+        public=row['public']-target;private=row['private']-target
+        stats=np.array([1.,target,target*target,public,public*public,private,private*private])
+        block=row['game']//2
+        blocks[block]=blocks.get(block,np.zeros(7))+stats
+    if len(blocks)<2:raise ValueError('Head comparison needs at least two independent seed blocks')
+    matrix=np.stack([blocks[key] for key in sorted(blocks)])
+    def differences(sums):
+        mean=sums[...,1:]/sums[...,:1]
+        variance=mean[...,1]-mean[...,0]**2
+        public_variance=mean[...,3]-mean[...,2]**2
+        private_variance=mean[...,5]-mean[...,4]**2
+        ev=np.divide(public_variance-private_variance,variance,
+                     out=np.full_like(variance,np.nan),where=variance>1e-12)
+        return ev,mean[...,3]-mean[...,5]
+    point=differences(matrix.sum(axis=0))
+    indices=np.random.default_rng(seed).integers(len(matrix),size=(repeats,len(matrix)))
+    sampled=differences(matrix[indices].sum(axis=1))
+    result={'seed_blocks':len(blocks),'bootstrap_replicates':repeats,
+            'interpretation':'Positive differences favor the private head. Blocks retain both seats and all turns; '
+                             'positions are weighted as in the main value audit. No counterfactual action-ranking claim.'}
+    for name,estimate,values in zip(('private_minus_public_ev','public_minus_private_mse'),point,sampled):
+        finite=values[np.isfinite(values)]
+        result[name]={'estimate':float(estimate) if np.isfinite(estimate) else None,
+                      'bootstrap_95':np.quantile(finite,[.025,.975]).tolist() if len(finite) else None,
+                      'valid_replicates':len(finite)}
+    return result
+
+
 def audit(folder,output):
     folder=Path(folder);source=folder/'positions.json';rows=json.loads(source.read_text())
     provenance=json.loads((folder/'report.json').read_text())
@@ -44,6 +77,7 @@ def audit(folder,output):
             'checkpoint_sha256':provenance['checkpoint_sha256'],'critic_sha256':provenance['critic_sha256'],
             'positions':len(rows),'games':len({r['game'] for r in rows}),
             'public':crossfit(rows,'public'),'private':crossfit(rows,'private'),
+            'paired_head_comparison':paired_head_comparison(rows),
             'limits':'Two folds keep both seats and all positions of a seed block together. Diagnostic only: '
                      'no model weights or deployment scores changed. Better calibration across observed games '
                      'does not establish correct ranking of alternative actions or justify search promotion.'}

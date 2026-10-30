@@ -1,0 +1,86 @@
+{
+  "source": "runtime_data\\value_v7_mix_control",
+  "positions_sha256": "da9f1b9b8e7b4ac4d90d9b563668a61427ba59226ffc24458f1ce7b64c092537",
+  "checkpoint_sha256": "bbf3786ec1cfcb7fbf009fef4694797bd12e17092e6234bc6ba7609cdfc6415c",
+  "critic_sha256": "4daa23ff3036866823cca1a22e85789387015417c98c4e97802c83d0ad392cab",
+  "positions": 2851,
+  "games": 256,
+  "public": {
+    "raw": {
+      "return_mse": 0.8287881077273528,
+      "explained_variance": 0.15163958226977525,
+      "correlation": 0.3907086722100804
+    },
+    "out_of_fold_shrinkage": {
+      "return_mse": 0.8572712145823967,
+      "explained_variance": 0.11458846563488922,
+      "correlation": 0.3396016885715451
+    },
+    "fits": [
+      {
+        "heldout_fold": 0,
+        "slope": 1.0,
+        "intercept": 0.028398003977948186,
+        "training_games": 128,
+        "heldout_games": 128
+      },
+      {
+        "heldout_fold": 1,
+        "slope": 1.0,
+        "intercept": -0.19057347420388215,
+        "training_games": 128,
+        "heldout_games": 128
+      }
+    ]
+  },
+  "private": {
+    "raw": {
+      "return_mse": 0.7854730210170087,
+      "explained_variance": 0.19139761509422148,
+      "correlation": 0.43930525544513976
+    },
+    "out_of_fold_shrinkage": {
+      "return_mse": 0.7999134660394285,
+      "explained_variance": 0.1737862204908025,
+      "correlation": 0.416929175132618
+    },
+    "fits": [
+      {
+        "heldout_fold": 0,
+        "slope": 0.8878663660931817,
+        "intercept": 0.033510398678262235,
+        "training_games": 128,
+        "heldout_games": 128
+      },
+      {
+        "heldout_fold": 1,
+        "slope": 0.8972724232974364,
+        "intercept": -0.12375670897699848,
+        "training_games": 128,
+        "heldout_games": 128
+      }
+    ]
+  },
+  "paired_head_comparison": {
+    "seed_blocks": 128,
+    "bootstrap_replicates": 10000,
+    "interpretation": "Positive differences favor the private head. Blocks retain both seats and all turns; positions are weighted as in the main value audit. No counterfactual action-ranking claim.",
+    "private_minus_public_ev": {
+      "estimate": 0.039758032824446295,
+      "bootstrap_95": [
+        -0.010826655773210701,
+        0.08728425128944813
+      ],
+      "valid_replicates": 10000
+    },
+    "public_minus_private_mse": {
+      "estimate": 0.04331508671034423,
+      "bootstrap_95": [
+        -0.005689500074103204,
+        0.09047762526577964
+      ],
+      "valid_replicates": 10000
+    }
+  },
+  "limits": "Two folds keep both seats and all positions of a seed block together. Diagnostic only: no model weights or deployment scores changed. Better calibration across observed games does not establish correct ranking of alternative actions or justify search promotion."
+}

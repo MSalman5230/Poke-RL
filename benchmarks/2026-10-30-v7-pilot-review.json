@@ -1,0 +1,480 @@
+{
+  "status": "pilots_complete_reference_retention_running",
+  "feature_signature": "ef1b73389f57f188e9b09af83f6a3c542afbcd5ea756cc8506ac6113c7dbb3ef",
+  "design": "Two pilots, same initial model and training seed, different opponent mixtures. Approximately matched policy-decision budgets; one training seed only. Runs shared hardware, so elapsed compute is not an isolated benchmark.",
+  "evaluations": "256 games per opponent/schedule; deterministic policy; seed 92341; paired seed-block comparisons.",
+  "runs": {
+    "control": {
+      "steps": 262322,
+      "updates": 8,
+      "checkpoint": "runtime_data\\ppo_v7_mix_control\\step_000262322.pt",
+      "checkpoint_sha256": "bbf3786ec1cfcb7fbf009fef4694797bd12e17092e6234bc6ba7609cdfc6415c",
+      "results": {
+        "manifest": {
+          "balanced": {
+            "games": 256,
+            "wins": 130,
+            "losses": 126,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.5078125,
+            "confidence": [
+              0.4469087669627319,
+              0.5684852269166163
+            ]
+          },
+          "hyperoffense": {
+            "games": 256,
+            "wins": 134,
+            "losses": 122,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.5234375,
+            "confidence": [
+              0.4623612889416475,
+              0.5838206926963967
+            ]
+          },
+          "setup_sweeper": {
+            "games": 256,
+            "wins": 139,
+            "losses": 117,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.54296875,
+            "confidence": [
+              0.48175952116554094,
+              0.6029074451708731
+            ]
+          },
+          "attrition": {
+            "games": 256,
+            "wins": 150,
+            "losses": 106,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.5859375,
+            "confidence": [
+              0.5247626618207338,
+              0.6445712708520946
+            ]
+          },
+          "pivot": {
+            "games": 256,
+            "wins": 144,
+            "losses": 112,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.5625,
+            "confidence": [
+              0.5012501914651899,
+              0.6219017595695944
+            ]
+          },
+          "frozen_initial": {
+            "games": 256,
+            "wins": 113,
+            "losses": 143,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.44140625,
+            "confidence": [
+              0.38188965966779864,
+              0.5026553862370912
+            ]
+          }
+        },
+        "saved": {
+          "balanced": {
+            "games": 256,
+            "wins": 254,
+            "losses": 2,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.9921875,
+            "confidence": [
+              0.9719666598432031,
+              0.9978549545557232
+            ]
+          }
+        },
+        "cores": {
+          "balanced": {
+            "games": 256,
+            "wins": 147,
+            "losses": 109,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.57421875,
+            "confidence": [
+              0.5129894223122974,
+              0.6332535195415089
+            ]
+          }
+        },
+        "saved_vs_varied": {
+          "balanced": {
+            "games": 256,
+            "wins": 220,
+            "losses": 36,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.859375,
+            "confidence": [
+              0.8114600115031926,
+              0.896663706946817
+            ]
+          }
+        },
+        "primary_metrics": [
+          "manifest",
+          "cores"
+        ],
+        "complete": true
+      },
+      "completed_update_rollout_seconds": 1538.8779999999983,
+      "completed_update_optimization_seconds": 94.75099999999999,
+      "timing_limit": "Excludes discarded in-flight rollout at user pause; concurrent jobs affected timing.",
+      "actor_sample_coverage": [
+        1.0
+      ],
+      "last_kl": 0.007611490585772759
+    },
+    "neural": {
+      "steps": 262244,
+      "updates": 8,
+      "checkpoint": "runtime_data\\ppo_v7_mix_neural\\step_000262244.pt",
+      "checkpoint_sha256": "85c8cd5720f19bbe0b10d1ef0848446045675239648f4d137c5211dfbbe8d32f",
+      "results": {
+        "manifest": {
+          "balanced": {
+            "games": 256,
+            "wins": 150,
+            "losses": 106,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.5859375,
+            "confidence": [
+              0.5247626618207338,
+              0.6445712708520946
+            ]
+          },
+          "hyperoffense": {
+            "games": 256,
+            "wins": 145,
+            "losses": 111,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.56640625,
+            "confidence": [
+              0.5051595111047827,
+              0.6256894368696756
+            ]
+          },
+          "setup_sweeper": {
+            "games": 256,
+            "wins": 157,
+            "losses": 99,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.61328125,
+            "confidence": [
+              0.5523681228806132,
+              0.6708447883699333
+            ]
+          },
+          "attrition": {
+            "games": 256,
+            "wins": 141,
+            "losses": 115,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.55078125,
+            "confidence": [
+              0.48954464249048335,
+              0.6105163177252789
+            ]
+          },
+          "pivot": {
+            "games": 256,
+            "wins": 153,
+            "losses": 103,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.59765625,
+            "confidence": [
+              0.5365702995763066,
+              0.6558546239155438
+            ]
+          },
+          "frozen_initial": {
+            "games": 256,
+            "wins": 131,
+            "losses": 125,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.51171875,
+            "confidence": [
+              0.450766406732958,
+              0.572324584086064
+            ]
+          }
+        },
+        "saved": {
+          "balanced": {
+            "games": 256,
+            "wins": 253,
+            "losses": 3,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.98828125,
+            "confidence": [
+              0.9661178322810585,
+              0.9960067851781936
+            ]
+          }
+        },
+        "cores": {
+          "balanced": {
+            "games": 256,
+            "wins": 141,
+            "losses": 115,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.55078125,
+            "confidence": [
+              0.48954464249048335,
+              0.6105163177252789
+            ]
+          }
+        },
+        "saved_vs_varied": {
+          "balanced": {
+            "games": 256,
+            "wins": 234,
+            "losses": 22,
+            "draws": 0,
+            "errors": 0,
+            "truncations": 0,
+            "fallbacks": 0,
+            "win_rate": 0.9140625,
+            "confidence": [
+              0.8733168298757226,
+              0.9425648457297233
+            ]
+          }
+        },
+        "primary_metrics": [
+          "manifest",
+          "cores"
+        ],
+        "complete": true
+      },
+      "completed_update_rollout_seconds": 1400.577000000001,
+      "completed_update_optimization_seconds": 94.25,
+      "timing_limit": "Excludes discarded in-flight rollout at user pause; concurrent jobs affected timing.",
+      "actor_sample_coverage": [
+        1.0
+      ],
+      "last_kl": 0.00759843262267168
+    }
+  },
+  "comparisons": {
+    "mixture-broad": {
+      "report": "benchmarks\\2026-10-30-v7-mixture-broad.json",
+      "candidate_minus_baseline": 0.03828125,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        0.0031250000000000054,
+        0.0734375
+      ]
+    },
+    "mixture-cores": {
+      "report": "benchmarks\\2026-10-30-v7-mixture-cores.json",
+      "candidate_minus_baseline": -0.0234375,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        -0.08203125,
+        0.03515625
+      ]
+    },
+    "mixture-cross": {
+      "report": "benchmarks\\2026-10-30-v7-mixture-cross.json",
+      "candidate_minus_baseline": 0.0546875,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        -0.0078125,
+        0.12109375
+      ]
+    },
+    "mixture-neural-opponent": {
+      "report": "benchmarks\\2026-10-30-v7-mixture-neural-opponent.json",
+      "candidate_minus_baseline": 0.0703125,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        0.015625,
+        0.125
+      ]
+    },
+    "neural-vs-v6-broad": {
+      "report": "benchmarks\\2026-10-30-v7-neural-vs-v6-broad.json",
+      "candidate_minus_baseline": 0.022656250000000003,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        -0.014843750000000001,
+        0.06015625000000001
+      ]
+    },
+    "neural-vs-v6-cores": {
+      "report": "benchmarks\\2026-10-30-v7-neural-vs-v6-cores.json",
+      "candidate_minus_baseline": 0.00390625,
+      "paired_seed_blocks": 128,
+      "bootstrap_95": [
+        -0.06640625,
+        0.078125
+      ]
+    }
+  },
+  "value_audits": {
+    "control": {
+      "report": "benchmarks\\2026-10-30-v7-control-value-calibration.json",
+      "public": {
+        "return_mse": 0.8287881077273528,
+        "explained_variance": 0.15163958226977525,
+        "correlation": 0.3907086722100804
+      },
+      "private": {
+        "return_mse": 0.7854730210170087,
+        "explained_variance": 0.19139761509422148,
+        "correlation": 0.43930525544513976
+      },
+      "comparison": {
+        "seed_blocks": 128,
+        "bootstrap_replicates": 10000,
+        "interpretation": "Positive differences favor the private head. Blocks retain both seats and all turns; positions are weighted as in the main value audit. No counterfactual action-ranking claim.",
+        "private_minus_public_ev": {
+          "estimate": 0.039758032824446295,
+          "bootstrap_95": [
+            -0.010826655773210701,
+            0.08728425128944813
+          ],
+          "valid_replicates": 10000
+        },
+        "public_minus_private_mse": {
+          "estimate": 0.04331508671034423,
+          "bootstrap_95": [
+            -0.005689500074103204,
+            0.09047762526577964
+          ],
+          "valid_replicates": 10000
+        }
+      }
+    },
+    "neural": {
+      "report": "benchmarks\\2026-10-30-v7-neural-value-calibration.json",
+      "public": {
+        "return_mse": 0.7998889454169322,
+        "explained_variance": 0.1811271567971754,
+        "correlation": 0.4285237477704455
+      },
+      "private": {
+        "return_mse": 0.7466989686023103,
+        "explained_variance": 0.22825386862446484,
+        "correlation": 0.47801761039935303
+      },
+      "comparison": {
+        "seed_blocks": 128,
+        "bootstrap_replicates": 10000,
+        "interpretation": "Positive differences favor the private head. Blocks retain both seats and all turns; positions are weighted as in the main value audit. No counterfactual action-ranking claim.",
+        "private_minus_public_ev": {
+          "estimate": 0.0471267118272895,
+          "bootstrap_95": [
+            -0.014709995111583985,
+            0.10746579641443625
+          ],
+          "valid_replicates": 10000
+        },
+        "public_minus_private_mse": {
+          "estimate": 0.0531899768146219,
+          "bootstrap_95": [
+            -0.01378732823464023,
+            0.11791847611745708
+          ],
+          "valid_replicates": 10000
+        }
+      }
+    },
+    "neural-sampled": {
+      "report": "benchmarks\\2026-10-30-v7-neural-sampled-value-calibration.json",
+      "public": {
+        "return_mse": 0.8043912131838171,
+        "explained_variance": 0.1723872767407716,
+        "correlation": 0.41655965350397856
+      },
+      "private": {
+        "return_mse": 0.752202304786182,
+        "explained_variance": 0.2230392039014366,
+        "correlation": 0.47326580716428374
+      },
+      "comparison": {
+        "seed_blocks": 128,
+        "bootstrap_replicates": 10000,
+        "interpretation": "Positive differences favor the private head. Blocks retain both seats and all turns; positions are weighted as in the main value audit. No counterfactual action-ranking claim.",
+        "private_minus_public_ev": {
+          "estimate": 0.05065192716066484,
+          "bootstrap_95": [
+            -0.0031914727708300733,
+            0.10390112761272263
+          ],
+          "valid_replicates": 10000
+        },
+        "public_minus_private_mse": {
+          "estimate": 0.05218890839763479,
+          "bootstrap_95": [
+            -0.009604334380556325,
+            0.11015392590787101
+          ],
+          "valid_replicates": 10000
+        }
+      }
+    }
+  },
+  "decision": "Continue the 50% scripted / 25% self-play / 25% historical mixture as an experiment to two million cumulative v7 decisions. It improved broad validation and frozen-imitation matchups versus the control, but did not improve held-out cores conclusively. No promotion over v6.",
+  "private_critic_decision": "Keep public PPO advantages. Both deterministic and sampled private-head EV estimates are higher, but seed-block confidence intervals for the advantage include zero. No search promotion.",
+  "prospective_test_v7_used": false,
+  "reference_retention": "128-game neural-pilot validation still running; excluded from mixture-selection claims until complete."
+}
