@@ -20,5 +20,7 @@ Push-Location $clientPath
 try {
     node build
     if ($LASTEXITCODE -ne 0) { throw 'Showdown client build failed' }
+    node -e "require(process.argv[1]).prepareAssets(process.argv[2])" (Join-Path $projectRoot 'simulator/showdown_http.cjs') (Join-Path $clientPath 'play.pokemonshowdown.com')
+    if ($LASTEXITCODE -ne 0) { throw 'Local battle graphics build failed' }
 } finally { Pop-Location }
 Write-Host 'Ready. Run .\.venv\Scripts\python.exe -m champions_rl.human_play from the project directory.'

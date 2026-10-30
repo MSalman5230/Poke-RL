@@ -2,6 +2,29 @@
 // Serve the official client on the same loopback origin as the battle server.
 // No public Showdown account or login-server credential is used for local play.
 const fs=require('fs'),path=require('path');
+function prepareAssets(root){
+  // The upstream quick build emits these scripts separately but omits the
+  // graphics.js bundle referenced by testclient-new.html. Its async remote
+  // fallback races battle creation, especially when opening a battle URL.
+  const sources=['battle-animations.js','battle-animations-moves.js'];
+  const graphics=sources.map(name=>fs.readFileSync(path.join(root,'js',name),'utf8')).join('\n;\n');
+  fs.mkdirSync(path.join(root,'data'),{recursive:true});
+  fs.writeFileSync(path.join(root,'data/graphics.js'),graphics,'utf8');
+  // Battle messages have the same ordering requirement as the scene renderer.
+  // Export the English text from our installed, pinned simulator.
+  const {Dex}=require('pokemon-showdown');
+  const text=JSON.parse(JSON.stringify(Dex.loadTextData('en')));
+  const champions=Dex.mod('champions').data;
+  for(const table of ['Moves','Abilities','Items']){
+    for(const [id,entry] of Object.entries(champions[table])){
+      if(entry.desc||entry.shortDesc)text[table][id]={...text[table][id],champions:{
+        desc:entry.desc||entry.shortDesc,shortDesc:entry.shortDesc||entry.desc}};
+    }
+  }
+  fs.mkdirSync(path.join(root,'data/text'),{recursive:true});
+  fs.writeFileSync(path.join(root,'data/text/en.js'),
+    'exports.BattleText = exports.BattleText || {};\nexports.BattleText.en = '+JSON.stringify(text)+';\n','utf8');
+}
 function localHTML(root,port){
   let html=fs.readFileSync(path.join(root,'testclient-new.html'),'utf8');
   const config={version:'local',bannedHosts:[],whitelist:[],customcolors:{},
@@ -46,4 +69,4 @@ function handler(root,port){
     return true;
   };
 }
-module.exports={handler,localHTML};
+module.exports={handler,localHTML,prepareAssets};

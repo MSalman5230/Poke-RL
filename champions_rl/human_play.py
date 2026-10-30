@@ -44,6 +44,10 @@ def prepare_server(port,bot_name):
     client_root=ROOT/'runtime_data/showdown_client/play.pokemonshowdown.com'
     if not (client_root/'js/client-main.js').exists():
         raise RuntimeError('Build the official local client first: .\\tools\\setup_human_play.ps1')
+    subprocess.run([shutil.which('node') or 'node','-e',
+        "require('./simulator/showdown_http.cjs').prepareAssets(process.argv[1])",str(client_root)],
+        cwd=ROOT,check=True,capture_output=True,text=True,
+        creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
     config="""'use strict';
 exports.bindaddress = '127.0.0.1';
 exports.port = PORT;
